@@ -54,7 +54,6 @@ function showErr(msg){ errBox.textContent = msg; errBox.style.display='block';
   setTimeout(()=>{ errBox.style.display='none'; }, 4000); }
 function nowMs(){ return (window.performance && performance.now) ? performance.now() : Date.now(); }
 
-// fetch を自動リトライ（モバイルの一時的失敗対策）
 async function post(url, body, retries){
   retries = (retries===undefined)?2:retries;
   for (let i=0;i<=retries;i++){
@@ -87,6 +86,20 @@ async function join() {
   }
 }
 
+// 参加前の入力画面へ戻す（全リセットされた時）
+function backToStart(){
+  me = null; roundId = 0; phase = 'idle';
+  if (es) { es.close(); es = null; }
+  tag.textContent = '';
+  setScreen('s-wait', `
+    <h1>⚡ 反射神経バトル</h1>
+    <p>ニックネームを入れて参加しよう</p>
+    <input id="name" maxlength="20" placeholder="なまえ" autocomplete="off">
+    <button id="joinBtn">参加する</button>`);
+  document.getElementById('joinBtn').onclick = join;
+  document.getElementById('name').addEventListener('keydown', e => { if (e.key==='Enter') join(); });
+}
+
 function waiting() {
   phase = 'idle';
   setScreen('s-wait', `
@@ -95,22 +108,21 @@ function waiting() {
     <p class="muted">緑になった<b>瞬間</b>に画面をタップ！</p>`);
 }
 
-// --- SSE接続（リアルタイム合図） ---
 function connect() {
   if (es) es.close();
   es = new EventSource('/events/player?id=' + me.id);
   es.addEventListener('round-start', e => startRound(JSON.parse(e.data).roundId));
   es.addEventListener('reset', () => waiting());
-  es.onerror = () => { /* 自動再接続に任せる */ };
+  es.addEventListener('kick', () => backToStart()); // 全リセット時：入力画面へ戻る
+  es.onerror = () => {};
 }
 
-// --- ラウンド開始（各スマホで独立に計測） ---
 function startRound(rid) {
   roundId = rid;
   clearTimeout(timer);
   phase = 'ready';
   setScreen('s-ready', `<h1>まだ！</h1><p class="big">🔴</p><p>緑になるまで待て…</p>`);
-  const delay = 1500 + Math.random() * 3000; // 1.5〜4.5秒後に緑
+  const delay = 1500 + Math.random() * 3000;
   timer = setTimeout(goGreen, delay);
   bindTap();
 }
@@ -120,7 +132,6 @@ function goGreen() {
   setScreen('s-go', `<h1>今だ！！</h1><p class="big">🟢</p><p>タップ！</p>`);
 }
 
-// iPhone/Android両対応：click と touchstart 両方を拾う
 function bindTap(){
   screen.onclick = onTap;
   screen.ontouchstart = function(ev){ ev.preventDefault(); onTap(); };
@@ -128,12 +139,12 @@ function bindTap(){
 function unbindTap(){ screen.onclick = null; screen.ontouchstart = null; }
 
 function onTap() {
-  if (phase === 'ready') {           // フライング
+  if (phase === 'ready') {
     clearTimeout(timer); phase = 'done'; unbindTap();
     setScreen('s-foul', `<h1>フライング！</h1><p>緑になる前に押しちゃった😵</p><p>今回は無効です</p>`);
     post('/api/result', { id: me.id, roundId, foul: true }, 2).catch(()=>{});
     setTimeout(waiting, 2500);
-  } else if (phase === 'go') {       // 正常反応
+  } else if (phase === 'go') {
     const t = nowMs() - greenAt;
     phase = 'done'; unbindTap();
     showResult(t);
