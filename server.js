@@ -9,8 +9,8 @@
 //  ★リセット2種類：
 //    /api/reset      … タイムのみ（参加者は残す）
 //    /api/reset-all  … 参加者も含めて全リセット
-//  ★再入場対応：
-//    /api/rejoin     … 保存したIDで同じ人として復帰（記録も維持）
+//  ★再入場：
+//    /api/rejoin     … 保存IDで復帰。IDが失われても「同名」があれば合流
 // ============================================================
 
 const http = require('http');
@@ -47,6 +47,16 @@ function stats() {
 }
 function pushLeaderboard() { broadcastHosts('leaderboard', { board: leaderboard(), stats: stats() }); }
 
+// 同じ名前の既存プレイヤーを探す（大文字小文字・前後空白を無視）
+function findByName(name) {
+  const key = (name || '').toString().trim().toLowerCase();
+  if (!key) return null;
+  for (const [id, pl] of players.entries()) {
+    if ((pl.name || '').trim().toLowerCase() === key) return { id, pl };
+  }
+  return null;
+}
+
 function serveFile(res, file, type) {
   fs.readFile(file, (err, buf) => {
     if (err) { res.writeHead(404); return res.end('Not found'); }
@@ -71,7 +81,6 @@ const server = http.createServer(async (req, res) => {
   if (p === '/' || p === '/player') return serveFile(res, path.join(PUBLIC, 'player.html'), 'text/html; charset=utf-8');
   if (p === '/host')                return serveFile(res, path.join(PUBLIC, 'host.html'),   'text/html; charset=utf-8');
 
-  // SSE: プレイヤー
   if (p === '/events/player') {
     const id = url.searchParams.get('id');
     if (!id || !players.has(id)) { res.writeHead(400); return res.end('bad id'); }
@@ -83,7 +92,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // SSE: ホスト
   if (p === '/events/host') {
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
     res.write('\n');
@@ -93,39 +101,47 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 新規参加
+  // 新規参加：同名が既にいれば「合流」して重複を防ぐ
   if (req.method === 'POST' && p === '/api/join') {
     const { name } = await readBody(req);
     const nm = (name || '').toString().trim().slice(0, 20) || '名無し';
+    const found = findByName(nm);
+    if (found) {
+      // 同じ名前が既に存在 → その人として合流（記録も維持）
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ id: found.id, name: found.pl.name, round, merged: true }));
+    }
     const id = uid();
     players.set(id, { name: nm, best: null, times: [], fouls: 0, lastRound: 0 });
     pushLeaderboard();
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ id, name: nm, round }));
+    return res.end(JSON.stringify({ id, name: nm, round, merged: false }));
   }
 
-  // 再入場：保存済みのIDで同じ人として復帰
+  // 再入場：まずID一致で復帰、ダメなら同名で合流、それも無ければ作成
   if (req.method === 'POST' && p === '/api/rejoin') {
     const { id, name } = await readBody(req);
     const nm = (name || '').toString().trim().slice(0, 20) || '名無し';
+    // ① 保存IDが有効 → そのまま復帰
     if (id && players.has(id)) {
-      // サーバーにまだ本人が残っている → そのまま復帰（記録も維持）
       const pl = players.get(id);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ id, name: pl.name, round, restored: true }));
     }
-    if (id) {
-      // 本人はもういない（全リセット後など） → 同じIDと名前で作り直し
-      players.set(id, { name: nm, best: null, times: [], fouls: 0, lastRound: 0 });
-      pushLeaderboard();
+    // ② IDは失われたが同名がいる → 合流
+    const found = findByName(nm);
+    if (found) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ id, name: nm, round, restored: false }));
+      return res.end(JSON.stringify({ id: found.id, name: found.pl.name, round, restored: true, merged: true }));
     }
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ ok: false }));
+    // ③ どちらも無い → 新規作成（保存IDがあれば流用、無ければ発番）
+    const newId = id || uid();
+    players.set(newId, { name: nm, best: null, times: [], fouls: 0, lastRound: 0 });
+    pushLeaderboard();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ id: newId, name: nm, round, restored: false }));
   }
 
-  // 結果送信
   if (req.method === 'POST' && p === '/api/result') {
     const { id, roundId, timeMs, foul } = await readBody(req);
     const pl = players.get(id);
@@ -143,7 +159,6 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ ok: true }));
   }
 
-  // ラウンド開始
   if (req.method === 'POST' && p === '/api/start') {
     round = { id: round.id + 1, active: true, startedAt: Date.now() };
     broadcastPlayers('round-start', { roundId: round.id });
@@ -153,7 +168,6 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ ok: true, round }));
   }
 
-  // 記録のみリセット（参加者は残す）
   if (req.method === 'POST' && p === '/api/reset') {
     for (const pl of players.values()) { pl.best = null; pl.times = []; pl.fouls = 0; }
     round = { id: 0, active: false, startedAt: 0 };
@@ -163,7 +177,6 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ ok: true }));
   }
 
-  // 全リセット（参加者も消す）
   if (req.method === 'POST' && p === '/api/reset-all') {
     players.clear();
     round = { id: 0, active: false, startedAt: 0 };
