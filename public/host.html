@@ -3,41 +3,47 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>反射神経バトル｜ホスト画面</title>
+<title>反射神経＆連打バトル｜ホスト画面</title>
 <style>
   * { box-sizing:border-box; }
   body { margin:0; font-family:-apple-system,"Noto Sans JP",sans-serif; background:#0b1f33; color:#fff; height:100vh; overflow:hidden; }
-  .wrap { display:grid; grid-template-columns: 360px 1fr; height:100vh; }
-  .side { background:#0e2947; padding:22px 20px; display:flex; flex-direction:column; gap:13px; }
+  .wrap { display:grid; grid-template-columns: 380px 1fr; height:100vh; }
+  .side { background:#0e2947; padding:20px 18px; display:flex; flex-direction:column; gap:11px; overflow-y:auto; }
   .main { padding:24px 32px; overflow:hidden; display:flex; flex-direction:column; }
-  h1 { margin:0; font-size:1.55rem; }
-  .qr { background:#fff; padding:12px; border-radius:16px; text-align:center; }
-  .qr img { width:200px; height:200px; }
-  .url { background:#08315a; padding:8px 10px; border-radius:10px; font-size:.8rem; word-break:break-all; }
-  .stat { display:flex; gap:10px; }
-  .card { background:#08315a; border-radius:12px; padding:9px 12px; flex:1; text-align:center; }
-  .card b { display:block; font-size:1.8rem; }
-  .card span { font-size:.78rem; color:#9db8d6; }
-  button { font-size:1.08rem; font-weight:800; padding:13px; border:none; border-radius:14px; cursor:pointer; }
+  h1 { margin:0; font-size:1.5rem; }
+  .qr { background:#fff; padding:10px; border-radius:16px; text-align:center; }
+  .qr img { width:170px; height:170px; }
+  .url { background:#08315a; padding:8px 10px; border-radius:10px; font-size:.78rem; word-break:break-all; }
+  .stat { display:flex; gap:8px; }
+  .card { background:#08315a; border-radius:12px; padding:8px 10px; flex:1; text-align:center; }
+  .card b { display:block; font-size:1.7rem; }
+  .card span { font-size:.75rem; color:#9db8d6; }
+  .modebox { background:#08315a; border-radius:12px; padding:10px 12px; }
+  .modebox .lbl { font-size:.82rem; color:#9db8d6; margin-bottom:6px; }
+  .seg { display:flex; gap:6px; }
+  .seg button { flex:1; font-size:.95rem; font-weight:700; padding:9px 4px; border:2px solid #2a4d70; border-radius:10px; background:transparent; color:#cfe0f2; cursor:pointer; }
+  .seg button.on { background:#0067c0; border-color:#0067c0; color:#fff; }
+  .dur { margin-top:8px; }
+  #durRow { display:none; }
+  button.act { font-size:1.12rem; font-weight:800; padding:14px; border:none; border-radius:14px; cursor:pointer; }
   .start { background:#27ae60; color:#fff; }
-  .reset { background:#43607f; color:#fff; font-size:.98rem; }
-  .resetall { background:#8e3b3b; color:#fff; font-size:.98rem; }
+  .reset { background:#43607f; color:#fff; font-size:.95rem; }
+  .resetall { background:#8e3b3b; color:#fff; font-size:.95rem; }
   .main h2 { margin:.1em 0 .3em; font-size:1.4rem; }
   table { width:100%; border-collapse:collapse; font-size:1.35rem; }
   th,td { padding:9px 12px; text-align:left; }
   tbody tr:nth-child(odd){ background:#0e2947; }
   .rk { width:70px; font-weight:800; }
-  .ms { text-align:right; font-variant-numeric: tabular-nums; font-weight:700; }
+  .sc { text-align:right; font-variant-numeric: tabular-nums; font-weight:700; }
   .top1 td { background:#f1c40f !important; color:#0b1f33; font-size:1.55rem; }
   .top2 td { background:#bdc3c7 !important; color:#0b1f33; }
   .top3 td { background:#cd7f32 !important; color:#0b1f33; }
-  .lead{ font-size:.85rem; color:#9db8d6; line-height:1.5; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="side">
-    <h1>⚡ 反射神経バトル</h1>
+    <h1>⚡ バトル操作盤</h1>
     <div class="qr" id="qr">QR生成中…</div>
     <div class="url" id="url"></div>
     <div class="stat">
@@ -45,16 +51,32 @@
       <div class="card"><b id="answered">0</b><span>回答済み</span></div>
       <div class="card"><b id="rnd">0</b><span>ラウンド</span></div>
     </div>
-    <button class="start" id="startBtn">▶ ラウンド開始（よーいドン）</button>
-    <button class="reset" id="resetBtn">記録をリセット（参加者は残す）</button>
-    <button class="resetall" id="resetAllBtn">全リセット（参加者も消す）</button>
-    <div class="lead">・記録をリセット：同じメンバーで続けるとき<br>・全リセット：別グループに交代するとき</div>
+
+    <div class="modebox">
+      <div class="lbl">ゲームを選ぶ</div>
+      <div class="seg">
+        <button id="mReflex" class="on">⚡ 反射神経</button>
+        <button id="mTap">👆 連打</button>
+      </div>
+      <div class="dur" id="durRow">
+        <div class="lbl" style="margin-top:8px">連打の秒数（高齢の方が多い時は5秒推奨）</div>
+        <div class="seg">
+          <button data-d="5" id="d5">5秒</button>
+          <button data-d="7" id="d7" class="on">7秒</button>
+          <button data-d="10" id="d10">10秒</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="act start" id="startBtn">▶ ラウンド開始（よーいドン）</button>
+    <button class="act reset" id="resetBtn">記録をリセット（参加者は残す）</button>
+    <button class="act resetall" id="resetAllBtn">全リセット（参加者も消す）</button>
   </div>
   <div class="main">
-    <h2 id="title">🏆 ランキング（ベストタイム）</h2>
+    <h2 id="title">🏆 ランキング</h2>
     <div style="overflow:auto; flex:1">
       <table>
-        <thead><tr><th class="rk">順位</th><th>なまえ</th><th class="ms">ベスト</th><th class="ms">回数</th></tr></thead>
+        <thead><tr><th class="rk">順位</th><th>なまえ</th><th class="sc" id="scHead">スコア</th><th class="sc">回数</th></tr></thead>
         <tbody id="board"></tbody>
       </table>
     </div>
@@ -70,40 +92,63 @@ function drawQR() {
   const box = document.getElementById('qr');
   try {
     const qr = qrcode(0, 'M'); qr.addData(joinURL); qr.make();
-    box.innerHTML = qr.createImgTag(6, 8);
-    box.querySelector('img').style.width = '200px';
-    box.querySelector('img').style.height = '200px';
-  } catch (e) {
-    box.innerHTML = '<div style="color:#0b1f33">下のURLを手入力してください</div>';
-  }
+    box.innerHTML = qr.createImgTag(5, 6);
+    box.querySelector('img').style.width='170px'; box.querySelector('img').style.height='170px';
+  } catch (e) { box.innerHTML = '<div style="color:#0b1f33">下のURLを手入力してください</div>'; }
 }
-if (window._noqr) { document.getElementById('qr').innerHTML = '<div style="color:#0b1f33;padding:20px">下のURLをスマホで開いてください</div>'; }
+if (window._noqr) { document.getElementById('qr').innerHTML = '<div style="color:#0b1f33;padding:14px">下のURLをスマホで開いてください</div>'; }
 else { setTimeout(drawQR, 200); }
 
+// ---- モード選択 ----
+let mode = 'reflex';   // 'reflex' | 'tap'
+let duration = 7;
+const mReflex = document.getElementById('mReflex');
+const mTap = document.getElementById('mTap');
+const durRow = document.getElementById('durRow');
+mReflex.onclick = () => { mode='reflex'; mReflex.classList.add('on'); mTap.classList.remove('on'); durRow.style.display='none'; };
+mTap.onclick    = () => { mode='tap';    mTap.classList.add('on'); mReflex.classList.remove('on'); durRow.style.display='block'; };
+['5','7','10'].forEach(d=>{
+  document.getElementById('d'+d).onclick = (e)=>{
+    duration = parseInt(d,10);
+    ['5','7','10'].forEach(x=> document.getElementById('d'+x).classList.toggle('on', x===d));
+  };
+});
+
+// ---- ランキング購読 ----
+function esc(s){ return (s+'').replace(/[<>&]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
 const es = new EventSource('/events/host');
 es.addEventListener('leaderboard', e => {
   const { board, stats } = JSON.parse(e.data);
   document.getElementById('joined').textContent = stats.joined;
   document.getElementById('answered').textContent = stats.answered;
   document.getElementById('rnd').textContent = stats.round;
+  // 見出し：モードでスコアの単位を変える
+  document.getElementById('scHead').textContent = (stats.mode === 'tap') ? 'タップ数' : 'ベスト(ms)';
+  document.getElementById('title').textContent = (stats.mode === 'tap')
+      ? '🏆 連打ランキング（タップ数）' : '🏆 反射神経ランキング（ベストタイム）';
+  const unit = (stats.mode === 'tap') ? ' 回' : ' ms';
   const tb = document.getElementById('board');
   tb.innerHTML = board.slice(0, 20).map(r => {
     const cls = r.rank===1?'top1':r.rank===2?'top2':r.rank===3?'top3':'';
     const medal = r.rank===1?'🥇':r.rank===2?'🥈':r.rank===3?'🥉':r.rank;
-    return `<tr class="${cls}"><td class="rk">${medal}</td><td>${esc(r.name)}</td><td class="ms">${r.best} ms</td><td class="ms">${r.tries}</td></tr>`;
+    return `<tr class="${cls}"><td class="rk">${medal}</td><td>${esc(r.name)}</td><td class="sc">${r.score}${unit}</td><td class="sc">${r.tries}</td></tr>`;
   }).join('') || '<tr><td colspan="4" style="padding:24px;color:#9db8d6">まだ回答がありません</td></tr>';
 });
-es.addEventListener('round-start', () => {
+es.addEventListener('round-start', (e) => {
+  const d = JSON.parse(e.data);
   const t=document.getElementById('title');
-  t.textContent = '🟢 ラウンド進行中… 各自タップ！';
-  setTimeout(()=> t.textContent='🏆 ランキング（ベストタイム）', 6000);
+  t.textContent = (d.mode==='tap') ? '🟢 連打中… 各自ガンガンタップ！' : '🟢 ラウンド進行中… 各自タップ！';
+  const back = (d.mode==='tap') ? '🏆 連打ランキング（タップ数）' : '🏆 反射神経ランキング（ベストタイム）';
+  setTimeout(()=> t.textContent=back, (d.duration? d.duration*1000: 6000) + 3000);
 });
 
-function esc(s){ return (s+'').replace(/[<>&]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
-
-document.getElementById('startBtn').onclick = () => fetch('/api/start', {method:'POST'});
+// ---- 操作 ----
+document.getElementById('startBtn').onclick = () => {
+  fetch('/api/start', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ mode, duration })});
+};
 document.getElementById('resetBtn').onclick = () => {
-  if(confirm('タイムだけ消します（参加者はそのまま）。よろしいですか？')) fetch('/api/reset',{method:'POST'});
+  if(confirm('タイム/連打数だけ消します（参加者はそのまま）。よろしいですか？')) fetch('/api/reset',{method:'POST'});
 };
 document.getElementById('resetAllBtn').onclick = () => {
   if(confirm('参加者も含めて全部消します。参加者は再度QRから入り直しになります。よろしいですか？')) fetch('/api/reset-all',{method:'POST'});
