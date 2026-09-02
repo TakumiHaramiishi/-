@@ -13,7 +13,6 @@
   p  { font-size: 1.05rem; color:#333; margin:.4em 0; line-height:1.6; }
   input { font-size:1.2rem; padding:12px 16px; border:2px solid #ccc; border-radius:12px; width:80%; max-width:320px; text-align:center; }
   button { font-size:1.15rem; font-weight:700; padding:14px 28px; border:none; border-radius:14px; background:#0067c0; color:#fff; margin-top:16px; cursor:pointer; }
-  button.sub { background:#eee; color:#333; font-size:1rem; padding:10px 20px; }
   button:active { transform: scale(.97); }
   .big { font-size: 3rem; font-weight:800; }
   .muted { color:#666; font-size:.9rem; }
@@ -35,7 +34,7 @@
 <div class="err" id="err"></div>
 
 <script>
-const STORAGE_KEY = 'reflexBattle.session';
+const SKEY = 'reflexBattle.session';
 const screen = document.getElementById('screen');
 const tag = document.getElementById('tag');
 const errBox = document.getElementById('err');
@@ -50,10 +49,36 @@ function setScreen(cls, html) { screen.className = 'screen ' + cls; screen.inner
 function showErr(msg){ errBox.textContent = msg; errBox.style.display='block';
   setTimeout(()=>{ errBox.style.display='none'; }, 4000); }
 function nowMs(){ return (window.performance && performance.now) ? performance.now() : Date.now(); }
+function esc(s){ return (s+'').replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
 
-function saveSession(){ try { localStorage.setItem(STORAGE_KEY, JSON.stringify(me)); } catch(e){} }
-function loadSession(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch(e){ return null; } }
-function clearSession(){ try { localStorage.removeItem(STORAGE_KEY); } catch(e){} }
+// ---- セッション保存：localStorage と Cookie の二重化（Safari対策） ----
+function setCookie(name, val, days){
+  try {
+    const d = new Date(); d.setTime(d.getTime() + days*24*60*60*1000);
+    document.cookie = name + '=' + encodeURIComponent(val) + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
+  } catch(e){}
+}
+function getCookie(name){
+  try {
+    const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return m ? decodeURIComponent(m.pop()) : '';
+  } catch(e){ return ''; }
+}
+function saveSession(){
+  const v = JSON.stringify(me);
+  try { localStorage.setItem(SKEY, v); } catch(e){}
+  setCookie(SKEY, v, 1); // 1日保持
+}
+function loadSession(){
+  // localStorage優先、無ければCookie
+  try { const v = localStorage.getItem(SKEY); if (v) return JSON.parse(v); } catch(e){}
+  try { const v = getCookie(SKEY); if (v) return JSON.parse(v); } catch(e){}
+  return null;
+}
+function clearSession(){
+  try { localStorage.removeItem(SKEY); } catch(e){}
+  setCookie(SKEY, '', -1);
+}
 
 async function post(url, body, retries){
   retries = (retries===undefined)?2:retries;
@@ -69,11 +94,11 @@ async function post(url, body, retries){
   }
 }
 
-// --- 起動時：保存セッションがあれば再入場を試みる ---
+// --- 起動時：保存があれば再入場を試みる ---
 async function boot(){
   const saved = loadSession();
-  if (saved && saved.id && saved.name){
-    setScreen('s-wait', `<h1>復帰中…</h1><p class="muted">${esc(saved.name)} として戻っています…</p>`);
+  if (saved && (saved.id || saved.name)){
+    setScreen('s-wait', `<h1>復帰中…</h1><p class="muted">${esc(saved.name||'')} として戻っています…</p>`);
     try {
       const r = await post('/api/rejoin', { id: saved.id, name: saved.name }, 2);
       me = { id:r.id, name:r.name };
@@ -82,24 +107,20 @@ async function boot(){
       connect();
       waiting();
       return;
-    } catch(e){
-      // 再入場に失敗したら通常の参加画面へ
-    }
+    } catch(e){ /* 失敗したら参加画面へ */ }
   }
   showJoinScreen();
 }
 
-function esc(s){ return (s+'').replace(/[<>&]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
-
-// --- 参加画面（名前入力） ---
-function showJoinScreen(prefillName){
+function showJoinScreen(){
   const saved = loadSession();
-  const nm = prefillName || (saved && saved.name) || '';
+  const nm = (saved && saved.name) || '';
   setScreen('s-wait', `
     <h1>⚡ 反射神経バトル</h1>
     <p>ニックネームを入れて参加しよう</p>
     <input id="name" maxlength="20" placeholder="なまえ" autocomplete="off" value="${esc(nm)}">
-    <button id="joinBtn">参加する</button>`);
+    <button id="joinBtn">参加する</button>
+    <p class="muted">※閉じてしまっても、同じ名前で入り直せば戻れます</p>`);
   document.getElementById('joinBtn').onclick = join;
   document.getElementById('name').addEventListener('keydown', e => { if (e.key==='Enter') join(); });
 }
@@ -109,7 +130,11 @@ async function join() {
   const btn = document.getElementById('joinBtn');
   btn.disabled = true; btn.textContent = '接続中…';
   try {
-    const r = await post('/api/join', { name }, 3);
+    const saved = loadSession();
+    // 保存IDがあれば rejoin、無ければ join（どちらも同名合流に対応）
+    const r = saved && saved.id
+      ? await post('/api/rejoin', { id: saved.id, name }, 3)
+      : await post('/api/join',   { name }, 3);
     me = { id:r.id, name:r.name };
     saveSession();
     tag.textContent = me.name + ' として参加中';
@@ -121,7 +146,6 @@ async function join() {
   }
 }
 
-// 全リセット時：セッションを消して名前入力に戻す
 function backToStart(){
   me = null; roundId = 0; phase = 'idle';
   if (es) { es.close(); es = null; }
@@ -198,7 +222,7 @@ function showResult(t) {
   setTimeout(waiting, 3000);
 }
 
-boot(); // ← 起動時にセッション復帰を試みる
+boot();
 </script>
 </body>
 </html>
