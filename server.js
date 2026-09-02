@@ -5,6 +5,10 @@
 //  ・反応時間の計測は各スマホ側で行う（通信遅延の影響を受けない）
 //  ・PORT環境変数対応（Renderでそのまま動作）
 //  ・Googleログイン等の認証は一切不要 → iPhone/Androidどちらもそのまま参加OK
+//
+//  ★リセットは2種類：
+//    /api/reset      … タイムのみリセット（参加者は残す）
+//    /api/reset-all  … 参加者も含めて全リセット（別グループへの交代用）
 // ============================================================
 
 const http = require('http');
@@ -72,7 +76,6 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const p = url.pathname;
 
-  // ヘルスチェック（Renderのスリープ復帰確認などに使える）
   if (p === '/healthz') { res.writeHead(200); return res.end('ok'); }
 
   // --- ページ ---
@@ -129,7 +132,7 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ ok: true }));
   }
 
-  // ホスト操作：ラウンド開始（全スマホへ「よーいドン」合図）
+  // ホスト操作：ラウンド開始
   if (req.method === 'POST' && p === '/api/start') {
     round = { id: round.id + 1, active: true, startedAt: Date.now() };
     broadcastPlayers('round-start', { roundId: round.id });
@@ -139,11 +142,21 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ ok: true, round }));
   }
 
-  // ホスト操作：全リセット
+  // ホスト操作：記録のみリセット（参加者は残す）
   if (req.method === 'POST' && p === '/api/reset') {
     for (const pl of players.values()) { pl.best = null; pl.times = []; pl.fouls = 0; }
     round = { id: 0, active: false, startedAt: 0 };
     broadcastPlayers('reset', {});
+    pushLeaderboard();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ ok: true }));
+  }
+
+  // ホスト操作：全リセット（参加者も消す → 別グループへの交代用）
+  if (req.method === 'POST' && p === '/api/reset-all') {
+    players.clear();                 // 参加者を全消去（参加人数も0に）
+    round = { id: 0, active: false, startedAt: 0 };
+    broadcastPlayers('kick', {});    // 参加者側は「再参加してね」画面に戻す
     pushLeaderboard();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ ok: true }));
@@ -167,5 +180,4 @@ server.listen(PORT, () => {
   console.log(`  ホスト画面: http://${lan}:${PORT}/host`);
   console.log(`  参加者用:   http://${lan}:${PORT}/`);
   console.log('===================================================');
-  console.log('  ※Renderに公開した場合は、Renderが発行するURLを使ってください');
 });
