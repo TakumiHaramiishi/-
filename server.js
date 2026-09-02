@@ -1,14 +1,16 @@
 // ============================================================
 //  反射神経バトル (Reflex Battle) - サーバー [Render公開版]
 //  Node.js 標準モジュールのみで動作（npm install 不要）
-//  ・SSE(Server-Sent Events)で「よーいドン」合図とランキングを配信
-//  ・反応時間の計測は各スマホ側で行う（通信遅延の影響を受けない）
+//  ・SSEで「よーいドン」合図とランキングを配信
+//  ・反応時間は各スマホ側で計測（通信遅延の影響なし＝公平）
 //  ・PORT環境変数対応（Renderでそのまま動作）
-//  ・Googleログイン等の認証は一切不要 → iPhone/Androidどちらもそのまま参加OK
+//  ・認証不要 → iPhone/Androidどちらもそのまま参加OK
 //
-//  ★リセットは2種類：
-//    /api/reset      … タイムのみリセット（参加者は残す）
-//    /api/reset-all  … 参加者も含めて全リセット（別グループへの交代用）
+//  ★リセット2種類：
+//    /api/reset      … タイムのみ（参加者は残す）
+//    /api/reset-all  … 参加者も含めて全リセット
+//  ★再入場対応：
+//    /api/rejoin     … 保存したIDで同じ人として復帰（記録も維持）
 // ============================================================
 
 const http = require('http');
@@ -21,25 +23,17 @@ const PUBLIC = path.join(__dirname, 'public');
 
 // ---------- ゲーム状態 ----------
 const players = new Map();       // id -> {name, best, times[], fouls, lastRound}
-const playerClients = new Map(); // id -> res (SSEストリーム)
-const hostClients = new Set();   // ホスト画面のSSEストリーム
+const playerClients = new Map(); // id -> res
+const hostClients = new Set();
 let round = { id: 0, active: false, startedAt: 0 };
 
-// ---------- ユーティリティ ----------
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 function send(res, event, data) {
-  try {
-    res.write(`event: ${event}\n`);
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
-  } catch (_) {}
+  try { res.write(`event: ${event}\n`); res.write(`data: ${JSON.stringify(data)}\n\n`); } catch (_) {}
 }
-function broadcastPlayers(event, data) {
-  for (const res of playerClients.values()) send(res, event, data);
-}
-function broadcastHosts(event, data) {
-  for (const res of hostClients) send(res, event, data);
-}
+function broadcastPlayers(event, data) { for (const res of playerClients.values()) send(res, event, data); }
+function broadcastHosts(event, data) { for (const res of hostClients) send(res, event, data); }
 
 function leaderboard() {
   return [...players.values()]
@@ -51,11 +45,8 @@ function stats() {
   const withScore = [...players.values()].filter(p => p.best != null);
   return { joined: players.size, answered: withScore.length, round: round.id, active: round.active };
 }
-function pushLeaderboard() {
-  broadcastHosts('leaderboard', { board: leaderboard(), stats: stats() });
-}
+function pushLeaderboard() { broadcastHosts('leaderboard', { board: leaderboard(), stats: stats() }); }
 
-// ---------- 静的ファイル配信 ----------
 function serveFile(res, file, type) {
   fs.readFile(file, (err, buf) => {
     if (err) { res.writeHead(404); return res.end('Not found'); }
@@ -71,18 +62,16 @@ function readBody(req) {
   });
 }
 
-// ---------- サーバー ----------
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const p = url.pathname;
 
   if (p === '/healthz') { res.writeHead(200); return res.end('ok'); }
 
-  // --- ページ ---
   if (p === '/' || p === '/player') return serveFile(res, path.join(PUBLIC, 'player.html'), 'text/html; charset=utf-8');
   if (p === '/host')                return serveFile(res, path.join(PUBLIC, 'host.html'),   'text/html; charset=utf-8');
 
-  // --- SSE: プレイヤー ---
+  // SSE: プレイヤー
   if (p === '/events/player') {
     const id = url.searchParams.get('id');
     if (!id || !players.has(id)) { res.writeHead(400); return res.end('bad id'); }
@@ -94,7 +83,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // --- SSE: ホスト ---
+  // SSE: ホスト
   if (p === '/events/host') {
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
     res.write('\n');
@@ -104,7 +93,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // --- API ---
+  // 新規参加
   if (req.method === 'POST' && p === '/api/join') {
     const { name } = await readBody(req);
     const nm = (name || '').toString().trim().slice(0, 20) || '名無し';
@@ -115,6 +104,28 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ id, name: nm, round }));
   }
 
+  // 再入場：保存済みのIDで同じ人として復帰
+  if (req.method === 'POST' && p === '/api/rejoin') {
+    const { id, name } = await readBody(req);
+    const nm = (name || '').toString().trim().slice(0, 20) || '名無し';
+    if (id && players.has(id)) {
+      // サーバーにまだ本人が残っている → そのまま復帰（記録も維持）
+      const pl = players.get(id);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ id, name: pl.name, round, restored: true }));
+    }
+    if (id) {
+      // 本人はもういない（全リセット後など） → 同じIDと名前で作り直し
+      players.set(id, { name: nm, best: null, times: [], fouls: 0, lastRound: 0 });
+      pushLeaderboard();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ id, name: nm, round, restored: false }));
+    }
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ ok: false }));
+  }
+
+  // 結果送信
   if (req.method === 'POST' && p === '/api/result') {
     const { id, roundId, timeMs, foul } = await readBody(req);
     const pl = players.get(id);
@@ -132,7 +143,7 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ ok: true }));
   }
 
-  // ホスト操作：ラウンド開始
+  // ラウンド開始
   if (req.method === 'POST' && p === '/api/start') {
     round = { id: round.id + 1, active: true, startedAt: Date.now() };
     broadcastPlayers('round-start', { roundId: round.id });
@@ -142,7 +153,7 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ ok: true, round }));
   }
 
-  // ホスト操作：記録のみリセット（参加者は残す）
+  // 記録のみリセット（参加者は残す）
   if (req.method === 'POST' && p === '/api/reset') {
     for (const pl of players.values()) { pl.best = null; pl.times = []; pl.fouls = 0; }
     round = { id: 0, active: false, startedAt: 0 };
@@ -152,11 +163,11 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ ok: true }));
   }
 
-  // ホスト操作：全リセット（参加者も消す → 別グループへの交代用）
+  // 全リセット（参加者も消す）
   if (req.method === 'POST' && p === '/api/reset-all') {
-    players.clear();                 // 参加者を全消去（参加人数も0に）
+    players.clear();
     round = { id: 0, active: false, startedAt: 0 };
-    broadcastPlayers('kick', {});    // 参加者側は「再参加してね」画面に戻す
+    broadcastPlayers('kick', {});
     pushLeaderboard();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ ok: true }));
@@ -165,7 +176,6 @@ const server = http.createServer(async (req, res) => {
   res.writeHead(404); res.end('Not found');
 });
 
-// ---------- 起動 ----------
 server.listen(PORT, () => {
   const nets = os.networkInterfaces();
   let lan = 'localhost';
