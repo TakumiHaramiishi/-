@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>反射神経バトル｜ホスト画面</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Noto Sans JP",sans-serif; background:#0b1f33; color:#fff; height:100vh; overflow:hidden; }
+  .wrap { display:grid; grid-template-columns: 360px 1fr; height:100vh; }
+  .side { background:#0e2947; padding:24px 20px; display:flex; flex-direction:column; gap:16px; }
+  .main { padding:24px 32px; overflow:hidden; display:flex; flex-direction:column; }
+  h1 { margin:0; font-size:1.6rem; }
+  .qr { background:#fff; padding:12px; border-radius:16px; text-align:center; }
+  .qr img { width:220px; height:220px; }
+  .url { background:#08315a; padding:9px 11px; border-radius:10px; font-size:.85rem; word-break:break-all; }
+  .stat { display:flex; gap:12px; }
+  .card { background:#08315a; border-radius:12px; padding:10px 14px; flex:1; text-align:center; }
+  .card b { display:block; font-size:1.9rem; }
+  .card span { font-size:.8rem; color:#9db8d6; }
+  button { font-size:1.15rem; font-weight:800; padding:15px; border:none; border-radius:14px; cursor:pointer; }
+  .start { background:#27ae60; color:#fff; }
+  .reset { background:#43607f; color:#fff; }
+  .main h2 { margin:.1em 0 .3em; font-size:1.4rem; }
+  table { width:100%; border-collapse:collapse; font-size:1.35rem; }
+  th,td { padding:9px 12px; text-align:left; }
+  tbody tr:nth-child(odd){ background:#0e2947; }
+  .rk { width:70px; font-weight:800; }
+  .ms { text-align:right; font-variant-numeric: tabular-nums; font-weight:700; }
+  .top1 td { background:#f1c40f !important; color:#0b1f33; font-size:1.55rem; }
+  .top2 td { background:#bdc3c7 !important; color:#0b1f33; }
+  .top3 td { background:#cd7f32 !important; color:#0b1f33; }
+  .lead{ font-size:.9rem; color:#9db8d6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="side">
+    <h1>⚡ 反射神経バトル</h1>
+    <div class="qr" id="qr">QR生成中…</div>
+    <div class="url" id="url"></div>
+    <div class="stat">
+      <div class="card"><b id="joined">0</b><span>参加人数</span></div>
+      <div class="card"><b id="answered">0</b><span>回答済み</span></div>
+      <div class="card"><b id="rnd">0</b><span>ラウンド</span></div>
+    </div>
+    <button class="start" id="startBtn">▶ ラウンド開始（よーいドン）</button>
+    <button class="reset" id="resetBtn">記録をリセット</button>
+    <div class="lead">緑になった瞬間にタップ！各自のベストタイムでランキング。</div>
+  </div>
+  <div class="main">
+    <h2 id="title">🏆 ランキング（ベストタイム）</h2>
+    <div style="overflow:auto; flex:1">
+      <table>
+        <thead><tr><th class="rk">順位</th><th>なまえ</th><th class="ms">ベスト</th><th class="ms">回数</th></tr></thead>
+        <tbody id="board"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js" onerror="window._noqr=true"></script>
+<script>
+const joinURL = location.origin + '/';
+document.getElementById('url').textContent = joinURL;
+
+function drawQR() {
+  const box = document.getElementById('qr');
+  try {
+    const qr = qrcode(0, 'M'); qr.addData(joinURL); qr.make();
+    box.innerHTML = qr.createImgTag(6, 8);
+    box.querySelector('img').style.width = '220px';
+    box.querySelector('img').style.height = '220px';
+  } catch (e) {
+    box.innerHTML = '<div style="color:#0b1f33">下のURLを手入力してください</div>';
+  }
+}
+if (window._noqr) { document.getElementById('qr').innerHTML = '<div style="color:#0b1f33;padding:20px">下のURLをスマホで開いてください</div>'; }
+else { setTimeout(drawQR, 200); }
+
+// SSE：ランキング購読（リアルタイム）
+const es = new EventSource('/events/host');
+es.addEventListener('leaderboard', e => {
+  const { board, stats } = JSON.parse(e.data);
+  document.getElementById('joined').textContent = stats.joined;
+  document.getElementById('answered').textContent = stats.answered;
+  document.getElementById('rnd').textContent = stats.round;
+  const tb = document.getElementById('board');
+  tb.innerHTML = board.slice(0, 20).map(r => {
+    const cls = r.rank===1?'top1':r.rank===2?'top2':r.rank===3?'top3':'';
+    const medal = r.rank===1?'🥇':r.rank===2?'🥈':r.rank===3?'🥉':r.rank;
+    return `<tr class="${cls}"><td class="rk">${medal}</td><td>${esc(r.name)}</td><td class="ms">${r.best} ms</td><td class="ms">${r.tries}</td></tr>`;
+  }).join('') || '<tr><td colspan="4" style="padding:24px;color:#9db8d6">まだ回答がありません</td></tr>';
+});
+es.addEventListener('round-start', () => {
+  const t=document.getElementById('title');
+  t.textContent = '🟢 ラウンド進行中… 各自タップ！';
+  setTimeout(()=> t.textContent='🏆 ランキング（ベストタイム）', 6000);
+});
+
+function esc(s){ return (s+'').replace(/[<>&]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
+
+document.getElementById('startBtn').onclick = () => fetch('/api/start', {method:'POST'});
+document.getElementById('resetBtn').onclick = () => { if(confirm('全員の記録を消します。よろしいですか？')) fetch('/api/reset',{method:'POST'}); };
+</script>
+</body>
+</html>

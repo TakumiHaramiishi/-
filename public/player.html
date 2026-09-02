@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>反射神経バトル</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html,body { margin:0; height:100%; font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; overflow:hidden; }
+  #app { height:100vh; display:flex; flex-direction:column; }
+  .screen { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px; transition: background .1s; -webkit-user-select:none; user-select:none; }
+  h1 { font-size: 1.6rem; margin:.2em 0; }
+  p  { font-size: 1.05rem; color:#333; margin:.4em 0; line-height:1.6; }
+  input { font-size:1.2rem; padding:12px 16px; border:2px solid #ccc; border-radius:12px; width:80%; max-width:320px; text-align:center; }
+  button { font-size:1.15rem; font-weight:700; padding:14px 28px; border:none; border-radius:14px; background:#0067c0; color:#fff; margin-top:16px; cursor:pointer; }
+  button:active { transform: scale(.97); }
+  .big { font-size: 3rem; font-weight:800; }
+  .muted { color:#666; font-size:.9rem; }
+  .s-wait  { background:#fff; }
+  .s-ready { background:#c0392b; color:#fff; }
+  .s-go    { background:#27ae60; color:#fff; }
+  .s-foul  { background:#f39c12; color:#fff; }
+  .s-result{ background:#eaf3ff; }
+  .s-ready h1,.s-go h1,.s-foul h1 { color:#fff; }
+  .tag { position:fixed; top:10px; left:0; right:0; text-align:center; font-size:.85rem; color:#888; }
+  .err { position:fixed; bottom:0; left:0; right:0; background:#c0392b; color:#fff; font-size:.85rem; padding:8px; display:none; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="tag" id="tag"></div>
+  <div class="screen s-wait" id="screen">
+    <h1>⚡ 反射神経バトル</h1>
+    <p>ニックネームを入れて参加しよう</p>
+    <input id="name" maxlength="20" placeholder="なまえ" autocomplete="off">
+    <button id="joinBtn">参加する</button>
+  </div>
+</div>
+<div class="err" id="err"></div>
+
+<script>
+const screen = document.getElementById('screen');
+const tag = document.getElementById('tag');
+const errBox = document.getElementById('err');
+let me = null;
+let roundId = 0;
+let phase = 'idle';    // idle | ready | go | done
+let greenAt = 0;
+let timer = null;
+let es = null;
+
+function setScreen(cls, html) { screen.className = 'screen ' + cls; screen.innerHTML = html; }
+function showErr(msg){ errBox.textContent = msg; errBox.style.display='block';
+  setTimeout(()=>{ errBox.style.display='none'; }, 4000); }
+function nowMs(){ return (window.performance && performance.now) ? performance.now() : Date.now(); }
+
+// fetch を自動リトライ（モバイルの一時的失敗対策）
+async function post(url, body, retries){
+  retries = (retries===undefined)?2:retries;
+  for (let i=0;i<=retries;i++){
+    try {
+      const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body||{})});
+      if (!r.ok) throw new Error('HTTP '+r.status);
+      return await r.json();
+    } catch(e){
+      if (i===retries) throw e;
+      await new Promise(res=>setTimeout(res, 700));
+    }
+  }
+}
+
+// --- 参加 ---
+async function join() {
+  const name = document.getElementById('name').value.trim();
+  const btn = document.getElementById('joinBtn');
+  btn.disabled = true; btn.textContent = '接続中…';
+  try {
+    const r = await post('/api/join', { name }, 3);
+    me = { id:r.id, name:r.name };
+    roundId = r.round.id;
+    tag.textContent = me.name + ' として参加中';
+    connect();
+    waiting();
+  } catch(e){
+    btn.disabled = false; btn.textContent = '参加する';
+    showErr('接続に失敗しました。もう一度「参加する」を押してください');
+  }
+}
+
+function waiting() {
+  phase = 'idle';
+  setScreen('s-wait', `
+    <h1>スタンバイ中…</h1>
+    <p>司会の合図でスタートします。<br>画面を見て待っていてね👀</p>
+    <p class="muted">緑になった<b>瞬間</b>に画面をタップ！</p>`);
+}
+
+// --- SSE接続（リアルタイム合図） ---
+function connect() {
+  if (es) es.close();
+  es = new EventSource('/events/player?id=' + me.id);
+  es.addEventListener('round-start', e => startRound(JSON.parse(e.data).roundId));
+  es.addEventListener('reset', () => waiting());
+  es.onerror = () => { /* 自動再接続に任せる */ };
+}
+
+// --- ラウンド開始（各スマホで独立に計測） ---
+function startRound(rid) {
+  roundId = rid;
+  clearTimeout(timer);
+  phase = 'ready';
+  setScreen('s-ready', `<h1>まだ！</h1><p class="big">🔴</p><p>緑になるまで待て…</p>`);
+  const delay = 1500 + Math.random() * 3000; // 1.5〜4.5秒後に緑
+  timer = setTimeout(goGreen, delay);
+  bindTap();
+}
+function goGreen() {
+  phase = 'go';
+  greenAt = nowMs();
+  setScreen('s-go', `<h1>今だ！！</h1><p class="big">🟢</p><p>タップ！</p>`);
+}
+
+// iPhone/Android両対応：click と touchstart 両方を拾う
+function bindTap(){
+  screen.onclick = onTap;
+  screen.ontouchstart = function(ev){ ev.preventDefault(); onTap(); };
+}
+function unbindTap(){ screen.onclick = null; screen.ontouchstart = null; }
+
+function onTap() {
+  if (phase === 'ready') {           // フライング
+    clearTimeout(timer); phase = 'done'; unbindTap();
+    setScreen('s-foul', `<h1>フライング！</h1><p>緑になる前に押しちゃった😵</p><p>今回は無効です</p>`);
+    post('/api/result', { id: me.id, roundId, foul: true }, 2).catch(()=>{});
+    setTimeout(waiting, 2500);
+  } else if (phase === 'go') {       // 正常反応
+    const t = nowMs() - greenAt;
+    phase = 'done'; unbindTap();
+    showResult(t);
+    post('/api/result', { id: me.id, roundId, timeMs: t }, 3)
+      .catch(()=> showErr('記録の送信に失敗しました。次のラウンドで再挑戦してください'));
+  }
+}
+
+function judge(ms){
+  if (ms < 200) return '🏆 神反応！';
+  if (ms < 250) return '⚡ 素晴らしい！';
+  if (ms < 300) return '👍 いい感じ';
+  if (ms < 400) return '🙂 平均的';
+  return '🐢 もう一回！';
+}
+function showResult(t) {
+  setScreen('s-result', `
+    <h1>${judge(t)}</h1>
+    <p class="big">${t.toFixed(0)} <span style="font-size:1.2rem">ms</span></p>
+    <p>次の合図まで待ってね</p>`);
+  setTimeout(waiting, 3000);
+}
+
+document.getElementById('joinBtn').onclick = join;
+document.getElementById('name').addEventListener('keydown', e => { if (e.key==='Enter') join(); });
+</script>
+</body>
+</html>
