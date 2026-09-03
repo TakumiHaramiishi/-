@@ -2,16 +2,36 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>反射神経＆連打バトル</title>
 <style>
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html,body { margin:0; height:100%; font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; overflow:hidden; }
+  * {
+    box-sizing: border-box;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html,body {
+    margin:0; height:100%;
+    font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+    overflow:hidden;
+    touch-action: manipulation;
+    -ms-touch-action: manipulation;
+    overscroll-behavior: none;
+  }
   #app { height:100vh; display:flex; flex-direction:column; }
-  .screen { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px; transition: background .1s; -webkit-user-select:none; user-select:none; touch-action:manipulation; }
+  .screen {
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:24px; transition: background .1s;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+  }
   h1 { font-size: 1.6rem; margin:.2em 0; }
   p  { font-size: 1.05rem; color:#333; margin:.4em 0; line-height:1.6; }
-  input { font-size:1.2rem; padding:12px 16px; border:2px solid #ccc; border-radius:12px; width:80%; max-width:320px; text-align:center; }
+  input { font-size:1.2rem; padding:12px 16px; border:2px solid #ccc; border-radius:12px; width:80%; max-width:320px; text-align:center; -webkit-user-select:text; user-select:text; }
   button { font-size:1.15rem; font-weight:700; padding:14px 28px; border:none; border-radius:14px; background:#0067c0; color:#fff; margin-top:16px; cursor:pointer; }
   button:active { transform: scale(.97); }
   .big { font-size: 3rem; font-weight:800; }
@@ -31,7 +51,7 @@
   .timebar > div { height:100%; background:#fff; width:100%; }
 </style>
 </head>
-<body>
+<body ondragstart="return false" oncontextmenu="return false">
 <div id="app">
   <div class="tag" id="tag"></div>
   <div class="screen s-wait" id="screen"></div>
@@ -185,7 +205,7 @@ function startTapCountdown(rid, duration) {
   roundId = rid; clearTimers();
   phase = 'counting';
   let n = 3;
-  setScreen('s-count', '<h1>連打バトル！</h1><p>'+duration+'秒間、できるだけ多くタップ！</p><p class="huge">'+n+'</p>');
+  setScreen('s-count', '<h1>連打バトル！</h1><p>'+duration+'秒間、一本指でできるだけ多くタップ！</p><p class="huge">'+n+'</p>');
   const cd = setInterval(()=>{
     n--;
     if (n > 0){ const h=screen.querySelector('.huge'); if(h) h.textContent = n; }
@@ -199,7 +219,7 @@ function beginTapping(duration) {
     '<p class="huge" id="cnt">0</p>'+
     '<p id="rem">残り '+duration+'.0 秒</p>'+
     '<div class="timebar"><div id="bar"></div></div>'+
-    '<p class="muted">画面のどこでもタップ！</p>');
+    '<p class="muted">一本指で、画面のどこでもタップ！</p>');
   bindTap(onTapHit);
   const startT = nowMs();
   const total = duration * 1000;
@@ -235,22 +255,21 @@ function tapJudge(n){
 
 // ===== タップ入力の共通処理（指1本に限定・位置は自由） =====
 // pointerdown で数える。ただし「今すでに他の指が画面に触れている間」は
-// その2本目以降を無視する（同時押し・雑な多指乱打を防止）。
+// その2本目以降を無視（同時押し・雑な多指乱打を防止）。
 // 画面のどこを押してもOK。1本指なら位置がずれても全部カウントされる。
 const SUPPORTS_POINTER = ('PointerEvent' in window);
 const HAS_TOUCH = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 let lastInputAt = 0;
-const activePointers = new Set(); // 今画面に触れている指(ポインター)のID集合
+const activePointers = new Set();
 
 function onPointerDownCounter(handler){
   return function(ev){
     if (ev && ev.cancelable) ev.preventDefault();
     const pid = (ev && ev.pointerId != null) ? ev.pointerId : 0;
-    // すでに他の指が触れている最中の“追加の指”は無視（同時押し対策）
-    if (activePointers.size > 0){ activePointers.add(pid); return; }
+    if (activePointers.size > 0){ activePointers.add(pid); return; } // 2本目以降は無視
     activePointers.add(pid);
     const now = nowMs();
-    if (now - lastInputAt < 25) return; // 25msガード（保険）
+    if (now - lastInputAt < 25) return;
     lastInputAt = now;
     handler();
   };
@@ -259,13 +278,10 @@ function onPointerUpCleanup(ev){
   const pid = (ev && ev.pointerId != null) ? ev.pointerId : 0;
   activePointers.delete(pid);
 }
-
-// pointer非対応の古い端末向けフォールバック（touchで指数をチェック）
 function onTouchStartCounter(handler){
   return function(ev){
     if (ev && ev.cancelable) ev.preventDefault();
-    // 画面に触れている指が1本を超える瞬間は無視（＝最初の1本だけ数える）
-    if (ev.touches && ev.touches.length > 1) return;
+    if (ev.touches && ev.touches.length > 1) return; // 2本目以降は無視
     const now = nowMs();
     if (now - lastInputAt < 25) return;
     lastInputAt = now;
@@ -288,7 +304,6 @@ function bindTap(handler){
     _touch = onTouchStartCounter(handler);
     screen.addEventListener('touchstart', _touch, { passive:false });
   } else {
-    // PC（タッチなし）：clickで1回ずつ
     _click = function(ev){ if(ev&&ev.cancelable)ev.preventDefault();
       const now = nowMs(); if (now-lastInputAt<25) return; lastInputAt=now; handler(); };
     screen.addEventListener('click', _click);
@@ -307,7 +322,17 @@ function unbindTap(){
   activePointers.clear();
   screen.onclick = null; screen.ontouchstart = null;
 }
- 
+
+// ===== ダブルタップズーム・ピンチズームの抑止（iOS/Android共通の保険） =====
+let _lastTouchEnd = 0;
+document.addEventListener('touchend', function(e){
+  const now = nowMs();
+  if (now - _lastTouchEnd < 350){ if (e.cancelable) e.preventDefault(); }
+  _lastTouchEnd = now;
+}, { passive:false });
+document.addEventListener('gesturestart', function(e){ e.preventDefault(); });
+document.addEventListener('dblclick', function(e){ e.preventDefault(); });
+
 boot();
 </script>
 </body>
