@@ -233,44 +233,81 @@ function tapJudge(n){
   if (n>=50) return '💪 いい調子'; if (n>=30) return '🙂 ナイス'; return '👍 おつかれさま';
 }
 
-// ===== タップ入力の共通処理（連打の二重カウント対策・完全版） =====
-// pointerdown だけで数える（1タップ＝1回。マウス/タッチ統一、ゴーストクリックなし）。
-// pointerdown 非対応の古い端末のみ touchstart / click にフォールバック。
+// ===== タップ入力の共通処理（指1本に限定・位置は自由） =====
+// pointerdown で数える。ただし「今すでに他の指が画面に触れている間」は
+// その2本目以降を無視する（同時押し・雑な多指乱打を防止）。
+// 画面のどこを押してもOK。1本指なら位置がずれても全部カウントされる。
 const SUPPORTS_POINTER = ('PointerEvent' in window);
 const HAS_TOUCH = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 let lastInputAt = 0;
+const activePointers = new Set(); // 今画面に触れている指(ポインター)のID集合
 
-function guarded(handler){
+function onPointerDownCounter(handler){
   return function(ev){
     if (ev && ev.cancelable) ev.preventDefault();
+    const pid = (ev && ev.pointerId != null) ? ev.pointerId : 0;
+    // すでに他の指が触れている最中の“追加の指”は無視（同時押し対策）
+    if (activePointers.size > 0){ activePointers.add(pid); return; }
+    activePointers.add(pid);
     const now = nowMs();
-    if (now - lastInputAt < 25) return; // 25ms以内の重複だけ弾く（保険）
+    if (now - lastInputAt < 25) return; // 25msガード（保険）
+    lastInputAt = now;
+    handler();
+  };
+}
+function onPointerUpCleanup(ev){
+  const pid = (ev && ev.pointerId != null) ? ev.pointerId : 0;
+  activePointers.delete(pid);
+}
+
+// pointer非対応の古い端末向けフォールバック（touchで指数をチェック）
+function onTouchStartCounter(handler){
+  return function(ev){
+    if (ev && ev.cancelable) ev.preventDefault();
+    // 画面に触れている指が1本を超える瞬間は無視（＝最初の1本だけ数える）
+    if (ev.touches && ev.touches.length > 1) return;
+    const now = nowMs();
+    if (now - lastInputAt < 25) return;
     lastInputAt = now;
     handler();
   };
 }
 
-let _fn = null, _type = null;
+let _down = null, _up = null, _touch = null, _click = null;
 function bindTap(handler){
   unbindTap();
-  _fn = guarded(handler);
+  activePointers.clear();
   if (SUPPORTS_POINTER){
-    _type = 'pointerdown';
-    screen.addEventListener('pointerdown', _fn);
+    _down = onPointerDownCounter(handler);
+    _up   = onPointerUpCleanup;
+    screen.addEventListener('pointerdown', _down);
+    screen.addEventListener('pointerup', _up);
+    screen.addEventListener('pointercancel', _up);
+    screen.addEventListener('pointerleave', _up);
   } else if (HAS_TOUCH){
-    _type = 'touchstart';
-    screen.addEventListener('touchstart', _fn, { passive:false });
+    _touch = onTouchStartCounter(handler);
+    screen.addEventListener('touchstart', _touch, { passive:false });
   } else {
-    _type = 'click';
-    screen.addEventListener('click', _fn);
+    // PC（タッチなし）：clickで1回ずつ
+    _click = function(ev){ if(ev&&ev.cancelable)ev.preventDefault();
+      const now = nowMs(); if (now-lastInputAt<25) return; lastInputAt=now; handler(); };
+    screen.addEventListener('click', _click);
   }
 }
 function unbindTap(){
-  if (_fn && _type){ screen.removeEventListener(_type, _fn); }
-  _fn = null; _type = null;
+  if (_down){ screen.removeEventListener('pointerdown', _down); _down=null; }
+  if (_up){
+    screen.removeEventListener('pointerup', _up);
+    screen.removeEventListener('pointercancel', _up);
+    screen.removeEventListener('pointerleave', _up);
+    _up=null;
+  }
+  if (_touch){ screen.removeEventListener('touchstart', _touch); _touch=null; }
+  if (_click){ screen.removeEventListener('click', _click); _click=null; }
+  activePointers.clear();
   screen.onclick = null; screen.ontouchstart = null;
 }
-
+ 
 boot();
 </script>
 </body>
