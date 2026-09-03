@@ -8,7 +8,7 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html,body { margin:0; height:100%; font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; overflow:hidden; }
   #app { height:100vh; display:flex; flex-direction:column; }
-  .screen { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px; transition: background .1s; -webkit-user-select:none; user-select:none; }
+  .screen { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px; transition: background .1s; -webkit-user-select:none; user-select:none; touch-action:manipulation; }
   h1 { font-size: 1.6rem; margin:.2em 0; }
   p  { font-size: 1.05rem; color:#333; margin:.4em 0; line-height:1.6; }
   input { font-size:1.2rem; padding:12px 16px; border:2px solid #ccc; border-radius:12px; width:80%; max-width:320px; text-align:center; }
@@ -45,11 +45,10 @@ const tag = document.getElementById('tag');
 const errBox = document.getElementById('err');
 let me = null;
 let roundId = 0;
-let phase = 'idle';        // idle | ready | go | done | counting | tapping
+let phase = 'idle';
 let greenAt = 0;
 let timer = null;
 let es = null;
-// 連打用
 let tapCount = 0;
 let tapEndTimer = null;
 let tapTick = null;
@@ -80,7 +79,7 @@ async function post(url, body, retries){
 async function boot(){
   const saved = loadSession();
   if (saved && (saved.id || saved.name)){
-    setScreen('s-wait', `<h1>復帰中…</h1><p class="muted">${esc(saved.name||'')} として戻っています…</p>`);
+    setScreen('s-wait', '<h1>復帰中…</h1><p class="muted">'+esc(saved.name||'')+' として戻っています…</p>');
     try {
       const r = await post('/api/rejoin', { id: saved.id, name: saved.name }, 2);
       me = { id:r.id, name:r.name }; saveSession();
@@ -94,12 +93,12 @@ async function boot(){
 function showJoinScreen(){
   const saved = loadSession();
   const nm = (saved && saved.name) || '';
-  setScreen('s-wait', `
-    <h1>⚡ 反射神経＆連打バトル</h1>
-    <p>ニックネームを入れて参加しよう</p>
-    <input id="name" maxlength="20" placeholder="なまえ" autocomplete="off" value="${esc(nm)}">
-    <button id="joinBtn">参加する</button>
-    <p class="muted">※閉じてしまっても、同じ名前で入り直せば戻れます</p>`);
+  setScreen('s-wait',
+    '<h1>⚡ 反射神経＆連打バトル</h1>'+
+    '<p>ニックネームを入れて参加しよう</p>'+
+    '<input id="name" maxlength="20" placeholder="なまえ" autocomplete="off" value="'+esc(nm)+'">'+
+    '<button id="joinBtn">参加する</button>'+
+    '<p class="muted">※閉じてしまっても、同じ名前で入り直せば戻れます</p>');
   document.getElementById('joinBtn').onclick = join;
   document.getElementById('name').addEventListener('keydown', e => { if (e.key==='Enter') join(); });
 }
@@ -133,10 +132,10 @@ function clearTimers(){ clearTimeout(timer); clearTimeout(tapEndTimer); clearInt
 
 function waiting() {
   phase = 'idle'; clearTimers();
-  setScreen('s-wait', `
-    <h1>スタンバイ中…</h1>
-    <p>司会の合図でスタートします。<br>画面を見て待っていてね👀</p>
-    <p class="muted">ゲームは司会が選びます</p>`);
+  setScreen('s-wait',
+    '<h1>スタンバイ中…</h1>'+
+    '<p>司会の合図でスタートします。<br>画面を見て待っていてね👀</p>'+
+    '<p class="muted">ゲームは司会が選びます</p>');
 }
 
 function connect() {
@@ -153,25 +152,25 @@ function connect() {
 function startReflex(rid) {
   roundId = rid; clearTimers();
   phase = 'ready';
-  setScreen('s-ready', `<h1>まだ！</h1><p class="big">🔴</p><p>緑になるまで待て…</p>`);
+  setScreen('s-ready', '<h1>まだ！</h1><p class="big">🔴</p><p>緑になるまで待て…</p>');
   const delay = 1500 + Math.random() * 3000;
   timer = setTimeout(goGreen, delay);
   bindTap(onReflexTap);
 }
 function goGreen() {
   phase = 'go'; greenAt = nowMs();
-  setScreen('s-go', `<h1>今だ！！</h1><p class="big">🟢</p><p>タップ！</p>`);
+  setScreen('s-go', '<h1>今だ！！</h1><p class="big">🟢</p><p>タップ！</p>');
 }
 function onReflexTap() {
   if (phase === 'ready') {
     clearTimeout(timer); phase='done'; unbindTap();
-    setScreen('s-foul', `<h1>フライング！</h1><p>緑になる前に押しちゃった😵</p><p>今回は無効です</p>`);
+    setScreen('s-foul', '<h1>フライング！</h1><p>緑になる前に押しちゃった😵</p><p>今回は無効です</p>');
     post('/api/result', { id: me.id, roundId, foul: true }, 2).catch(()=>{});
     setTimeout(waiting, 2500);
   } else if (phase === 'go') {
     const t = nowMs() - greenAt;
     phase='done'; unbindTap();
-    setScreen('s-result', `<h1>${judge(t)}</h1><p class="big">${t.toFixed(0)} <span style="font-size:1.2rem">ms</span></p><p>次の合図まで待ってね</p>`);
+    setScreen('s-result', '<h1>'+judge(t)+'</h1><p class="big">'+t.toFixed(0)+' <span style="font-size:1.2rem">ms</span></p><p>次の合図まで待ってね</p>');
     post('/api/result', { id: me.id, roundId, timeMs: t }, 3).catch(()=> showErr('記録の送信に失敗しました'));
     setTimeout(waiting, 3000);
   }
@@ -186,21 +185,21 @@ function startTapCountdown(rid, duration) {
   roundId = rid; clearTimers();
   phase = 'counting';
   let n = 3;
-  setScreen('s-count', `<h1>連打バトル！</h1><p>${duration}秒間、できるだけ多くタップ！</p><p class="huge">${n}</p>`);
+  setScreen('s-count', '<h1>連打バトル！</h1><p>'+duration+'秒間、できるだけ多くタップ！</p><p class="huge">'+n+'</p>');
   const cd = setInterval(()=>{
     n--;
-    if (n > 0){ screen.querySelector('.huge').textContent = n; }
+    if (n > 0){ const h=screen.querySelector('.huge'); if(h) h.textContent = n; }
     else { clearInterval(cd); beginTapping(duration); }
   }, 1000);
 }
 function beginTapping(duration) {
   phase = 'tapping'; tapCount = 0;
-  setScreen('s-tap', `
-    <h1>連打！！</h1>
-    <p class="huge" id="cnt">0</p>
-    <p id="rem">残り ${duration}.0 秒</p>
-    <div class="timebar"><div id="bar"></div></div>
-    <p class="muted">画面のどこでもタップ！</p>`);
+  setScreen('s-tap',
+    '<h1>連打！！</h1>'+
+    '<p class="huge" id="cnt">0</p>'+
+    '<p id="rem">残り '+duration+'.0 秒</p>'+
+    '<div class="timebar"><div id="bar"></div></div>'+
+    '<p class="muted">画面のどこでもタップ！</p>');
   bindTap(onTapHit);
   const startT = nowMs();
   const total = duration * 1000;
@@ -222,10 +221,10 @@ function onTapHit() {
 function finishTapping() {
   phase='done'; unbindTap(); clearInterval(tapTick);
   const n = tapCount;
-  setScreen('s-result', `
-    <h1>${tapJudge(n)}</h1>
-    <p class="big">${n} <span style="font-size:1.2rem">回</span></p>
-    <p>おつかれさま！次の合図まで待ってね</p>`);
+  setScreen('s-result',
+    '<h1>'+tapJudge(n)+'</h1>'+
+    '<p class="big">'+n+' <span style="font-size:1.2rem">回</span></p>'+
+    '<p>おつかれさま！次の合図まで待ってね</p>');
   post('/api/result', { id: me.id, roundId, taps: n }, 3).catch(()=> showErr('記録の送信に失敗しました'));
   setTimeout(waiting, 3500);
 }
@@ -234,14 +233,39 @@ function tapJudge(n){
   if (n>=50) return '💪 いい調子'; if (n>=30) return '🙂 ナイス'; return '👍 おつかれさま';
 }
 
-// ===== タップ入力の共通処理 =====
-let currentTapHandler = null;
-function bindTap(handler){
-  currentTapHandler = handler;
-  screen.onclick = handler;
-  screen.ontouchstart = function(ev){ ev.preventDefault(); handler(); };
+// ===== タップ入力の共通処理（連打の二重カウント対策） =====
+// タッチ対応端末は touchstart のみ、非対応(PC)は click のみを数える。
+// さらに直前入力から30ms以内の重複(ゴースト)は無視。
+const HAS_TOUCH = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+let lastInputAt = 0;
+function makeGuardedHandler(handler){
+  return function(ev){
+    if (ev && ev.cancelable) ev.preventDefault();
+    const now = nowMs();
+    if (now - lastInputAt < 30) return;
+    lastInputAt = now;
+    handler();
+  };
 }
-function unbindTap(){ screen.onclick = null; screen.ontouchstart = null; currentTapHandler = null; }
+let _tapTouch = null, _tapClick = null;
+function bindTap(handler){
+  unbindTap();
+  const guarded = makeGuardedHandler(handler);
+  if (HAS_TOUCH){
+    _tapTouch = guarded;
+    screen.addEventListener('touchstart', _tapTouch, { passive:false });
+    _tapClick = function(ev){ if (ev && ev.cancelable) ev.preventDefault(); };
+    screen.addEventListener('click', _tapClick);
+  } else {
+    _tapClick = guarded;
+    screen.addEventListener('click', _tapClick);
+  }
+}
+function unbindTap(){
+  if (_tapTouch){ screen.removeEventListener('touchstart', _tapTouch); _tapTouch = null; }
+  if (_tapClick){ screen.removeEventListener('click', _tapClick); _tapClick = null; }
+  screen.onclick = null; screen.ontouchstart = null;
+}
 
 boot();
 </script>
