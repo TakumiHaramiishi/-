@@ -233,37 +233,41 @@ function tapJudge(n){
   if (n>=50) return '💪 いい調子'; if (n>=30) return '🙂 ナイス'; return '👍 おつかれさま';
 }
 
-// ===== タップ入力の共通処理（連打の二重カウント対策） =====
-// タッチ対応端末は touchstart のみ、非対応(PC)は click のみを数える。
-// さらに直前入力から30ms以内の重複(ゴースト)は無視。
+// ===== タップ入力の共通処理（連打の二重カウント対策・完全版） =====
+// pointerdown だけで数える（1タップ＝1回。マウス/タッチ統一、ゴーストクリックなし）。
+// pointerdown 非対応の古い端末のみ touchstart / click にフォールバック。
+const SUPPORTS_POINTER = ('PointerEvent' in window);
 const HAS_TOUCH = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 let lastInputAt = 0;
-function makeGuardedHandler(handler){
+
+function guarded(handler){
   return function(ev){
     if (ev && ev.cancelable) ev.preventDefault();
     const now = nowMs();
-    if (now - lastInputAt < 30) return;
+    if (now - lastInputAt < 25) return; // 25ms以内の重複だけ弾く（保険）
     lastInputAt = now;
     handler();
   };
 }
-let _tapTouch = null, _tapClick = null;
+
+let _fn = null, _type = null;
 function bindTap(handler){
   unbindTap();
-  const guarded = makeGuardedHandler(handler);
-  if (HAS_TOUCH){
-    _tapTouch = guarded;
-    screen.addEventListener('touchstart', _tapTouch, { passive:false });
-    _tapClick = function(ev){ if (ev && ev.cancelable) ev.preventDefault(); };
-    screen.addEventListener('click', _tapClick);
+  _fn = guarded(handler);
+  if (SUPPORTS_POINTER){
+    _type = 'pointerdown';
+    screen.addEventListener('pointerdown', _fn);
+  } else if (HAS_TOUCH){
+    _type = 'touchstart';
+    screen.addEventListener('touchstart', _fn, { passive:false });
   } else {
-    _tapClick = guarded;
-    screen.addEventListener('click', _tapClick);
+    _type = 'click';
+    screen.addEventListener('click', _fn);
   }
 }
 function unbindTap(){
-  if (_tapTouch){ screen.removeEventListener('touchstart', _tapTouch); _tapTouch = null; }
-  if (_tapClick){ screen.removeEventListener('click', _tapClick); _tapClick = null; }
+  if (_fn && _type){ screen.removeEventListener(_type, _fn); }
+  _fn = null; _type = null;
   screen.onclick = null; screen.ontouchstart = null;
 }
 
