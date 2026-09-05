@@ -654,15 +654,13 @@
   id="toast"
 ></div>
 
-<!--
-  QRコード生成ライブラリ
-  このscriptタグは削除・変更しないでください
--->
+<!-- QRコード生成ライブラリ -->
 <script
   src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"
   onerror="window.qrLibraryFailed = true;"
 ></script>
-  
+
+<!-- ホスト画面本体 -->
 <script>
 'use strict';
 
@@ -723,6 +721,12 @@ const resetAllButton =
 
 const toastElement =
   document.getElementById('toast');
+
+const qrArea =
+  document.getElementById('qr');
+
+const urlArea =
+  document.getElementById('url');
 
 // ============================================================
 // 選択状態
@@ -820,19 +824,14 @@ async function postJson(
 }
 
 // ============================================================
-// QRコード
+// QRコード生成
 // ============================================================
 
 const joinUrl =
   window.location.origin + '/';
 
-const qrArea =
-  document.getElementById('qr');
-
-const urlArea =
-  document.getElementById('url');
-
-urlArea.textContent = joinUrl;
+urlArea.textContent =
+  joinUrl;
 
 function showQrError(message) {
   qrArea.innerHTML =
@@ -858,7 +857,7 @@ function drawQrCode() {
       'QRコード生成ライブラリを読み込めませんでした'
     );
 
-    return;
+    return false;
   }
 
   try {
@@ -882,7 +881,7 @@ function drawQrCode() {
 
     if (!qrImage) {
       throw new Error(
-        'QR画像が生成されませんでした'
+        'QRコード画像を生成できませんでした'
       );
     }
 
@@ -903,6 +902,8 @@ function drawQrCode() {
 
     qrImage.draggable =
       false;
+
+    return true;
   } catch (error) {
     console.error(
       'QRコード生成失敗',
@@ -912,36 +913,32 @@ function drawQrCode() {
     showQrError(
       'QRコードを生成できませんでした'
     );
+
+    return false;
   }
 }
 
-// CDN読み込み後に実行
-if (
-  document.readyState === 'complete'
-) {
-  drawQrCode();
-} else {
-  window.addEventListener(
-    'load',
-    drawQrCode,
-    {
-      once: true
-    }
-  );
+function initializeQrCode() {
+  let attempts = 0;
+
+  const timer =
+    window.setInterval(
+      function () {
+        attempts += 1;
+
+        const success =
+          drawQrCode();
+
+        if (
+          success ||
+          attempts >= 10
+        ) {
+          clearInterval(timer);
+        }
+      },
+      300
+    );
 }
-
-// 念のため、少し後にも未生成なら再試行
-window.setTimeout(
-  function () {
-    const qrImage =
-      qrArea.querySelector('img');
-
-    if (!qrImage) {
-      drawQrCode();
-    }
-  },
-  1000
-);
 
 // ============================================================
 // 選択ボタン表示
@@ -997,169 +994,4 @@ function updateSelectionButtons() {
   }
 }
 
-// ============================================================
-// ランキング表示切り替え
-//
-// ゲームは開始せず、履歴表示だけ変更します
-// ============================================================
-
-async function selectRanking(
-  mode,
-  duration
-) {
-  try {
-    const result = await postJson(
-      '/api/select-ranking',
-      {
-        mode,
-        duration
-      }
-    );
-
-    if (
-      result &&
-      Array.isArray(result.board) &&
-      result.stats
-    ) {
-      renderRanking(
-        result.board,
-        result.stats
-      );
-    }
-  } catch (error) {
-    showToast(
-      'ランキングの切り替えに失敗しました。server.jsを確認してください。'
-    );
-  }
-}
-
-// ============================================================
-// モード選択
-// ============================================================
-
-modeReflexButton.addEventListener(
-  'click',
-  async function () {
-    selectedMode = 'reflex';
-
-    updateSelectionButtons();
-
-    await selectRanking(
-      selectedMode,
-      selectedDuration
-    );
-  }
-);
-
-modeTapButton.addEventListener(
-  'click',
-  async function () {
-    selectedMode = 'tap';
-
-    updateSelectionButtons();
-
-    await selectRanking(
-      selectedMode,
-      selectedDuration
-    );
-  }
-);
-
-// ============================================================
-// 秒数選択
-// ============================================================
-
-async function selectDuration(
-  duration
-) {
-  selectedDuration = duration;
-  selectedMode = 'tap';
-
-  updateSelectionButtons();
-
-  await selectRanking(
-    selectedMode,
-    selectedDuration
-  );
-}
-
-duration5Button.addEventListener(
-  'click',
-  function () {
-    selectDuration(5);
-  }
-);
-
-duration7Button.addEventListener(
-  'click',
-  function () {
-    selectDuration(7);
-  }
-);
-
-duration10Button.addEventListener(
-  'click',
-  function () {
-    selectDuration(10);
-  }
-);
-
-// ============================================================
-// ランキング描画
-// ============================================================
-
-function getMedalOrRank(rank) {
-  if (rank === 1) {
-    return '🥇';
-  }
-
-  if (rank === 2) {
-    return '🥈';
-  }
-
-  if (rank === 3) {
-    return '🥉';
-  }
-
-  return String(rank);
-}
-
-function getTopClass(rank) {
-  if (rank === 1) {
-    return 'top1';
-  }
-
-  if (rank === 2) {
-    return 'top2';
-  }
-
-  if (rank === 3) {
-    return 'top3';
-  }
-
-  return '';
-}
-
-function renderRanking(
-  board,
-  stats
-) {
-  latestBoard =
-    Array.isArray(board)
-      ? board
-      : [];
-
-  latestStats =
-    stats || latestStats;
-
-  joinedElement.textContent =
-    Number(
-      latestStats.joined || 0
-    );
-
-  answeredElement.textContent =
-    Number(
-      latestStats.answered || 0
-    );
-
-  roundNumberElement.
+// ===========================
