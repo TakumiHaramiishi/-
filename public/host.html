@@ -643,7 +643,10 @@
   id="toast"
 ></div>
 
-https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.jsscript>
+<script
+  src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"
+  onerror="window.qrLibraryFailed = true;"
+></script>
 
 <script>
 'use strict';
@@ -810,13 +813,37 @@ const joinUrl =
 document.getElementById('url')
   .textContent = joinUrl;
 
+function showQrFallback() {
+  const qrArea =
+    document.getElementById('qr');
+
+  qrArea.innerHTML =
+    '<div style="' +
+      'color:#0b1f33;' +
+      'padding:16px;' +
+      'line-height:1.6;' +
+    '">' +
+      'QRコードを表示できませんでした。' +
+      '<br>' +
+      '下のURLをスマホで開いてください。' +
+    '</div>';
+}
+
 function drawQrCode() {
   const qrArea =
     document.getElementById('qr');
 
+  // 外部ライブラリが読み込まれているか確認
+  if (
+    typeof window.qrcode !== 'function'
+  ) {
+    showQrFallback();
+    return;
+  }
+
   try {
     const qr =
-      qrcode(0, 'M');
+      window.qrcode(0, 'M');
 
     qr.addData(joinUrl);
     qr.make();
@@ -833,28 +860,36 @@ function drawQrCode() {
 
       qrImage.style.height =
         '170px';
+
+      qrImage.style.display =
+        'block';
+
+      qrImage.style.margin =
+        '0 auto';
+
+      qrImage.alt =
+        '参加者用QRコード';
     }
   } catch (error) {
-    qrArea.innerHTML =
-      '<div style="color:#0b1f33;padding:16px">' +
-        '下のURLをスマホで開いてください' +
-      '</div>';
+    console.error(
+      'QRコード生成失敗',
+      error
+    );
+
+    showQrFallback();
   }
 }
 
-if (window.qrLibraryFailed) {
-  document.getElementById('qr')
-    .innerHTML =
-      '<div style="color:#0b1f33;padding:16px">' +
-        '下のURLをスマホで開いてください' +
-      '</div>';
-} else {
-  window.setTimeout(
-    drawQrCode,
-    200
-  );
-}
-
+// 外部ライブラリの読み込み完了後に実行
+window.addEventListener(
+  'load',
+  function () {
+    window.setTimeout(
+      drawQrCode,
+      100
+    );
+  }
+);
 // ============================================================
 // ボタン表示
 // ============================================================
