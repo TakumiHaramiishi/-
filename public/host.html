@@ -1284,19 +1284,393 @@ function renderRanking(
         )
       : 7;
 
-  if (
-    viewMode === 'tap'
-  ) {
-    rankingTitleElement.textContent =
-      '🏆 連打' +
-      viewDuration +
-      '秒ランキング';
+if (
+  viewMode === 'tap'
+) {
+  rankingTitleElement.textContent =
+    '🏆 連打' +
+    viewDuration +
+    '秒ランキング';
 
-    scoreHeaderElement.textContent =
-      'タップ数';
+  scoreHeaderElement.textContent =
+    'タップ数';
 
-    currentViewElement.textContent =
-      '連打' +
-      viewDuration +
-      '秒ランキング';
-  } 
+  currentViewElement.textContent =
+    '連打' +
+    viewDuration +
+    '秒ランキング';
+} else {
+  rankingTitleElement.textContent =
+    '🏆 反射神経ランキング';
+
+  scoreHeaderElement.textContent =
+    'ベスト';
+
+  currentViewElement.textContent =
+    '反射神経ランキング';
+}
+
+if (
+  !latestBoard.length
+) {
+  rankingBodyElement.innerHTML =
+    '<tr>' +
+      '<td colspan="4" class="empty">' +
+        'この条件では、まだ記録がありません' +
+      '</td>' +
+    '</tr>';
+
+  return;
+}
+
+const scoreUnit =
+  viewMode === 'tap'
+    ? ' 回'
+    : ' ms';
+
+rankingBodyElement.innerHTML =
+  latestBoard
+    .slice(0, 100)
+    .map(
+      function (record) {
+        const rank =
+          Number(
+            record.rank
+          );
+
+        return (
+          '<tr class="' +
+            getTopClass(rank) +
+          '">' +
+
+            '<td class="rank">' +
+              getMedalOrRank(rank) +
+            '</td>' +
+
+            '<td>' +
+              escapeHtml(
+                record.name
+              ) +
+            '</td>' +
+
+            '<td class="score">' +
+              Number(
+                record.score
+              ) +
+              scoreUnit +
+            '</td>' +
+
+            '<td class="tries">' +
+              Number(
+                record.tries || 0
+              ) +
+            '</td>' +
+
+          '</tr>'
+        );
+      }
+    )
+    .join('');
+}
+
+// ============================================================
+// ホスト用リアルタイム通信
+// ============================================================
+
+function connectHostEvents() {
+  if (eventSource) {
+    try {
+      eventSource.close();
+    } catch (error) {
+      console.error(
+        '旧SSE接続の切断エラー',
+        error
+      );
+    }
+  }
+
+  eventSource =
+    new EventSource(
+      '/events/host'
+    );
+
+  eventSource.addEventListener(
+    'leaderboard',
+    function (event) {
+      try {
+        const data =
+          JSON.parse(
+            event.data
+          );
+
+        renderRanking(
+          data.board,
+          data.stats
+        );
+      } catch (error) {
+        console.error(
+          'ランキング読込エラー',
+          error
+        );
+
+        showToast(
+          'ランキング情報を読み取れませんでした。'
+        );
+      }
+    }
+  );
+
+  eventSource.addEventListener(
+    'round-start',
+    function (event) {
+      try {
+        const data =
+          JSON.parse(
+            event.data
+          );
+
+        if (
+          data.mode === 'tap'
+        ) {
+          roundStateElement.textContent =
+            '連打' +
+            Number(
+              data.duration || 7
+            ) +
+            '秒 進行中';
+        } else {
+          roundStateElement.textContent =
+            '反射神経 進行中';
+        }
+      } catch (error) {
+        roundStateElement.textContent =
+          'ゲーム進行中';
+      }
+    }
+  );
+
+  eventSource.addEventListener(
+    'session-reset',
+    function () {
+      latestBoard = [];
+
+      latestStats = {
+        joined: 0,
+        answered: 0,
+        round: 0,
+        active: false,
+        mode: selectedMode,
+        duration: selectedDuration
+      };
+
+      renderRanking(
+        latestBoard,
+        latestStats
+      );
+
+      roundStateElement.textContent =
+        '全リセット完了';
+    }
+  );
+
+  eventSource.onopen =
+    function () {
+      if (
+        roundStateElement.textContent ===
+        '再接続中…'
+      ) {
+        roundStateElement.textContent =
+          '待機中';
+      }
+    };
+
+  eventSource.onerror =
+    function () {
+      roundStateElement.textContent =
+        '再接続中…';
+    };
+}
+
+// ============================================================
+// ゲーム開始
+//
+// 確認ポップアップは表示しない。
+// 開始ボタンを押した時点でゲームを開始する。
+// ============================================================
+
+startButton.addEventListener(
+  'click',
+  async function () {
+    if (
+      startButton.disabled
+    ) {
+      return;
+    }
+
+    startButton.disabled =
+      true;
+
+    const originalText =
+      startButton.textContent;
+
+    startButton.textContent =
+      '開始処理中…';
+
+    try {
+      await postJson(
+        '/api/start',
+        {
+          mode:
+            selectedMode,
+
+          duration:
+            selectedDuration
+        }
+      );
+    } catch (error) {
+      console.error(
+        'ゲーム開始エラー',
+        error
+      );
+
+      showToast(
+        'ゲームの開始に失敗しました。'
+      );
+    } finally {
+      startButton.disabled =
+        false;
+
+      startButton.textContent =
+        originalText;
+    }
+  }
+);
+
+// ============================================================
+// 記録リセット
+// ============================================================
+
+resetButton.addEventListener(
+  'click',
+  async function () {
+    const confirmed =
+      window.confirm(
+        'すべてのゲーム記録を削除します。\n' +
+        '参加者情報は残ります。\n\n' +
+        'よろしいですか？'
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    resetButton.disabled =
+      true;
+
+    try {
+      await postJson(
+        '/api/reset',
+        {}
+      );
+
+      roundStateElement.textContent =
+        '記録リセット完了';
+    } catch (error) {
+      console.error(
+        '記録リセットエラー',
+        error
+      );
+
+      showToast(
+        '記録のリセットに失敗しました。'
+      );
+    } finally {
+      resetButton.disabled =
+        false;
+    }
+  }
+);
+
+// ============================================================
+// 全リセット
+// ============================================================
+
+resetAllButton.addEventListener(
+  'click',
+  async function () {
+    const confirmed =
+      window.confirm(
+        '参加者とすべての記録を削除します。\n' +
+        '参加中のスマホは名前入力画面へ戻ります。\n\n' +
+        'よろしいですか？'
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    resetAllButton.disabled =
+      true;
+
+    try {
+      await postJson(
+        '/api/reset-all',
+        {}
+      );
+
+      roundStateElement.textContent =
+        '全リセット完了';
+    } catch (error) {
+      console.error(
+        '全リセットエラー',
+        error
+      );
+
+      showToast(
+        '全リセットに失敗しました。'
+      );
+    } finally {
+      resetAllButton.disabled =
+        false;
+    }
+  }
+);
+
+// ============================================================
+// 初期化
+// ============================================================
+
+function initializeHost() {
+  console.log(
+    'HOST SCRIPT STARTED'
+  );
+
+  // 反射神経／連打ボタンの初期状態を設定
+  updateSelectionButtons();
+
+  // QRコードライブラリを読み込み、QRコードを生成
+  loadQrLibrary();
+
+  // 参加人数とランキングのリアルタイム受信を開始
+  connectHostEvents();
+}
+
+// HTML要素の読み込み完了後に起動
+if (
+  document.readyState ===
+  'loading'
+) {
+  document.addEventListener(
+    'DOMContentLoaded',
+    initializeHost,
+    {
+      once: true
+    }
+  );
+} else {
+  initializeHost();
+}
+</script>
+
+</body>
+</html>
