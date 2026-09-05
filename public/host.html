@@ -69,23 +69,35 @@
 
   h1 {
     margin: 0;
-
     font-size: 1.5rem;
   }
 
   .qr {
+    min-height: 190px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
     padding: 10px;
 
     border-radius: 16px;
 
     background: #ffffff;
+    color: #0b1f33;
 
     text-align: center;
   }
 
   .qr img {
+    display: block;
+
     width: 170px;
     height: 170px;
+
+    margin: 0 auto;
+
+    image-rendering: pixelated;
   }
 
   .url {
@@ -126,7 +138,6 @@
 
   .card span {
     color: #9db8d6;
-
     font-size: 0.75rem;
   }
 
@@ -190,7 +201,6 @@
 
   .duration-area {
     display: none;
-
     margin-top: 10px;
   }
 
@@ -273,7 +283,6 @@
 
   .main-header h2 {
     margin: 0;
-
     font-size: 1.4rem;
   }
 
@@ -324,7 +333,6 @@
 
   th {
     color: #b7cce1;
-
     font-size: 0.93rem;
   }
 
@@ -338,7 +346,6 @@
 
   .rank {
     width: 80px;
-
     font-weight: 800;
   }
 
@@ -417,6 +424,10 @@
 
     .main {
       padding: 18px;
+    }
+
+    .qr {
+      min-height: 165px;
     }
 
     .qr img {
@@ -568,7 +579,7 @@
     <div class="operation-note">
       ゲームまたは秒数を選択すると、過去ランキングだけが切り替わります。
       <br>
-      参加者への開始合図は「開始」ボタンを押したときだけ送信されます。
+      ゲームは「開始」ボタンを押した時点で直ちに始まります。
     </div>
 
   </aside>
@@ -643,10 +654,11 @@
   id="toast"
 ></div>
 
-<script
-  src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"
-  onerror="window.qrLibraryFailed = true;"
-></script>
+<!--
+  QRコード生成ライブラリ
+  このscriptタグは削除・変更しないでください
+-->
+https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.jsscript>
 
 <script>
 'use strict';
@@ -710,13 +722,14 @@ const toastElement =
   document.getElementById('toast');
 
 // ============================================================
-// ホスト側の選択状態
+// 選択状態
 // ============================================================
 
 let selectedMode = 'reflex';
 let selectedDuration = 7;
 
 let latestBoard = [];
+
 let latestStats = {
   joined: 0,
   answered: 0,
@@ -810,88 +823,125 @@ async function postJson(
 const joinUrl =
   window.location.origin + '/';
 
-document.getElementById('url')
-  .textContent = joinUrl;
+const qrArea =
+  document.getElementById('qr');
 
-function showQrFallback() {
-  const qrArea =
-    document.getElementById('qr');
+const urlArea =
+  document.getElementById('url');
 
+urlArea.textContent = joinUrl;
+
+function showQrError(message) {
   qrArea.innerHTML =
     '<div style="' +
       'color:#0b1f33;' +
       'padding:16px;' +
       'line-height:1.6;' +
     '">' +
-      'QRコードを表示できませんでした。' +
+      escapeHtml(message) +
       '<br>' +
-      '下のURLをスマホで開いてください。' +
+      '<span style="font-size:0.8rem">' +
+        '下のURLをスマホで開いてください' +
+      '</span>' +
     '</div>';
 }
 
 function drawQrCode() {
-  const qrArea =
-    document.getElementById('qr');
-
-  // 外部ライブラリが読み込まれているか確認
   if (
+    window.qrLibraryFailed ||
     typeof window.qrcode !== 'function'
   ) {
-    showQrFallback();
+    showQrError(
+      'QRコード生成ライブラリを読み込めませんでした'
+    );
+
     return;
   }
 
   try {
     const qr =
-      window.qrcode(0, 'M');
+      window.qrcode(
+        0,
+        'M'
+      );
 
     qr.addData(joinUrl);
     qr.make();
 
     qrArea.innerHTML =
-      qr.createImgTag(5, 6);
+      qr.createImgTag(
+        5,
+        6
+      );
 
     const qrImage =
       qrArea.querySelector('img');
 
-    if (qrImage) {
-      qrImage.style.width =
-        '170px';
-
-      qrImage.style.height =
-        '170px';
-
-      qrImage.style.display =
-        'block';
-
-      qrImage.style.margin =
-        '0 auto';
-
-      qrImage.alt =
-        '参加者用QRコード';
+    if (!qrImage) {
+      throw new Error(
+        'QR画像が生成されませんでした'
+      );
     }
+
+    qrImage.style.display =
+      'block';
+
+    qrImage.style.width =
+      '170px';
+
+    qrImage.style.height =
+      '170px';
+
+    qrImage.style.margin =
+      '0 auto';
+
+    qrImage.alt =
+      '参加者用QRコード';
+
+    qrImage.draggable =
+      false;
   } catch (error) {
     console.error(
       'QRコード生成失敗',
       error
     );
 
-    showQrFallback();
+    showQrError(
+      'QRコードを生成できませんでした'
+    );
   }
 }
 
-// 外部ライブラリの読み込み完了後に実行
-window.addEventListener(
-  'load',
+// CDN読み込み後に実行
+if (
+  document.readyState === 'complete'
+) {
+  drawQrCode();
+} else {
+  window.addEventListener(
+    'load',
+    drawQrCode,
+    {
+      once: true
+    }
+  );
+}
+
+// 念のため、少し後にも未生成なら再試行
+window.setTimeout(
   function () {
-    window.setTimeout(
-      drawQrCode,
-      100
-    );
-  }
+    const qrImage =
+      qrArea.querySelector('img');
+
+    if (!qrImage) {
+      drawQrCode();
+    }
+  },
+  1000
 );
+
 // ============================================================
-// ボタン表示
+// 選択ボタン表示
 // ============================================================
 
 function updateSelectionButtons() {
@@ -945,18 +995,15 @@ function updateSelectionButtons() {
 }
 
 // ============================================================
-// ランキング切り替え
+// ランキング表示切り替え
 //
-// select-rankingはランキング表示だけを変更します。
-// ラウンド開始や参加者への通知は行いません。
+// ゲームは開始せず、履歴表示だけ変更します
 // ============================================================
 
 async function selectRanking(
   mode,
   duration
 ) {
-  startButton.disabled = true;
-
   try {
     const result = await postJson(
       '/api/select-ranking',
@@ -968,8 +1015,8 @@ async function selectRanking(
 
     if (
       result &&
-      result.stats &&
-      result.board
+      Array.isArray(result.board) &&
+      result.stats
     ) {
       renderRanking(
         result.board,
@@ -978,10 +1025,8 @@ async function selectRanking(
     }
   } catch (error) {
     showToast(
-      'ランキングの切り替えに失敗しました。server.jsの更新状況を確認してください。'
+      'ランキングの切り替えに失敗しました。server.jsを確認してください。'
     );
-  } finally {
-    startButton.disabled = false;
   }
 }
 
@@ -1105,334 +1150,13 @@ function renderRanking(
     stats || latestStats;
 
   joinedElement.textContent =
-    Number(latestStats.joined || 0);
-
-  answeredElement.textContent =
-    Number(latestStats.answered || 0);
-
-  roundNumberElement.textContent =
-    Number(latestStats.round || 0);
-
-  const viewMode =
-    latestStats.mode === 'tap'
-      ? 'tap'
-      : 'reflex';
-
-  const viewDuration =
-    [5, 7, 10].includes(
-      Number(latestStats.duration)
-    )
-      ? Number(latestStats.duration)
-      : 7;
-
-  if (viewMode === 'tap') {
-    rankingTitleElement.textContent =
-      '🏆 連打' +
-      viewDuration +
-      '秒ランキング';
-
-    scoreHeaderElement.textContent =
-      'タップ数';
-
-    currentViewElement.textContent =
-      '連打' +
-      viewDuration +
-      '秒ランキング';
-  } else {
-    rankingTitleElement.textContent =
-      '🏆 反射神経ランキング';
-
-    scoreHeaderElement.textContent =
-      'ベスト';
-
-    currentViewElement.textContent =
-      '反射神経ランキング';
-  }
-
-  if (latestStats.active) {
-    roundStateElement.textContent =
-      'ラウンド' +
-      Number(latestStats.round || 0) +
-      ' 実行済み';
-  } else {
-    roundStateElement.textContent =
-      '待機中';
-  }
-
-  if (!latestBoard.length) {
-    rankingBodyElement.innerHTML =
-      '<tr>' +
-        '<td colspan="4" class="empty">' +
-          'この条件では、まだ記録がありません' +
-        '</td>' +
-      '</tr>';
-
-    return;
-  }
-
-  const scoreUnit =
-    viewMode === 'tap'
-      ? ' 回'
-      : ' ms';
-
-  rankingBodyElement.innerHTML =
-    latestBoard
-      .slice(0, 100)
-      .map(
-        function (record) {
-          const rank =
-            Number(record.rank);
-
-          const rowClass =
-            getTopClass(rank);
-
-          return (
-            '<tr class="' +
-              rowClass +
-            '">' +
-
-              '<td class="rank">' +
-                getMedalOrRank(rank) +
-              '</td>' +
-
-              '<td>' +
-                escapeHtml(record.name) +
-              '</td>' +
-
-              '<td class="score">' +
-                Number(record.score) +
-                scoreUnit +
-              '</td>' +
-
-              '<td class="tries">' +
-                Number(record.tries || 0) +
-              '</td>' +
-
-            '</tr>'
-          );
-        }
-      )
-      .join('');
-}
-
-// ============================================================
-// ホスト用SSE
-// ============================================================
-
-function connectHostEvents() {
-  if (eventSource) {
-    try {
-      eventSource.close();
-    } catch (error) {
-      // 切断エラーは無視
-    }
-  }
-
-  eventSource =
-    new EventSource(
-      '/events/host'
+    Number(
+      latestStats.joined || 0
     );
 
-  eventSource.addEventListener(
-    'leaderboard',
-    function (event) {
-      try {
-        const data =
-          JSON.parse(event.data);
+  answeredElement.textContent =
+    Number(
+      latestStats.answered || 0
+    );
 
-        renderRanking(
-          data.board,
-          data.stats
-        );
-      } catch (error) {
-        showToast(
-          'ランキング情報の読み取りに失敗しました。'
-        );
-      }
-    }
-  );
-
-  eventSource.addEventListener(
-    'round-start',
-    function (event) {
-      try {
-        const data =
-          JSON.parse(event.data);
-
-        if (data.mode === 'tap') {
-          roundStateElement.textContent =
-            '連打' +
-            Number(data.duration || 7) +
-            '秒 進行中';
-        } else {
-          roundStateElement.textContent =
-            '反射神経 進行中';
-        }
-      } catch (error) {
-        roundStateElement.textContent =
-          'ゲーム進行中';
-      }
-    }
-  );
-
-  eventSource.addEventListener(
-    'session-reset',
-    function () {
-      latestBoard = [];
-
-      latestStats = {
-        joined: 0,
-        answered: 0,
-        round: 0,
-        active: false,
-        mode: selectedMode,
-        duration: selectedDuration
-      };
-
-      renderRanking(
-        latestBoard,
-        latestStats
-      );
-
-      roundStateElement.textContent =
-        '全リセット完了';
-    }
-  );
-
-  eventSource.onerror =
-    function () {
-      roundStateElement.textContent =
-        '再接続中…';
-    };
-}
-
-// ============================================================
-// ゲーム開始
-//
-// 確認ポップアップは表示せず、
-// 開始ボタンを押した時点でゲームを開始する。
-// ============================================================
-
-startButton.addEventListener(
-  'click',
-  async function () {
-    // 連続クリックによる二重開始を防止
-    if (startButton.disabled) {
-      return;
-    }
-
-    startButton.disabled = true;
-
-    const originalText =
-      startButton.textContent;
-
-    startButton.textContent =
-      '開始処理中…';
-
-    try {
-      await postJson(
-        '/api/start',
-        {
-          mode: selectedMode,
-          duration: selectedDuration
-        }
-      );
-    } catch (error) {
-      showToast(
-        'ゲームの開始に失敗しました。'
-      );
-    } finally {
-      startButton.disabled = false;
-      startButton.textContent =
-        originalText;
-    }
-  }
-);
-``
-
-// ============================================================
-// 記録リセット
-// ============================================================
-
-resetButton.addEventListener(
-  'click',
-  async function () {
-    const confirmed =
-      window.confirm(
-        'すべてのゲーム記録を削除します。\n' +
-        '参加者情報は残るため、同じメンバーで続けられます。\n\n' +
-        'よろしいですか？'
-      );
-
-    if (!confirmed) {
-      return;
-    }
-
-    resetButton.disabled = true;
-
-    try {
-      await postJson(
-        '/api/reset',
-        {}
-      );
-
-      roundStateElement.textContent =
-        '記録リセット完了';
-    } catch (error) {
-      showToast(
-        '記録のリセットに失敗しました。'
-      );
-    } finally {
-      resetButton.disabled = false;
-    }
-  }
-);
-
-// ============================================================
-// 全リセット
-// ============================================================
-
-resetAllButton.addEventListener(
-  'click',
-  async function () {
-    const confirmed =
-      window.confirm(
-        '参加者とすべての記録を削除します。\n' +
-        '参加中のスマホは名前入力画面へ戻ります。\n\n' +
-        'よろしいですか？'
-      );
-
-    if (!confirmed) {
-      return;
-    }
-
-    resetAllButton.disabled = true;
-
-    try {
-      await postJson(
-        '/api/reset-all',
-        {}
-      );
-
-      roundStateElement.textContent =
-        '全リセット完了';
-    } catch (error) {
-      showToast(
-        '全リセットに失敗しました。'
-      );
-    } finally {
-      resetAllButton.disabled = false;
-    }
-  }
-);
-
-// ============================================================
-// 初期化
-// ============================================================
-
-updateSelectionButtons();
-connectHostEvents();
-</script>
-
-</body>
-</html>
+  roundNumberElement.
