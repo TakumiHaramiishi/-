@@ -168,36 +168,60 @@ function getTapTries(player, duration) {
 // ============================================================
 
 function getLeaderboard() {
+  let sortedResults = [];
+
   if (round.mode === 'tap') {
     const duration = round.duration;
 
-    return [...players.values()]
+    sortedResults = [...players.values()]
       .map(player => ({
         name: player.name,
         score: getTapBest(player, duration),
         tries: getTapTries(player, duration)
       }))
       .filter(item => item.score !== null)
-      .sort((a, b) => b.score - a.score)
-      .map((item, index) => ({
-        rank: index + 1,
-        name: item.name,
-        score: item.score,
-        tries: item.tries
-      }));
+      .sort((a, b) => b.score - a.score);
+      // 連打はタップ数が多い方が上位
+  } else {
+    sortedResults = [...players.values()]
+      .filter(player => player.reflexBest !== null)
+      .map(player => ({
+        name: player.name,
+        score: player.reflexBest,
+        tries: player.reflexTries
+      }))
+      .sort((a, b) => a.score - b.score);
+      // 反射神経は時間が小さい方が上位
   }
 
-  return [...players.values()]
-    .filter(player => player.reflexBest !== null)
-    .sort((a, b) => a.reflexBest - b.reflexBest)
-    .map((player, index) => ({
-      rank: index + 1,
-      name: player.name,
-      score: player.reflexBest,
-      tries: player.reflexTries
-    }));
-}
+  let previousScore = null;
+  let previousRank = 0;
 
+  return sortedResults.map((item, index) => {
+    let rank;
+
+    if (
+      previousScore !== null &&
+      item.score === previousScore
+    ) {
+      // 直前と同じスコアなら同順位
+      rank = previousRank;
+    } else {
+      // 新しいスコアなら、並び順に応じた順位
+      rank = index + 1;
+    }
+
+    previousScore = item.score;
+    previousRank = rank;
+
+    return {
+      rank,
+      name: item.name,
+      score: item.score,
+      tries: item.tries
+    };
+  });
+}
 function getStats() {
   let answered = 0;
 
