@@ -779,4 +779,123 @@ const server = http.createServer(async (req, res) => {
 
     sendJson(res, 200, {
       ok: true,
-      
+      round,
+      sessionGeneration
+    });
+
+    return;
+  }
+
+  // ----------------------------------------------------------
+  // 記録だけリセット
+  // ----------------------------------------------------------
+
+  if (
+    req.method === 'POST' &&
+    pathname === '/api/reset'
+  ) {
+    for (const player of players.values()) {
+      player.reflexBest = null;
+      player.reflexTries = 0;
+
+      player.tapBestByDuration = {};
+      player.tapTriesByDuration = {};
+    }
+
+    round = {
+      id: 0,
+      active: false,
+      mode: round.mode,
+      duration: round.duration,
+      startedAt: 0
+    };
+
+    broadcastToPlayers('reset', {
+      sessionGeneration
+    });
+
+    pushLeaderboard();
+
+    sendJson(res, 200, {
+      ok: true,
+      sessionGeneration
+    });
+
+    return;
+  }
+
+  // ----------------------------------------------------------
+  // 参加者を含む全リセット
+  // ----------------------------------------------------------
+
+  if (
+    req.method === 'POST' &&
+    pathname === '/api/reset-all'
+  ) {
+    // まず現在接続中の全端末に終了を通知
+    broadcastToPlayers('kick', {
+      reason: 'full_reset'
+    });
+
+    // サーバー側参加者をすべて削除
+    players.clear();
+
+    // 古いブラウザ保存IDを無効にするため世代IDを更新
+    sessionGeneration = createGenerationId();
+
+    round = {
+      id: 0,
+      active: false,
+      mode: round.mode,
+      duration: round.duration,
+      startedAt: 0
+    };
+
+    // 古いSSE接続を明示的に切断
+    for (const response of playerClients.values()) {
+      try {
+        response.end();
+      } catch (error) {
+        // 切断失敗は無視
+      }
+    }
+
+    playerClients.clear();
+
+    pushLeaderboard();
+
+    broadcastToHosts('session-reset', {
+      sessionGeneration
+    });
+
+    sendJson(res, 200, {
+      ok: true,
+      sessionGeneration
+    });
+
+    return;
+  }
+
+  // ----------------------------------------------------------
+  // 404
+  // ----------------------------------------------------------
+
+  res.writeHead(404, {
+    'Content-Type': 'text/plain; charset=utf-8'
+  });
+
+  res.end('Not found');
+});
+
+// ============================================================
+// サーバー起動
+// ============================================================
+
+server.listen(PORT, '0.0.0.0', () => {
+  console.log('===================================================');
+  console.log('  反射神経＆連打バトル サーバー起動');
+  console.log('---------------------------------------------------');
+  console.log(`  PORT: ${PORT}`);
+  console.log(`  セッション世代: ${sessionGeneration}`);
+  console.log('===================================================');
+});
