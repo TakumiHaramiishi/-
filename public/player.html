@@ -2,338 +2,1867 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+<meta
+  name="viewport"
+  content="
+    width=device-width,
+    initial-scale=1.0,
+    minimum-scale=1.0,
+    maximum-scale=1.0,
+    user-scalable=no,
+    viewport-fit=cover
+  "
+>
+
 <title>反射神経＆連打バトル</title>
+
 <style>
   * {
     box-sizing: border-box;
+
     -webkit-user-select: none;
     user-select: none;
+
     -webkit-touch-callout: none;
     -webkit-user-drag: none;
     -webkit-tap-highlight-color: transparent;
   }
-  html,body {
-    margin:0; height:100%;
-    font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
-    overflow:hidden;
+
+  html,
+  body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+
+    font-family:
+      -apple-system,
+      BlinkMacSystemFont,
+      "Hiragino Kaku Gothic ProN",
+      "Noto Sans JP",
+      sans-serif;
+
+    overflow: hidden;
+
     touch-action: manipulation;
     -ms-touch-action: manipulation;
+
     overscroll-behavior: none;
+    background: #ffffff;
   }
-  #app { height:100vh; display:flex; flex-direction:column; }
+
+  body {
+    position: fixed;
+    inset: 0;
+  }
+
+  #app {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
   .screen {
-    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; padding:24px; transition: background .1s;
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    min-height: 0;
+
+    padding:
+      max(24px, env(safe-area-inset-top))
+      max(24px, env(safe-area-inset-right))
+      max(24px, env(safe-area-inset-bottom))
+      max(24px, env(safe-area-inset-left));
+
+    text-align: center;
+
+    transition: background-color 0.1s;
+
     touch-action: manipulation;
+
     -webkit-touch-callout: none;
     -webkit-user-drag: none;
   }
-  h1 { font-size: 1.6rem; margin:.2em 0; }
-  p  { font-size: 1.05rem; color:#333; margin:.4em 0; line-height:1.6; }
-  input { font-size:1.2rem; padding:12px 16px; border:2px solid #ccc; border-radius:12px; width:80%; max-width:320px; text-align:center; -webkit-user-select:text; user-select:text; }
-  button { font-size:1.15rem; font-weight:700; padding:14px 28px; border:none; border-radius:14px; background:#0067c0; color:#fff; margin-top:16px; cursor:pointer; }
-  button:active { transform: scale(.97); }
-  .big { font-size: 3rem; font-weight:800; }
-  .huge { font-size: 5.5rem; font-weight:900; line-height:1.1; }
-  .muted { color:#666; font-size:.9rem; }
-  .s-wait  { background:#fff; }
-  .s-ready { background:#c0392b; color:#fff; }
-  .s-go    { background:#27ae60; color:#fff; }
-  .s-foul  { background:#f39c12; color:#fff; }
-  .s-result{ background:#eaf3ff; }
-  .s-count { background:#2c3e50; color:#fff; }
-  .s-tap   { background:#8e44ad; color:#fff; }
-  .s-ready h1,.s-go h1,.s-foul h1,.s-count h1,.s-tap h1 { color:#fff; }
-  .tag { position:fixed; top:10px; left:0; right:0; text-align:center; font-size:.85rem; color:#888; }
-  .err { position:fixed; bottom:0; left:0; right:0; background:#c0392b; color:#fff; font-size:.85rem; padding:8px; display:none; }
-  .timebar { width:80%; max-width:340px; height:14px; background:rgba(255,255,255,.3); border-radius:8px; overflow:hidden; margin-top:14px; }
-  .timebar > div { height:100%; background:#fff; width:100%; }
+
+  h1 {
+    margin: 0.2em 0;
+    font-size: 1.6rem;
+  }
+
+  p {
+    margin: 0.4em 0;
+    color: #333333;
+    font-size: 1.05rem;
+    line-height: 1.6;
+  }
+
+  input {
+    width: 80%;
+    max-width: 320px;
+
+    padding: 12px 16px;
+
+    border: 2px solid #cccccc;
+    border-radius: 12px;
+
+    font-size: 1.2rem;
+    text-align: center;
+
+    -webkit-user-select: text;
+    user-select: text;
+
+    -webkit-touch-callout: default;
+  }
+
+  button {
+    margin-top: 16px;
+    padding: 14px 28px;
+
+    border: none;
+    border-radius: 14px;
+
+    background: #0067c0;
+    color: #ffffff;
+
+    font-size: 1.15rem;
+    font-weight: 700;
+
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  button:active {
+    transform: scale(0.97);
+  }
+
+  button:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  .big {
+    font-size: 3rem;
+    font-weight: 800;
+  }
+
+  .huge {
+    margin: 0.15em 0;
+
+    font-size: 5.5rem;
+    font-weight: 900;
+    line-height: 1.1;
+
+    font-variant-numeric: tabular-nums;
+  }
+
+  .muted {
+    color: #666666;
+    font-size: 0.9rem;
+  }
+
+  .notice {
+    max-width: 360px;
+    margin-top: 16px;
+    padding: 10px 14px;
+
+    border-radius: 10px;
+
+    background: #eef5ff;
+    color: #31557a;
+
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  .s-wait {
+    background: #ffffff;
+  }
+
+  .s-ready {
+    background: #c0392b;
+    color: #ffffff;
+  }
+
+  .s-go {
+    background: #27ae60;
+    color: #ffffff;
+  }
+
+  .s-foul {
+    background: #f39c12;
+    color: #ffffff;
+  }
+
+  .s-result {
+    background: #eaf3ff;
+  }
+
+  .s-count {
+    background: #2c3e50;
+    color: #ffffff;
+  }
+
+  .s-tap {
+    background: #8e44ad;
+    color: #ffffff;
+  }
+
+  .s-ready h1,
+  .s-ready p,
+  .s-go h1,
+  .s-go p,
+  .s-foul h1,
+  .s-foul p,
+  .s-count h1,
+  .s-count p,
+  .s-tap h1,
+  .s-tap p {
+    color: #ffffff;
+  }
+
+  .tag {
+    position: fixed;
+    z-index: 10;
+
+    top: max(10px, env(safe-area-inset-top));
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+
+    text-align: center;
+
+    color: #777777;
+    font-size: 0.85rem;
+
+    pointer-events: none;
+  }
+
+  .err {
+    position: fixed;
+    z-index: 30;
+
+    bottom: 0;
+    left: 0;
+    right: 0;
+
+    display: none;
+
+    padding:
+      10px
+      max(10px, env(safe-area-inset-right))
+      max(10px, env(safe-area-inset-bottom))
+      max(10px, env(safe-area-inset-left));
+
+    background: #c0392b;
+    color: #ffffff;
+
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  .timebar {
+    width: 80%;
+    max-width: 340px;
+    height: 14px;
+
+    margin-top: 14px;
+
+    overflow: hidden;
+
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .timebar > div {
+    width: 100%;
+    height: 100%;
+
+    background: #ffffff;
+
+    transition: width 0.08s linear;
+  }
 </style>
 </head>
-<body ondragstart="return false" oncontextmenu="return false">
+
+<body
+  ondragstart="return false"
+  oncontextmenu="return false"
+>
+
 <div id="app">
   <div class="tag" id="tag"></div>
-  <div class="screen s-wait" id="screen"></div>
+
+  <div
+    class="screen s-wait"
+    id="screen"
+  ></div>
 </div>
-<div class="err" id="err"></div>
+
+<div
+  class="err"
+  id="err"
+></div>
 
 <script>
-const SKEY = 'reflexBattle.session';
+'use strict';
+
+// ============================================================
+// 基本状態
+// ============================================================
+
+const STORAGE_KEY = 'reflexBattle.session.v2';
+
 const screen = document.getElementById('screen');
 const tag = document.getElementById('tag');
-const errBox = document.getElementById('err');
+const errorBox = document.getElementById('err');
+
 let me = null;
+
 let roundId = 0;
 let phase = 'idle';
+
 let greenAt = 0;
-let timer = null;
-let es = null;
-let tapCount = 0;
+
+let reflexTimer = null;
 let tapEndTimer = null;
-let tapTick = null;
+let tapTickTimer = null;
+let countdownTimer = null;
 
-function setScreen(cls, html) { screen.className = 'screen ' + cls; screen.innerHTML = html; }
-function showErr(msg){ errBox.textContent = msg; errBox.style.display='block';
-  setTimeout(()=>{ errBox.style.display='none'; }, 4000); }
-function nowMs(){ return (window.performance && performance.now) ? performance.now() : Date.now(); }
-function esc(s){ return (s+'').replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+let eventSource = null;
 
-function setCookie(n,v,days){ try{const d=new Date();d.setTime(d.getTime()+days*864e5);document.cookie=n+'='+encodeURIComponent(v)+';expires='+d.toUTCString()+';path=/;SameSite=Lax';}catch(e){} }
-function getCookie(n){ try{const m=document.cookie.match('(^|;)\\s*'+n+'\\s*=\\s*([^;]+)');return m?decodeURIComponent(m.pop()):'';}catch(e){return '';} }
-function saveSession(){ const v=JSON.stringify(me); try{localStorage.setItem(SKEY,v);}catch(e){} setCookie(SKEY,v,1); }
-function loadSession(){ try{const v=localStorage.getItem(SKEY);if(v)return JSON.parse(v);}catch(e){} try{const v=getCookie(SKEY);if(v)return JSON.parse(v);}catch(e){} return null; }
-function clearSession(){ try{localStorage.removeItem(SKEY);}catch(e){} setCookie(SKEY,'',-1); }
+let tapCount = 0;
 
-async function post(url, body, retries){
-  retries = (retries===undefined)?2:retries;
-  for (let i=0;i<=retries;i++){
-    try {
-      const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body||{})});
-      if (!r.ok) throw new Error('HTTP '+r.status);
-      return await r.json();
-    } catch(e){ if (i===retries) throw e; await new Promise(res=>setTimeout(res, 700)); }
-  }
-}
+// ============================================================
+// 画面表示
+// ============================================================
 
-async function boot(){
-  const saved = loadSession();
-  if (saved && (saved.id || saved.name)){
-    setScreen('s-wait', '<h1>復帰中…</h1><p class="muted">'+esc(saved.name||'')+' として戻っています…</p>');
-    try {
-      const r = await post('/api/rejoin', { id: saved.id, name: saved.name }, 2);
-      me = { id:r.id, name:r.name }; saveSession();
-      tag.textContent = me.name + ' として参加中';
-      connect(); waiting(); return;
-    } catch(e){}
-  }
-  showJoinScreen();
-}
-
-function showJoinScreen(){
-  const saved = loadSession();
-  const nm = (saved && saved.name) || '';
-  setScreen('s-wait',
-    '<h1>⚡ 反射神経＆連打バトル</h1>'+
-    '<p>ニックネームを入れて参加しよう</p>'+
-    '<input id="name" maxlength="20" placeholder="なまえ" autocomplete="off" value="'+esc(nm)+'">'+
-    '<button id="joinBtn">参加する</button>'+
-    '<p class="muted">※閉じてしまっても、同じ名前で入り直せば戻れます</p>');
-  document.getElementById('joinBtn').onclick = join;
-  document.getElementById('name').addEventListener('keydown', e => { if (e.key==='Enter') join(); });
-}
-
-async function join() {
-  const name = document.getElementById('name').value.trim();
-  const btn = document.getElementById('joinBtn');
-  btn.disabled = true; btn.textContent = '接続中…';
-  try {
-    const saved = loadSession();
-    const r = saved && saved.id
-      ? await post('/api/rejoin', { id: saved.id, name }, 3)
-      : await post('/api/join',   { name }, 3);
-    me = { id:r.id, name:r.name }; saveSession();
-    tag.textContent = me.name + ' として参加中';
-    connect(); waiting();
-  } catch(e){
-    btn.disabled = false; btn.textContent = '参加する';
-    showErr('接続に失敗しました。もう一度「参加する」を押してください');
-  }
-}
-
-function backToStart(){
-  me=null; roundId=0; phase='idle';
-  if (es){ es.close(); es=null; }
-  clearTimers(); clearSession(); tag.textContent='';
-  showJoinScreen();
-}
-
-function clearTimers(){ clearTimeout(timer); clearTimeout(tapEndTimer); clearInterval(tapTick); }
-
-function waiting() {
-  phase = 'idle'; clearTimers();
-  setScreen('s-wait',
-    '<h1>スタンバイ中…</h1>'+
-    '<p>司会の合図でスタートします。<br>画面を見て待っていてね👀</p>'+
-    '<p class="muted">ゲームは司会が選びます</p>');
-}
-
-function connect() {
-  if (es) es.close();
-  es = new EventSource('/events/player?id=' + me.id);
-  es.addEventListener('round-start', e => startReflex(JSON.parse(e.data).roundId));
-  es.addEventListener('tap-start',   e => { const d=JSON.parse(e.data); startTapCountdown(d.roundId, d.duration); });
-  es.addEventListener('reset', () => waiting());
-  es.addEventListener('kick',  () => backToStart());
-  es.onerror = () => {};
-}
-
-// ===== 反射神経モード =====
-function startReflex(rid) {
-  roundId = rid; clearTimers();
-  phase = 'ready';
-  setScreen('s-ready', '<h1>まだ！</h1><p class="big">🔴</p><p>緑になるまで待て…</p>');
-  const delay = 1500 + Math.random() * 3000;
-  timer = setTimeout(goGreen, delay);
-  bindTap(onReflexTap);
-}
-function goGreen() {
-  phase = 'go'; greenAt = nowMs();
-  setScreen('s-go', '<h1>今だ！！</h1><p class="big">🟢</p><p>タップ！</p>');
-}
-function onReflexTap() {
-  if (phase === 'ready') {
-    clearTimeout(timer); phase='done'; unbindTap();
-    setScreen('s-foul', '<h1>フライング！</h1><p>緑になる前に押しちゃった😵</p><p>今回は無効です</p>');
-    post('/api/result', { id: me.id, roundId, foul: true }, 2).catch(()=>{});
-    setTimeout(waiting, 2500);
-  } else if (phase === 'go') {
-    const t = nowMs() - greenAt;
-    phase='done'; unbindTap();
-    setScreen('s-result', '<h1>'+judge(t)+'</h1><p class="big">'+t.toFixed(0)+' <span style="font-size:1.2rem">ms</span></p><p>次の合図まで待ってね</p>');
-    post('/api/result', { id: me.id, roundId, timeMs: t }, 3).catch(()=> showErr('記録の送信に失敗しました'));
-    setTimeout(waiting, 3000);
-  }
-}
-function judge(ms){
-  if (ms<200) return '🏆 神反応！'; if (ms<250) return '⚡ 素晴らしい！';
-  if (ms<300) return '👍 いい感じ'; if (ms<400) return '🙂 平均的'; return '🐢 もう一回！';
-}
-
-// ===== 連打モード =====
-function startTapCountdown(rid, duration) {
-  roundId = rid; clearTimers();
-  phase = 'counting';
-  let n = 3;
-  setScreen('s-count', '<h1>連打バトル！</h1><p>'+duration+'秒間、一本指でできるだけ多くタップ！</p><p class="huge">'+n+'</p>');
-  const cd = setInterval(()=>{
-    n--;
-    if (n > 0){ const h=screen.querySelector('.huge'); if(h) h.textContent = n; }
-    else { clearInterval(cd); beginTapping(duration); }
-  }, 1000);
-}
-function beginTapping(duration) {
-  phase = 'tapping'; tapCount = 0;
-  setScreen('s-tap',
-    '<h1>連打！！</h1>'+
-    '<p class="huge" id="cnt">0</p>'+
-    '<p id="rem">残り '+duration+'.0 秒</p>'+
-    '<div class="timebar"><div id="bar"></div></div>'+
-    '<p class="muted">一本指で、画面のどこでもタップ！</p>');
-  bindTap(onTapHit);
-  const startT = nowMs();
-  const total = duration * 1000;
-  tapTick = setInterval(()=>{
-    const elapsed = nowMs() - startT;
-    const remain = Math.max(0, total - elapsed);
-    const rem = document.getElementById('rem'); const bar = document.getElementById('bar');
-    if (rem) rem.textContent = '残り ' + (remain/1000).toFixed(1) + ' 秒';
-    if (bar) bar.style.width = (remain/total*100) + '%';
-  }, 100);
-  tapEndTimer = setTimeout(()=> finishTapping(), total);
-}
-function onTapHit() {
-  if (phase !== 'tapping') return;
-  tapCount++;
-  const c = document.getElementById('cnt');
-  if (c) c.textContent = tapCount;
-}
-function finishTapping() {
-  phase='done'; unbindTap(); clearInterval(tapTick);
-  const n = tapCount;
-  setScreen('s-result',
-    '<h1>'+tapJudge(n)+'</h1>'+
-    '<p class="big">'+n+' <span style="font-size:1.2rem">回</span></p>'+
-    '<p>おつかれさま！次の合図まで待ってね</p>');
-  post('/api/result', { id: me.id, roundId, taps: n }, 3).catch(()=> showErr('記録の送信に失敗しました'));
-  setTimeout(waiting, 3500);
-}
-function tapJudge(n){
-  if (n>=90) return '🏆 神連打！'; if (n>=70) return '🔥 すごい！';
-  if (n>=50) return '💪 いい調子'; if (n>=30) return '🙂 ナイス'; return '👍 おつかれさま';
-}
-
-// ===== タップ入力の共通処理（指1本に限定・位置は自由） =====
-// pointerdown で数える。ただし「今すでに他の指が画面に触れている間」は
-// その2本目以降を無視（同時押し・雑な多指乱打を防止）。
-// 画面のどこを押してもOK。1本指なら位置がずれても全部カウントされる。
-const SUPPORTS_POINTER = ('PointerEvent' in window);
-const HAS_TOUCH = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-let lastInputAt = 0;
-const activePointers = new Set();
-
-function onPointerDownCounter(handler){
-  return function(ev){
-    if (ev && ev.cancelable) ev.preventDefault();
-    const pid = (ev && ev.pointerId != null) ? ev.pointerId : 0;
-    if (activePointers.size > 0){ activePointers.add(pid); return; } // 2本目以降は無視
-    activePointers.add(pid);
-    const now = nowMs();
-    if (now - lastInputAt < 25) return;
-    lastInputAt = now;
-    handler();
-  };
-}
-function onPointerUpCleanup(ev){
-  const pid = (ev && ev.pointerId != null) ? ev.pointerId : 0;
-  activePointers.delete(pid);
-}
-function onTouchStartCounter(handler){
-  return function(ev){
-    if (ev && ev.cancelable) ev.preventDefault();
-    if (ev.touches && ev.touches.length > 1) return; // 2本目以降は無視
-    const now = nowMs();
-    if (now - lastInputAt < 25) return;
-    lastInputAt = now;
-    handler();
-  };
-}
-
-let _down = null, _up = null, _touch = null, _click = null;
-function bindTap(handler){
+function setScreen(className, html) {
   unbindTap();
-  activePointers.clear();
-  if (SUPPORTS_POINTER){
-    _down = onPointerDownCounter(handler);
-    _up   = onPointerUpCleanup;
-    screen.addEventListener('pointerdown', _down);
-    screen.addEventListener('pointerup', _up);
-    screen.addEventListener('pointercancel', _up);
-    screen.addEventListener('pointerleave', _up);
-  } else if (HAS_TOUCH){
-    _touch = onTouchStartCounter(handler);
-    screen.addEventListener('touchstart', _touch, { passive:false });
-  } else {
-    _click = function(ev){ if(ev&&ev.cancelable)ev.preventDefault();
-      const now = nowMs(); if (now-lastInputAt<25) return; lastInputAt=now; handler(); };
-    screen.addEventListener('click', _click);
-  }
-}
-function unbindTap(){
-  if (_down){ screen.removeEventListener('pointerdown', _down); _down=null; }
-  if (_up){
-    screen.removeEventListener('pointerup', _up);
-    screen.removeEventListener('pointercancel', _up);
-    screen.removeEventListener('pointerleave', _up);
-    _up=null;
-  }
-  if (_touch){ screen.removeEventListener('touchstart', _touch); _touch=null; }
-  if (_click){ screen.removeEventListener('click', _click); _click=null; }
-  activePointers.clear();
-  screen.onclick = null; screen.ontouchstart = null;
+
+  screen.className = 'screen ' + className;
+  screen.innerHTML = html;
 }
 
-// ===== ダブルタップズーム・ピンチズームの抑止（iOS/Android共通の保険） =====
-let _lastTouchEnd = 0;
-document.addEventListener('touchend', function(e){
-  const now = nowMs();
-  if (now - _lastTouchEnd < 350){ if (e.cancelable) e.preventDefault(); }
-  _lastTouchEnd = now;
-}, { passive:false });
-document.addEventListener('gesturestart', function(e){ e.preventDefault(); });
-document.addEventListener('dblclick', function(e){ e.preventDefault(); });
+function showError(message) {
+  errorBox.textContent = message;
+  errorBox.style.display = 'block';
+
+  window.setTimeout(function () {
+    errorBox.style.display = 'none';
+  }, 5000);
+}
+
+function nowMs() {
+  if (
+    window.performance &&
+    typeof window.performance.now === 'function'
+  ) {
+    return window.performance.now();
+  }
+
+  return Date.now();
+}
+
+function escapeHtml(value) {
+  return String(value || '').replace(
+    /[<>&"]/g,
+    function (character) {
+      return {
+        '<': '&lt;',
+        '>': '&gt;',
+        '&': '&amp;',
+        '"': '&quot;'
+      }[character];
+    }
+  );
+}
+
+// ============================================================
+// CookieとlocalStorage
+// ============================================================
+
+function setCookie(name, value, days) {
+  try {
+    const expiry = new Date();
+
+    expiry.setTime(
+      expiry.getTime() +
+      days * 24 * 60 * 60 * 1000
+    );
+
+    document.cookie =
+      name +
+      '=' +
+      encodeURIComponent(value) +
+      ';expires=' +
+      expiry.toUTCString() +
+      ';path=/' +
+      ';SameSite=Lax';
+  } catch (error) {
+    // Cookieが使えない場合はlocalStorageを使用
+  }
+}
+
+function getCookie(name) {
+  try {
+    const pattern =
+      '(^|;)\\s*' +
+      name +
+      '\\s*=\\s*([^;]+)';
+
+    const match =
+      document.cookie.match(pattern);
+
+    return match
+      ? decodeURIComponent(match.pop())
+      : '';
+  } catch (error) {
+    return '';
+  }
+}
+
+function saveSession(session) {
+  me = session;
+
+  const serialized =
+    JSON.stringify(session);
+
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      serialized
+    );
+  } catch (error) {
+    // localStorageが使えない場合はCookieのみ
+  }
+
+  setCookie(
+    STORAGE_KEY,
+    serialized,
+    1
+  );
+}
+
+function loadSession() {
+  try {
+    const localValue =
+      localStorage.getItem(STORAGE_KEY);
+
+    if (localValue) {
+      return JSON.parse(localValue);
+    }
+  } catch (error) {
+    // Cookieを試す
+  }
+
+  try {
+    const cookieValue =
+      getCookie(STORAGE_KEY);
+
+    if (cookieValue) {
+      return JSON.parse(cookieValue);
+    }
+  } catch (error) {
+    // 保存情報なし
+  }
+
+  return null;
+}
+
+function clearSession() {
+  me = null;
+
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    // localStorage削除に失敗してもCookieを削除
+  }
+
+  setCookie(
+    STORAGE_KEY,
+    '',
+    -1
+  );
+}
+
+// ============================================================
+// API通信
+// ============================================================
+
+async function apiPost(
+  url,
+  body,
+  retries
+) {
+  const retryCount =
+    typeof retries === 'number'
+      ? retries
+      : 2;
+
+  let lastError = null;
+
+  for (
+    let attempt = 0;
+    attempt <= retryCount;
+    attempt += 1
+  ) {
+    try {
+      const response = await fetch(
+        url,
+        {
+          method: 'POST',
+
+          headers: {
+            'Content-Type':
+              'application/json'
+          },
+
+          cache: 'no-store',
+
+          body: JSON.stringify(
+            body || {}
+          )
+        }
+      );
+
+      let result = {};
+
+      try {
+        result = await response.json();
+      } catch (parseError) {
+        result = {};
+      }
+
+      if (!response.ok) {
+        const apiError =
+          new Error(
+            'HTTP ' + response.status
+          );
+
+        apiError.status =
+          response.status;
+
+        apiError.data =
+          result;
+
+        throw apiError;
+      }
+
+      return result;
+    } catch (error) {
+      lastError = error;
+
+      // 409または404は通信障害ではないため再試行しない
+      if (
+        error.status === 409 ||
+        error.status === 404
+      ) {
+        throw error;
+      }
+
+      if (attempt >= retryCount) {
+        throw error;
+      }
+
+      await new Promise(
+        function (resolve) {
+          window.setTimeout(
+            resolve,
+            700
+          );
+        }
+      );
+    }
+  }
+
+  throw lastError;
+}
+
+function isInvalidSessionError(error) {
+  if (!error) {
+    return false;
+  }
+
+  if (
+    error.status === 409 &&
+    error.data &&
+    error.data.staleSession
+  ) {
+    return true;
+  }
+
+  if (
+    error.status === 404 &&
+    error.data &&
+    error.data.playerMissing
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function handleInvalidSession(message) {
+  closeEventSource();
+  clearAllTimers();
+  clearSession();
+
+  roundId = 0;
+  phase = 'idle';
+
+  tag.textContent = '';
+
+  showJoinScreen(
+    message ||
+    '参加情報がリセットされました。もう一度名前を入力してください。'
+  );
+}
+
+// ============================================================
+// 起動と再入場
+// ============================================================
+
+async function boot() {
+  const saved = loadSession();
+
+  if (
+    saved &&
+    saved.id &&
+    saved.name &&
+    saved.sessionGeneration
+  ) {
+    setScreen(
+      's-wait',
+      '<h1>復帰中…</h1>' +
+      '<p class="muted">' +
+      escapeHtml(saved.name) +
+      ' として戻っています…</p>'
+    );
+
+    try {
+      const result = await apiPost(
+        '/api/rejoin',
+        {
+          id: saved.id,
+          name: saved.name,
+
+          sessionGeneration:
+            saved.sessionGeneration
+        },
+        2
+      );
+
+      saveSession({
+        id: result.id,
+        name: result.name,
+
+        sessionGeneration:
+          result.sessionGeneration
+      });
+
+      roundId =
+        result.round &&
+        typeof result.round.id === 'number'
+          ? result.round.id
+          : 0;
+
+      tag.textContent =
+        result.name +
+        ' として参加中';
+
+      connectEventSource();
+      showWaitingScreen();
+
+      return;
+    } catch (error) {
+      if (
+        isInvalidSessionError(error)
+      ) {
+        handleInvalidSession(
+          '全リセットまたはサーバー再起動が行われました。もう一度名前を入力してください。'
+        );
+
+        return;
+      }
+
+      // 通信エラーの場合も、開始しないスタンバイ状態にはせず
+      // 名前入力画面へ戻す
+      clearSession();
+
+      showJoinScreen(
+        '接続を確認できませんでした。名前を入力して参加し直してください。'
+      );
+
+      return;
+    }
+  }
+
+  // 旧バージョンで保存したIDにはsessionGenerationがないため破棄
+  if (saved) {
+    clearSession();
+  }
+
+  showJoinScreen();
+}
+
+// ============================================================
+// 名前入力・参加
+// ============================================================
+
+function showJoinScreen(noticeMessage) {
+  closeEventSource();
+  clearAllTimers();
+
+  phase = 'idle';
+  roundId = 0;
+
+  let noticeHtml = '';
+
+  if (noticeMessage) {
+    noticeHtml =
+      '<div class="notice">' +
+      escapeHtml(noticeMessage) +
+      '</div>';
+  }
+
+  setScreen(
+    's-wait',
+
+    '<h1>⚡ 反射神経＆連打バトル</h1>' +
+
+    '<p>ニックネームを入力してください</p>' +
+
+    '<input ' +
+      'id="name" ' +
+      'maxlength="20" ' +
+      'placeholder="なまえ" ' +
+      'autocomplete="off" ' +
+      'autocapitalize="off" ' +
+      'spellcheck="false"' +
+    '>' +
+
+    '<button id="joinBtn">' +
+      '参加する' +
+    '</button>' +
+
+    noticeHtml +
+
+    '<p class="muted">' +
+      '画面を閉じても、同じ端末とブラウザなら再入場できます' +
+    '</p>'
+  );
+
+  const nameInput =
+    document.getElementById('name');
+
+  const joinButton =
+    document.getElementById('joinBtn');
+
+  joinButton.addEventListener(
+    'click',
+    joinGame
+  );
+
+  nameInput.addEventListener(
+    'keydown',
+    function (event) {
+      if (event.key === 'Enter') {
+        joinGame();
+      }
+    }
+  );
+}
+
+async function joinGame() {
+  const nameInput =
+    document.getElementById('name');
+
+  const joinButton =
+    document.getElementById('joinBtn');
+
+  if (!nameInput || !joinButton) {
+    return;
+  }
+
+  const name =
+    nameInput.value.trim();
+
+  if (!name) {
+    showError(
+      'ニックネームを入力してください。'
+    );
+
+    nameInput.focus();
+    return;
+  }
+
+  joinButton.disabled = true;
+  joinButton.textContent =
+    '接続中…';
+
+  try {
+    // 新しい参加として登録する。
+    // 同名の既存参加者が現在のサーバーにいれば、
+    // server.js側で既存ユーザーへ合流する。
+    const result = await apiPost(
+      '/api/join',
+      {
+        name
+      },
+      3
+    );
+
+    saveSession({
+      id: result.id,
+      name: result.name,
+
+      sessionGeneration:
+        result.sessionGeneration
+    });
+
+    roundId =
+      result.round &&
+      typeof result.round.id === 'number'
+        ? result.round.id
+        : 0;
+
+    tag.textContent =
+      result.name +
+      ' として参加中';
+
+    connectEventSource();
+    showWaitingScreen();
+  } catch (error) {
+    joinButton.disabled = false;
+    joinButton.textContent =
+      '参加する';
+
+    showError(
+      '接続に失敗しました。もう一度「参加する」を押してください。'
+    );
+  }
+}
+
+// ============================================================
+// SSE接続
+// ============================================================
+
+function closeEventSource() {
+  if (eventSource) {
+    try {
+      eventSource.close();
+    } catch (error) {
+      // 切断失敗は無視
+    }
+
+    eventSource = null;
+  }
+}
+
+function connectEventSource() {
+  closeEventSource();
+
+  if (
+    !me ||
+    !me.id ||
+    !me.sessionGeneration
+  ) {
+    handleInvalidSession();
+    return;
+  }
+
+  const eventUrl =
+    '/events/player' +
+    '?id=' +
+    encodeURIComponent(me.id) +
+    '&generation=' +
+    encodeURIComponent(
+      me.sessionGeneration
+    );
+
+  eventSource =
+    new EventSource(eventUrl);
+
+  eventSource.addEventListener(
+    'hello',
+    function (event) {
+      try {
+        const data =
+          JSON.parse(event.data);
+
+        if (
+          data.sessionGeneration &&
+          data.sessionGeneration !==
+            me.sessionGeneration
+        ) {
+          handleInvalidSession();
+        }
+      } catch (error) {
+        // hello解析失敗は無視
+      }
+    }
+  );
+
+  eventSource.addEventListener(
+    'round-start',
+    function (event) {
+      try {
+        const data =
+          JSON.parse(event.data);
+
+        if (
+          data.sessionGeneration &&
+          data.sessionGeneration !==
+            me.sessionGeneration
+        ) {
+          handleInvalidSession();
+          return;
+        }
+
+        startReflexGame(
+          data.roundId
+        );
+      } catch (error) {
+        showError(
+          'ゲーム開始情報を読み取れませんでした。'
+        );
+      }
+    }
+  );
+
+  eventSource.addEventListener(
+    'tap-start',
+    function (event) {
+      try {
+        const data =
+          JSON.parse(event.data);
+
+        if (
+          data.sessionGeneration &&
+          data.sessionGeneration !==
+            me.sessionGeneration
+        ) {
+          handleInvalidSession();
+          return;
+        }
+
+        startTapCountdown(
+          data.roundId,
+          data.duration
+        );
+      } catch (error) {
+        showError(
+          'ゲーム開始情報を読み取れませんでした。'
+        );
+      }
+    }
+  );
+
+  eventSource.addEventListener(
+    'reset',
+    function (event) {
+      try {
+        const data =
+          JSON.parse(event.data);
+
+        if (
+          data.sessionGeneration &&
+          data.sessionGeneration !==
+            me.sessionGeneration
+        ) {
+          handleInvalidSession();
+          return;
+        }
+      } catch (error) {
+        // データが空の場合も記録リセットとして扱う
+      }
+
+      showWaitingScreen();
+    }
+  );
+
+  eventSource.addEventListener(
+    'kick',
+    function () {
+      handleInvalidSession(
+        '全リセットが実行されました。次のゲームへ参加する場合は、もう一度名前を入力してください。'
+      );
+    }
+  );
+
+  eventSource.onerror =
+    function () {
+      // EventSourceは通常、自動で再接続します。
+      // ただし、全リセット後に切断されたIDのまま無限再接続すると
+      // スタンバイ画面で固まるため、サーバー状態を確認します。
+      verifySessionAfterDisconnect();
+    };
+}
+
+let sessionCheckInProgress = false;
+
+async function verifySessionAfterDisconnect() {
+  if (
+    sessionCheckInProgress ||
+    !me ||
+    !me.id
+  ) {
+    return;
+  }
+
+  sessionCheckInProgress = true;
+
+  try {
+    const result = await apiPost(
+      '/api/rejoin',
+      {
+        id: me.id,
+        name: me.name,
+
+        sessionGeneration:
+          me.sessionGeneration
+      },
+      0
+    );
+
+    // 有効なセッションなら保存情報を更新
+    saveSession({
+      id: result.id,
+      name: result.name,
+
+      sessionGeneration:
+        result.sessionGeneration
+    });
+  } catch (error) {
+    if (
+      isInvalidSessionError(error)
+    ) {
+      handleInvalidSession(
+        '参加情報がリセットされました。もう一度名前を入力してください。'
+      );
+    }
+
+    // 単なる一時的な通信切断ならEventSourceの自動再接続に任せる
+  } finally {
+    sessionCheckInProgress = false;
+  }
+}
+
+// ============================================================
+// 待機画面
+// ============================================================
+
+function showWaitingScreen() {
+  clearAllTimers();
+
+  phase = 'idle';
+
+  setScreen(
+    's-wait',
+
+    '<h1>スタンバイ中…</h1>' +
+
+    '<p>' +
+      '司会の合図でスタートします。' +
+      '<br>' +
+      '画面を見て待っていてください' +
+    '</p>' +
+
+    '<p class="muted">' +
+      'ゲームの種類と秒数は司会が選択します' +
+    '</p>'
+  );
+}
+
+// ============================================================
+// タイマー管理
+// ============================================================
+
+function clearAllTimers() {
+  if (reflexTimer) {
+    clearTimeout(reflexTimer);
+    reflexTimer = null;
+  }
+
+  if (tapEndTimer) {
+    clearTimeout(tapEndTimer);
+    tapEndTimer = null;
+  }
+
+  if (tapTickTimer) {
+    clearInterval(tapTickTimer);
+    tapTickTimer = null;
+  }
+
+  if (countdownTimer) {
+    clearInterval(countdownTimer);
+    countdownTimer = null;
+  }
+
+  unbindTap();
+}
+
+// ============================================================
+// 反射神経ゲーム
+// ============================================================
+
+function startReflexGame(newRoundId) {
+  clearAllTimers();
+
+  roundId = newRoundId;
+  phase = 'ready';
+
+  setScreen(
+    's-ready',
+
+    '<h1>まだ！</h1>' +
+    '<p class="big">🔴</p>' +
+    '<p>緑になるまで待ってください</p>'
+  );
+
+  bindTap(handleReflexTap);
+
+  const randomDelay =
+    1500 +
+    Math.random() * 3000;
+
+  reflexTimer =
+    window.setTimeout(
+      showGreenScreen,
+      randomDelay
+    );
+}
+
+function showGreenScreen() {
+  if (phase !== 'ready') {
+    return;
+  }
+
+  phase = 'go';
+  greenAt = nowMs();
+
+  setScreen(
+    's-go',
+
+    '<h1>今だ！！</h1>' +
+    '<p class="big">🟢</p>' +
+    '<p>タップ！</p>'
+  );
+
+  bindTap(handleReflexTap);
+}
+
+function handleReflexTap() {
+  if (phase === 'ready') {
+    if (reflexTimer) {
+      clearTimeout(reflexTimer);
+      reflexTimer = null;
+    }
+
+    phase = 'done';
+    unbindTap();
+
+    setScreen(
+      's-foul',
+
+      '<h1>フライング！</h1>' +
+      '<p>緑になる前に押しました</p>' +
+      '<p>今回は無効です</p>'
+    );
+
+    apiPost(
+      '/api/result',
+      {
+        id: me.id,
+        roundId,
+        foul: true,
+
+        sessionGeneration:
+          me.sessionGeneration
+      },
+      2
+    ).catch(function (error) {
+      if (
+        isInvalidSessionError(error)
+      ) {
+        handleInvalidSession();
+      }
+    });
+
+    window.setTimeout(
+      showWaitingScreen,
+      2500
+    );
+
+    return;
+  }
+
+  if (phase === 'go') {
+    const reactionTime =
+      nowMs() - greenAt;
+
+    phase = 'done';
+    unbindTap();
+
+    setScreen(
+      's-result',
+
+      '<h1>' +
+        reflexMessage(reactionTime) +
+      '</h1>' +
+
+      '<p class="big">' +
+        Math.round(reactionTime) +
+        ' ' +
+        '<span style="font-size:1.2rem">' +
+          'ms' +
+        '</span>' +
+      '</p>' +
+
+      '<p>次の合図までお待ちください</p>'
+    );
+
+    apiPost(
+      '/api/result',
+      {
+        id: me.id,
+        roundId,
+        timeMs: reactionTime,
+
+        sessionGeneration:
+          me.sessionGeneration
+      },
+      3
+    ).catch(function (error) {
+      if (
+        isInvalidSessionError(error)
+      ) {
+        handleInvalidSession();
+        return;
+      }
+
+      showError(
+        '記録の送信に失敗しました。'
+      );
+    });
+
+    window.setTimeout(
+      showWaitingScreen,
+      3000
+    );
+  }
+}
+
+function reflexMessage(milliseconds) {
+  if (milliseconds < 200) {
+    return '🏆 神反応！';
+  }
+
+  if (milliseconds < 250) {
+    return '⚡ 素晴らしい！';
+  }
+
+  if (milliseconds < 300) {
+    return '👍 いい感じ';
+  }
+
+  if (milliseconds < 400) {
+    return '🙂 ナイス';
+  }
+
+  return '🐢 もう一回！';
+}
+
+// ============================================================
+// 連打ゲーム
+// ============================================================
+
+function startTapCountdown(
+  newRoundId,
+  duration
+) {
+  clearAllTimers();
+
+  roundId = newRoundId;
+  phase = 'counting';
+
+  const safeDuration =
+    [5, 7, 10].includes(
+      Number(duration)
+    )
+      ? Number(duration)
+      : 7;
+
+  let count = 3;
+
+  setScreen(
+    's-count',
+
+    '<h1>連打バトル！</h1>' +
+
+    '<p>' +
+      safeDuration +
+      '秒間、一本指で連打してください' +
+    '</p>' +
+
+    '<p class="huge" id="countdown">' +
+      count +
+    '</p>'
+  );
+
+  countdownTimer =
+    window.setInterval(
+      function () {
+        count -= 1;
+
+        if (count > 0) {
+          const countdownElement =
+            document.getElementById(
+              'countdown'
+            );
+
+          if (countdownElement) {
+            countdownElement.textContent =
+              count;
+          }
+
+          return;
+        }
+
+        clearInterval(
+          countdownTimer
+        );
+
+        countdownTimer = null;
+
+        beginTapping(
+          safeDuration
+        );
+      },
+      1000
+    );
+}
+
+function beginTapping(duration) {
+  phase = 'tapping';
+  tapCount = 0;
+
+  setScreen(
+    's-tap',
+
+    '<h1>連打！！</h1>' +
+
+    '<p class="huge" id="tapCount">' +
+      '0' +
+    '</p>' +
+
+    '<p id="remainingTime">' +
+      '残り ' +
+      duration.toFixed(1) +
+      ' 秒' +
+    '</p>' +
+
+    '<div class="timebar">' +
+      '<div id="timeBar"></div>' +
+    '</div>' +
+
+    '<p class="muted">' +
+      '一本指で、画面のどこでもタップ！' +
+    '</p>'
+  );
+
+  bindTap(handleTapHit);
+
+  const startTime = nowMs();
+  const totalMilliseconds =
+    duration * 1000;
+
+  tapTickTimer =
+    window.setInterval(
+      function () {
+        const elapsed =
+          nowMs() - startTime;
+
+        const remaining =
+          Math.max(
+            0,
+            totalMilliseconds -
+            elapsed
+          );
+
+        const remainingElement =
+          document.getElementById(
+            'remainingTime'
+          );
+
+        const timeBar =
+          document.getElementById(
+            'timeBar'
+          );
+
+        if (remainingElement) {
+          remainingElement.textContent =
+            '残り ' +
+            (
+              remaining /
+              1000
+            ).toFixed(1) +
+            ' 秒';
+        }
+
+        if (timeBar) {
+          timeBar.style.width =
+            (
+              remaining /
+              totalMilliseconds *
+              100
+            ) +
+            '%';
+        }
+      },
+      100
+    );
+
+  tapEndTimer =
+    window.setTimeout(
+      finishTapping,
+      totalMilliseconds
+    );
+}
+
+function handleTapHit() {
+  if (phase !== 'tapping') {
+    return;
+  }
+
+  tapCount += 1;
+
+  const countElement =
+    document.getElementById(
+      'tapCount'
+    );
+
+  if (countElement) {
+    countElement.textContent =
+      tapCount;
+  }
+}
+
+function finishTapping() {
+  if (phase !== 'tapping') {
+    return;
+  }
+
+  phase = 'done';
+
+  unbindTap();
+
+  if (tapTickTimer) {
+    clearInterval(tapTickTimer);
+    tapTickTimer = null;
+  }
+
+  if (tapEndTimer) {
+    clearTimeout(tapEndTimer);
+    tapEndTimer = null;
+  }
+
+  const finalCount =
+    tapCount;
+
+  setScreen(
+    's-result',
+
+    '<h1>' +
+      tapMessage(finalCount) +
+    '</h1>' +
+
+    '<p class="big">' +
+      finalCount +
+      ' ' +
+      '<span style="font-size:1.2rem">' +
+        '回' +
+      '</span>' +
+    '</p>' +
+
+    '<p>' +
+      'おつかれさまでした！' +
+      '<br>' +
+      '次の合図までお待ちください' +
+    '</p>'
+  );
+
+  apiPost(
+    '/api/result',
+    {
+      id: me.id,
+      roundId,
+      taps: finalCount,
+
+      sessionGeneration:
+        me.sessionGeneration
+    },
+    3
+  ).catch(function (error) {
+    if (
+      isInvalidSessionError(error)
+    ) {
+      handleInvalidSession();
+      return;
+    }
+
+    showError(
+      '記録の送信に失敗しました。'
+    );
+  });
+
+  window.setTimeout(
+    showWaitingScreen,
+    3500
+  );
+}
+
+function tapMessage(count) {
+  if (count >= 90) {
+    return '🏆 神連打！';
+  }
+
+  if (count >= 70) {
+    return '🔥 すごい！';
+  }
+
+  if (count >= 50) {
+    return '💪 いい調子';
+  }
+
+  if (count >= 30) {
+    return '🙂 ナイス';
+  }
+
+  return '👍 おつかれさま';
+}
+
+// ============================================================
+// タップ入力
+//
+// ・pointerdownのみで1タップ1回
+// ・同時に触れている2本目以降は数えない
+// ・タップ位置は画面内なら自由
+// ============================================================
+
+const SUPPORTS_POINTER =
+  'PointerEvent' in window;
+
+const HAS_TOUCH =
+  'ontouchstart' in window ||
+  navigator.maxTouchPoints > 0;
+
+const activePointers =
+  new Set();
+
+let lastInputAt = 0;
+
+let pointerDownHandler = null;
+let pointerUpHandler = null;
+let touchStartHandler = null;
+let clickHandler = null;
+
+function createPointerDownHandler(
+  callback
+) {
+  return function (event) {
+    if (
+      event &&
+      event.cancelable
+    ) {
+      event.preventDefault();
+    }
+
+    const pointerId =
+      event &&
+      event.pointerId !== undefined
+        ? event.pointerId
+        : 0;
+
+    // 既に別の指が触れている場合は、
+    // 追加された指を記録するだけでカウントしない
+    if (activePointers.size > 0) {
+      activePointers.add(pointerId);
+      return;
+    }
+
+    activePointers.add(pointerId);
+
+    const currentTime = nowMs();
+
+    // 極端に短い重複入力だけ除外
+    if (
+      currentTime -
+      lastInputAt <
+      25
+    ) {
+      return;
+    }
+
+    lastInputAt = currentTime;
+    callback();
+  };
+}
+
+function cleanPointer(event) {
+  const pointerId =
+    event &&
+    event.pointerId !== undefined
+      ? event.pointerId
+      : 0;
+
+  activePointers.delete(pointerId);
+}
+
+function createTouchStartHandler(
+  callback
+) {
+  return function (event) {
+    if (
+      event &&
+      event.cancelable
+    ) {
+      event.preventDefault();
+    }
+
+    // PointerEvent非対応端末の場合は
+    // touchesが1本のときだけ数える
+    if (
+      event.touches &&
+      event.touches.length > 1
+    ) {
+      return;
+    }
+
+    const currentTime = nowMs();
+
+    if (
+      currentTime -
+      lastInputAt <
+      25
+    ) {
+      return;
+    }
+
+    lastInputAt = currentTime;
+    callback();
+  };
+}
+
+function bindTap(callback) {
+  unbindTap();
+
+  activePointers.clear();
+  lastInputAt = 0;
+
+  if (SUPPORTS_POINTER) {
+    pointerDownHandler =
+      createPointerDownHandler(
+        callback
+      );
+
+    pointerUpHandler =
+      cleanPointer;
+
+    screen.addEventListener(
+      'pointerdown',
+      pointerDownHandler,
+      {
+        passive: false
+      }
+    );
+
+    screen.addEventListener(
+      'pointerup',
+      pointerUpHandler
+    );
+
+    screen.addEventListener(
+      'pointercancel',
+      pointerUpHandler
+    );
+
+    screen.addEventListener(
+      'lostpointercapture',
+      pointerUpHandler
+    );
+
+    return;
+  }
+
+  if (HAS_TOUCH) {
+    touchStartHandler =
+      createTouchStartHandler(
+        callback
+      );
+
+    screen.addEventListener(
+      'touchstart',
+      touchStartHandler,
+      {
+        passive: false
+      }
+    );
+
+    return;
+  }
+
+  clickHandler =
+    function (event) {
+      if (
+        event &&
+        event.cancelable
+      ) {
+        event.preventDefault();
+      }
+
+      const currentTime =
+        nowMs();
+
+      if (
+        currentTime -
+        lastInputAt <
+        25
+      ) {
+        return;
+      }
+
+      lastInputAt =
+        currentTime;
+
+      callback();
+    };
+
+  screen.addEventListener(
+    'click',
+    clickHandler
+  );
+}
+
+function unbindTap() {
+  if (pointerDownHandler) {
+    screen.removeEventListener(
+      'pointerdown',
+      pointerDownHandler
+    );
+
+    pointerDownHandler = null;
+  }
+
+  if (pointerUpHandler) {
+    screen.removeEventListener(
+      'pointerup',
+      pointerUpHandler
+    );
+
+    screen.removeEventListener(
+      'pointercancel',
+      pointerUpHandler
+    );
+
+    screen.removeEventListener(
+      'lostpointercapture',
+      pointerUpHandler
+    );
+
+    pointerUpHandler = null;
+  }
+
+  if (touchStartHandler) {
+    screen.removeEventListener(
+      'touchstart',
+      touchStartHandler
+    );
+
+    touchStartHandler = null;
+  }
+
+  if (clickHandler) {
+    screen.removeEventListener(
+      'click',
+      clickHandler
+    );
+
+    clickHandler = null;
+  }
+
+  activePointers.clear();
+}
+
+// ============================================================
+// iPhone / Androidのズーム・選択対策
+// ============================================================
+
+let lastTouchEnd = 0;
+
+document.addEventListener(
+  'touchend',
+  function (event) {
+    const currentTime =
+      nowMs();
+
+    if (
+      currentTime -
+      lastTouchEnd <
+      350
+    ) {
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+    }
+
+    lastTouchEnd =
+      currentTime;
+  },
+  {
+    passive: false
+  }
+);
+
+document.addEventListener(
+  'gesturestart',
+  function (event) {
+    event.preventDefault();
+  }
+);
+
+document.addEventListener(
+  'gesturechange',
+  function (event) {
+    event.preventDefault();
+  }
+);
+
+document.addEventListener(
+  'gestureend',
+  function (event) {
+    event.preventDefault();
+  }
+);
+
+document.addEventListener(
+  'dblclick',
+  function (event) {
+    event.preventDefault();
+  }
+);
+
+// ============================================================
+// 開始
+// ============================================================
 
 boot();
 </script>
+
 </body>
 </html>
