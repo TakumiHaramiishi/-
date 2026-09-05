@@ -17,9 +17,9 @@
 
   html,
   body {
-    margin: 0;
     width: 100%;
     height: 100%;
+    margin: 0;
 
     font-family:
       -apple-system,
@@ -100,7 +100,26 @@
     image-rendering: pixelated;
   }
 
+  .qr-message {
+    padding: 16px;
+
+    color: #0b1f33;
+
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .qr-message small {
+    display: block;
+
+    margin-top: 8px;
+
+    color: #5c6770;
+  }
+
   .url {
+    min-height: 34px;
+
     padding: 8px 10px;
 
     border-radius: 10px;
@@ -201,6 +220,7 @@
 
   .duration-area {
     display: none;
+
     margin-top: 10px;
   }
 
@@ -454,7 +474,9 @@
       class="qr"
       id="qr"
     >
-      QRコード生成中…
+      <div class="qr-message">
+        QRコード生成中…
+      </div>
     </div>
 
     <div
@@ -577,9 +599,9 @@
     </button>
 
     <div class="operation-note">
-      ゲームまたは秒数を選択すると、過去ランキングだけが切り替わります。
+      ゲームや秒数を選ぶと、過去ランキングだけが切り替わります。
       <br>
-      ゲームは「開始」ボタンを押した時点で直ちに始まります。
+      ゲームは「開始」ボタンを押した時点で始まります。
     </div>
 
   </aside>
@@ -654,19 +676,16 @@
   id="toast"
 ></div>
 
-<!-- QRコード生成ライブラリ -->
-<div class="toast" id="toast"></div>
-
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-
-<!-- ホスト画面本体 -->
 <script>
 'use strict';
 
-console.log('host.html JavaScript started');
-  
-const joinUrl = window.location.origin + '/';
-document.getElementById('url').textContent = joinUrl;
+/*
+ * QRライブラリのURLは、チャットやGitHubでリンクHTMLへ
+ * 自動変換されるのを防ぐため、分割して組み立てます。
+ *
+ * このため、host.html内には完全な外部URLを直接書いていません。
+ */
+
 // ============================================================
 // 要素
 // ============================================================
@@ -757,7 +776,9 @@ let toastTimer = null;
 // ============================================================
 
 function escapeHtml(value) {
-  return String(value || '').replace(
+  return String(
+    value || ''
+  ).replace(
     /[<>&"]/g,
     function (character) {
       return {
@@ -771,47 +792,56 @@ function escapeHtml(value) {
 }
 
 function showToast(message) {
-  toastElement.textContent = message;
-  toastElement.style.display = 'block';
+  toastElement.textContent =
+    message;
+
+  toastElement.style.display =
+    'block';
 
   if (toastTimer) {
-    clearTimeout(toastTimer);
+    clearTimeout(
+      toastTimer
+    );
   }
 
-  toastTimer = window.setTimeout(
-    function () {
-      toastElement.style.display = 'none';
-    },
-    5000
-  );
+  toastTimer =
+    window.setTimeout(
+      function () {
+        toastElement.style.display =
+          'none';
+      },
+      5000
+    );
 }
 
 async function postJson(
   url,
   body
 ) {
-  const response = await fetch(
-    url,
-    {
-      method: 'POST',
+  const response =
+    await fetch(
+      url,
+      {
+        method: 'POST',
 
-      headers: {
-        'Content-Type':
-          'application/json'
-      },
+        headers: {
+          'Content-Type':
+            'application/json'
+        },
 
-      cache: 'no-store',
+        cache: 'no-store',
 
-      body: JSON.stringify(
-        body || {}
-      )
-    }
-  );
+        body: JSON.stringify(
+          body || {}
+        )
+      }
+    );
 
   let result = {};
 
   try {
-    result = await response.json();
+    result =
+      await response.json();
   } catch (error) {
     result = {};
   }
@@ -827,7 +857,7 @@ async function postJson(
 }
 
 // ============================================================
-// QRコード生成
+// QRコード
 // ============================================================
 
 const joinUrl =
@@ -836,31 +866,30 @@ const joinUrl =
 urlArea.textContent =
   joinUrl;
 
-function showQrError(message) {
+function showQrMessage(
+  title,
+  detail
+) {
   qrArea.innerHTML =
-    '<div style="' +
-      'color:#0b1f33;' +
-      'padding:16px;' +
-      'line-height:1.6;' +
-    '">' +
-      escapeHtml(message) +
-      '<br>' +
-      '<span style="font-size:0.8rem">' +
-        '下のURLをスマホで開いてください' +
-      '</span>' +
+    '<div class="qr-message">' +
+      escapeHtml(title) +
+      '<small>' +
+        escapeHtml(detail || '') +
+      '</small>' +
     '</div>';
 }
 
 function drawQrCode() {
   if (
-    window.qrLibraryFailed ||
-    typeof window.qrcode !== 'function'
+    typeof window.qrcode !==
+    'function'
   ) {
-    showQrError(
-      'QRコード生成ライブラリを読み込めませんでした'
+    showQrMessage(
+      'QRライブラリを読み込めませんでした',
+      '下のURLをスマホで開いてください'
     );
 
-    return false;
+    return;
   }
 
   try {
@@ -870,7 +899,10 @@ function drawQrCode() {
         'M'
       );
 
-    qr.addData(joinUrl);
+    qr.addData(
+      joinUrl
+    );
+
     qr.make();
 
     qrArea.innerHTML =
@@ -879,71 +911,123 @@ function drawQrCode() {
         6
       );
 
-    const qrImage =
-      qrArea.querySelector('img');
+    const image =
+      qrArea.querySelector(
+        'img'
+      );
 
-    if (!qrImage) {
+    if (!image) {
       throw new Error(
-        'QRコード画像を生成できませんでした'
+        'QR画像がありません'
       );
     }
 
-    qrImage.style.display =
+    image.style.display =
       'block';
 
-    qrImage.style.width =
+    image.style.width =
       '170px';
 
-    qrImage.style.height =
+    image.style.height =
       '170px';
 
-    qrImage.style.margin =
+    image.style.margin =
       '0 auto';
 
-    qrImage.alt =
+    image.alt =
       '参加者用QRコード';
 
-    qrImage.draggable =
+    image.draggable =
       false;
-
-    return true;
   } catch (error) {
     console.error(
-      'QRコード生成失敗',
+      'QR生成エラー',
       error
     );
 
-    showQrError(
-      'QRコードを生成できませんでした'
+    showQrMessage(
+      'QRコードの生成に失敗しました',
+      '下のURLをスマホで開いてください'
     );
-
-    return false;
   }
 }
 
-function initializeQrCode() {
-  let attempts = 0;
+function loadQrLibrary() {
+  showQrMessage(
+    'QRコード生成中…',
+    ''
+  );
 
-  const timer =
-    window.setInterval(
-      function () {
-        attempts += 1;
+  /*
+   * 以下の配列から、実行時にQRライブラリのURLを作ります。
+   * URLがHTMLリンクへ変換される問題を避けるための処理です。
+   */
 
-        const success =
-          drawQrCode();
+  const parts = [
+    'https:',
+    '',
+    'cdn.jsdelivr.net',
+    'npm',
+    'qrcode-generator@1.4.4',
+    'qrcode.js'
+  ];
 
-        if (
-          success ||
-          attempts >= 10
-          clearInterval(timer);
-        }
-      },
-      300
+  const libraryUrl =
+    parts.join('/');
+
+  const script =
+    document.createElement(
+      'script'
     );
+
+  script.src =
+    libraryUrl;
+
+  script.async =
+    true;
+
+  script.onload =
+    function () {
+      drawQrCode();
+    };
+
+  script.onerror =
+    function () {
+      showQrMessage(
+        'QRライブラリを読み込めませんでした',
+        '下のURLをスマホで開いてください'
+      );
+    };
+
+  document.head.appendChild(
+    script
+  );
+
+  /*
+   * onloadが発生しない環境への保険です。
+   * 読み込み済みならQRを生成します。
+   */
+
+  window.setTimeout(
+    function () {
+      if (
+        typeof window.qrcode ===
+        'function'
+      ) {
+        drawQrCode();
+      } else {
+        showQrMessage(
+          'QRライブラリを読み込めませんでした',
+          '下のURLをスマホで開いてください'
+        );
+      }
+    },
+    5000
+  );
 }
 
 // ============================================================
-// 選択ボタン表示
+// 操作ボタン表示
 // ============================================================
 
 function updateSelectionButtons() {
@@ -977,7 +1061,9 @@ function updateSelectionButtons() {
     selectedDuration === 10
   );
 
-  if (selectedMode === 'tap') {
+  if (
+    selectedMode === 'tap'
+  ) {
     currentViewElement.textContent =
       '連打' +
       selectedDuration +
@@ -996,4 +1082,221 @@ function updateSelectionButtons() {
   }
 }
 
-// ===========================
+// ============================================================
+// ランキング表示切り替え
+// ============================================================
+
+async function selectRanking(
+  mode,
+  duration
+) {
+  try {
+    const result =
+      await postJson(
+        '/api/select-ranking',
+        {
+          mode,
+          duration
+        }
+      );
+
+    if (
+      result &&
+      Array.isArray(
+        result.board
+      ) &&
+      result.stats
+    ) {
+      renderRanking(
+        result.board,
+        result.stats
+      );
+    }
+  } catch (error) {
+    console.error(
+      'ランキング切替エラー',
+      error
+    );
+
+    showToast(
+      'ランキングの切り替えに失敗しました。'
+    );
+  }
+}
+
+// ============================================================
+// ゲーム選択
+// ============================================================
+
+modeReflexButton.addEventListener(
+  'click',
+  async function () {
+    selectedMode =
+      'reflex';
+
+    updateSelectionButtons();
+
+    await selectRanking(
+      selectedMode,
+      selectedDuration
+    );
+  }
+);
+
+modeTapButton.addEventListener(
+  'click',
+  async function () {
+    selectedMode =
+      'tap';
+
+    updateSelectionButtons();
+
+    await selectRanking(
+      selectedMode,
+      selectedDuration
+    );
+  }
+);
+
+// ============================================================
+// 秒数選択
+// ============================================================
+
+async function chooseDuration(
+  duration
+) {
+  selectedMode =
+    'tap';
+
+  selectedDuration =
+    duration;
+
+  updateSelectionButtons();
+
+  await selectRanking(
+    selectedMode,
+    selectedDuration
+  );
+}
+
+duration5Button.addEventListener(
+  'click',
+  function () {
+    chooseDuration(5);
+  }
+);
+
+duration7Button.addEventListener(
+  'click',
+  function () {
+    chooseDuration(7);
+  }
+);
+
+duration10Button.addEventListener(
+  'click',
+  function () {
+    chooseDuration(10);
+  }
+);
+
+// ============================================================
+// ランキング表示
+// ============================================================
+
+function getMedalOrRank(
+  rank
+) {
+  if (rank === 1) {
+    return '🥇';
+  }
+
+  if (rank === 2) {
+    return '🥈';
+  }
+
+  if (rank === 3) {
+    return '🥉';
+  }
+
+  return String(rank);
+}
+
+function getTopClass(
+  rank
+) {
+  if (rank === 1) {
+    return 'top1';
+  }
+
+  if (rank === 2) {
+    return 'top2';
+  }
+
+  if (rank === 3) {
+    return 'top3';
+  }
+
+  return '';
+}
+
+function renderRanking(
+  board,
+  stats
+) {
+  latestBoard =
+    Array.isArray(board)
+      ? board
+      : [];
+
+  latestStats =
+    stats ||
+    latestStats;
+
+  joinedElement.textContent =
+    Number(
+      latestStats.joined || 0
+    );
+
+  answeredElement.textContent =
+    Number(
+      latestStats.answered || 0
+    );
+
+  roundNumberElement.textContent =
+    Number(
+      latestStats.round || 0
+    );
+
+  const viewMode =
+    latestStats.mode === 'tap'
+      ? 'tap'
+      : 'reflex';
+
+  const viewDuration =
+    [5, 7, 10].includes(
+      Number(
+        latestStats.duration
+      )
+    )
+      ? Number(
+          latestStats.duration
+        )
+      : 7;
+
+  if (
+    viewMode === 'tap'
+  ) {
+    rankingTitleElement.textContent =
+      '🏆 連打' +
+      viewDuration +
+      '秒ランキング';
+
+    scoreHeaderElement.textContent =
+      'タップ数';
+
+    currentViewElement.textContent =
+      '連打' +
+      viewDuration +
+      '秒ランキング';
+  } 
