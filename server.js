@@ -1,230 +1,782 @@
 // ============================================================
-//  反射神経バトル + 連打バトル (Reflex & Tap Battle) [Render公開版]
-//  Node.js 標準モジュールのみで動作（npm install 不要）
+//  反射神経バトル + 連打バトル
+//  Render公開版
 //
-//  ゲームモード2種類：
-//   ・reflex … 反射神経（緑になった瞬間タップ→反応時間が小さいほど上位）
-//   ・tap    … 連打（制限時間内のタップ数が多いほど上位）
+//  ゲームモード
+//   reflex : 反射神経ゲーム
+//   tap    : 制限時間内の連打ゲーム
 //
-//  ・SSEで合図・ランキングをリアルタイム配信
-//  ・PORT環境変数対応（Renderでそのまま動作）
-//  ・認証不要 / 再入場対応 / リセット2種類
+//  主な機能
+//   ・iPhone / Android対応
+//   ・SSEによるリアルタイム配信
+//   ・ブラウザを閉じた場合の再入場
+//   ・記録のみリセット
+//   ・参加者を含む全リセット
+//   ・全リセット後の古い端末セッションを無効化
+//   ・連打記録を5秒、7秒、10秒ごとに別管理
 // ============================================================
 
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
+const crypto = require('crypto');
 
 const PORT = process.env.PORT || 3000;
-const PUBLIC = path.join(__dirname, 'public');
+const PUBLIC_DIR = path.join(__dirname, 'public');
 
-// ---------- ゲーム状態 ----------
-// players: id -> { name, best(反応msの最小), tapBest(連打数の最大), reflexTries, tapTries }
+// ============================================================
+// ゲーム状態
+// ============================================================
+
+// 参加者
+//
+// id -> {
+//   name: string,
+//
+//   // 反射神経
+//   reflexBest: number | null,
+//   reflexTries: number,
+//
+//   // 連打
+//   // 例: { "5": 42, "7": 58, "10": 81 }
+//   tapBestByDuration: object,
+//
+//   // 例: { "5": 2, "7": 1, "10": 3 }
+//   tapTriesByDuration: object
+// }
 const players = new Map();
-const playerClients = new Map(); // id -> res
+
+// プレイヤー側のSSE接続
+// id -> response
+const playerClients = new Map();
+
+// ホスト側のSSE接続
 const hostClients = new Set();
-// round.mode: 'reflex' | 'tap' 。durationはtap時の制限秒数
-let round = { id: 0, active: false, mode: 'reflex', duration: 7, startedAt: 0 };
 
-const uid = () => Math.random().toString(36).slice(2, 10);
+// 全リセットやサーバー再起動を判定する世代ID
+//
+// サーバー再起動時に新しくなるため、Renderがスリープ・再起動して
+// サーバー上の参加者データが失われた場合にも、古い端末セッションを
+// 無効と判定できます。
+let sessionGeneration = createGenerationId();
 
-function send(res, event, data) {
-  try { res.write(`event: ${event}\n`); res.write(`data: ${JSON.stringify(data)}\n\n`); } catch (_) {}
+// 現在のラウンド
+let round = {
+  id: 0,
+  active: false,
+  mode: 'reflex',
+  duration: 7,
+  startedAt: 0
+};
+
+// ============================================================
+// 共通関数
+// ============================================================
+
+function createGenerationId() {
+  return crypto.randomBytes(16).toString('hex');
 }
-function broadcastPlayers(event, data) { for (const res of playerClients.values()) send(res, event, data); }
-function broadcastHosts(event, data) { for (const res of hostClients) send(res, event, data); }
 
-// ランキング：現在のモードに応じて並べ替え
-function leaderboard() {
-  const mode = round.mode;
-  if (mode === 'tap') {
-    return [...players.values()]
-      .filter(p => p.tapBest != null)
-      .sort((a, b) => b.tapBest - a.tapBest) // 多いほど上位
-      .map((p, i) => ({ rank: i + 1, name: p.name, score: p.tapBest, tries: p.tapTries }));
+function createPlayerId() {
+  return crypto.randomBytes(12).toString('hex');
+}
+
+function normalizeName(name) {
+  return (name || '')
+    .toString()
+    .trim()
+    .slice(0, 20) || '名無し';
+}
+
+function normalizedNameKey(name) {
+  return normalizeName(name).toLowerCase();
+}
+
+function createPlayer(name) {
+  return {
+    name: normalizeName(name),
+
+    reflexBest: null,
+    reflexTries: 0,
+
+    tapBestByDuration: {},
+    tapTriesByDuration: {}
+  };
+}
+
+function sendJson(res, statusCode, data) {
+  res.writeHead(statusCode, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store'
+  });
+
+  res.end(JSON.stringify(data));
+}
+
+function sendSse(res, eventName, data) {
+  try {
+    res.write(`event: ${eventName}\n`);
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  } catch (error) {
+    // 切断済み接続への送信失敗は無視
   }
-  // reflex
-  return [...players.values()]
-    .filter(p => p.best != null)
-    .sort((a, b) => a.best - b.best) // 小さいほど上位
-    .map((p, i) => ({ rank: i + 1, name: p.name, score: p.best, tries: p.reflexTries }));
 }
-function stats() {
-  const answered = round.mode === 'tap'
-    ? [...players.values()].filter(p => p.tapBest != null).length
-    : [...players.values()].filter(p => p.best != null).length;
-  return { joined: players.size, answered, round: round.id, mode: round.mode, duration: round.duration, active: round.active };
-}
-function pushLeaderboard() { broadcastHosts('leaderboard', { board: leaderboard(), stats: stats() }); }
 
-function findByName(name) {
-  const key = (name || '').toString().trim().toLowerCase();
-  if (!key) return null;
-  for (const [id, pl] of players.entries()) {
-    if ((pl.name || '').trim().toLowerCase() === key) return { id, pl };
+function broadcastToPlayers(eventName, data) {
+  for (const res of playerClients.values()) {
+    sendSse(res, eventName, data);
   }
+}
+
+function broadcastToHosts(eventName, data) {
+  for (const res of hostClients) {
+    sendSse(res, eventName, data);
+  }
+}
+
+function findPlayerByName(name) {
+  const key = normalizedNameKey(name);
+
+  for (const [id, player] of players.entries()) {
+    if (normalizedNameKey(player.name) === key) {
+      return {
+        id,
+        player
+      };
+    }
+  }
+
   return null;
 }
-function newPlayer(name) {
-  return { name, best: null, tapBest: null, reflexTries: 0, tapTries: 0 };
+
+function getTapBest(player, duration) {
+  const key = String(duration);
+  const value = player.tapBestByDuration[key];
+
+  return typeof value === 'number' ? value : null;
 }
 
-function serveFile(res, file, type) {
-  fs.readFile(file, (err, buf) => {
-    if (err) { res.writeHead(404); return res.end('Not found'); }
-    res.writeHead(200, { 'Content-Type': type });
-    res.end(buf);
+function getTapTries(player, duration) {
+  const key = String(duration);
+  const value = player.tapTriesByDuration[key];
+
+  return typeof value === 'number' ? value : 0;
+}
+
+// ============================================================
+// ランキング
+// ============================================================
+
+function getLeaderboard() {
+  if (round.mode === 'tap') {
+    const duration = round.duration;
+
+    return [...players.values()]
+      .map(player => ({
+        name: player.name,
+        score: getTapBest(player, duration),
+        tries: getTapTries(player, duration)
+      }))
+      .filter(item => item.score !== null)
+      .sort((a, b) => b.score - a.score)
+      .map((item, index) => ({
+        rank: index + 1,
+        name: item.name,
+        score: item.score,
+        tries: item.tries
+      }));
+  }
+
+  return [...players.values()]
+    .filter(player => player.reflexBest !== null)
+    .sort((a, b) => a.reflexBest - b.reflexBest)
+    .map((player, index) => ({
+      rank: index + 1,
+      name: player.name,
+      score: player.reflexBest,
+      tries: player.reflexTries
+    }));
+}
+
+function getStats() {
+  let answered = 0;
+
+  if (round.mode === 'tap') {
+    answered = [...players.values()].filter(
+      player => getTapBest(player, round.duration) !== null
+    ).length;
+  } else {
+    answered = [...players.values()].filter(
+      player => player.reflexBest !== null
+    ).length;
+  }
+
+  return {
+    joined: players.size,
+    answered,
+    round: round.id,
+    mode: round.mode,
+    duration: round.duration,
+    active: round.active,
+    sessionGeneration
+  };
+}
+
+function getHostPayload() {
+  return {
+    board: getLeaderboard(),
+    stats: getStats()
+  };
+}
+
+function pushLeaderboard() {
+  broadcastToHosts('leaderboard', getHostPayload());
+}
+
+// ============================================================
+// ファイル配信
+// ============================================================
+
+function getContentType(filePath) {
+  const extension = path.extname(filePath).toLowerCase();
+
+  const types = {
+    '.html': 'text/html; charset=utf-8',
+    '.js': 'application/javascript; charset=utf-8',
+    '.css': 'text/css; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon'
+  };
+
+  return types[extension] || 'application/octet-stream';
+}
+
+function serveFile(res, filePath) {
+  fs.readFile(filePath, (error, fileData) => {
+    if (error) {
+      res.writeHead(404, {
+        'Content-Type': 'text/plain; charset=utf-8'
+      });
+
+      res.end('Not found');
+      return;
+    }
+
+    res.writeHead(200, {
+      'Content-Type': getContentType(filePath),
+      'Cache-Control': 'no-store, no-cache, must-revalidate'
+    });
+
+    res.end(fileData);
   });
 }
-function readBody(req) {
-  return new Promise((resolve) => {
-    let b = '';
-    req.on('data', c => (b += c));
-    req.on('end', () => { try { resolve(JSON.parse(b || '{}')); } catch { resolve({}); } });
+
+function readJsonBody(req) {
+  return new Promise(resolve => {
+    let body = '';
+    let finished = false;
+
+    req.on('data', chunk => {
+      if (finished) {
+        return;
+      }
+
+      body += chunk;
+
+      // 異常に大きなリクエストを防止
+      if (body.length > 100000) {
+        finished = true;
+        resolve({});
+        req.destroy();
+      }
+    });
+
+    req.on('end', () => {
+      if (finished) {
+        return;
+      }
+
+      try {
+        resolve(JSON.parse(body || '{}'));
+      } catch (error) {
+        resolve({});
+      }
+    });
+
+    req.on('error', () => {
+      if (!finished) {
+        resolve({});
+      }
+    });
   });
 }
+
+// ============================================================
+// セッション処理
+// ============================================================
+
+function buildJoinResponse(id, player, extra = {}) {
+  return {
+    id,
+    name: player.name,
+    round,
+    sessionGeneration,
+    ...extra
+  };
+}
+
+function isOldSession(clientGeneration) {
+  // generationがない旧player.htmlからのアクセスも
+  // 安全側で「古いセッション」と判断します。
+  return (
+    !clientGeneration ||
+    clientGeneration !== sessionGeneration
+  );
+}
+
+// ============================================================
+// 結果登録
+// ============================================================
+
+function saveReflexResult(player, timeMs) {
+  if (
+    typeof timeMs !== 'number' ||
+    !Number.isFinite(timeMs) ||
+    timeMs <= 0 ||
+    timeMs >= 60000
+  ) {
+    return false;
+  }
+
+  const roundedTime = Math.round(timeMs);
+
+  if (
+    player.reflexBest === null ||
+    roundedTime < player.reflexBest
+  ) {
+    player.reflexBest = roundedTime;
+  }
+
+  player.reflexTries += 1;
+  return true;
+}
+
+function saveTapResult(player, taps, duration) {
+  if (
+    typeof taps !== 'number' ||
+    !Number.isFinite(taps) ||
+    taps < 0 ||
+    taps >= 100000
+  ) {
+    return false;
+  }
+
+  const durationKey = String(duration);
+  const roundedTaps = Math.round(taps);
+  const currentBest = getTapBest(player, duration);
+  const currentTries = getTapTries(player, duration);
+
+  if (
+    currentBest === null ||
+    roundedTaps > currentBest
+  ) {
+    player.tapBestByDuration[durationKey] = roundedTaps;
+  }
+
+  player.tapTriesByDuration[durationKey] = currentTries + 1;
+  return true;
+}
+
+// ============================================================
+// HTTPサーバー
+// ============================================================
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const p = url.pathname;
+  const baseUrl = `http://${req.headers.host || 'localhost'}`;
+  const requestUrl = new URL(req.url, baseUrl);
+  const pathname = requestUrl.pathname;
 
-  if (p === '/healthz') { res.writeHead(200); return res.end('ok'); }
+  // ----------------------------------------------------------
+  // ヘルスチェック
+  // ----------------------------------------------------------
 
-  if (p === '/' || p === '/player') return serveFile(res, path.join(PUBLIC, 'player.html'), 'text/html; charset=utf-8');
-  if (p === '/host')                return serveFile(res, path.join(PUBLIC, 'host.html'),   'text/html; charset=utf-8');
+  if (pathname === '/healthz') {
+    res.writeHead(200, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-store'
+    });
 
-  if (p === '/events/player') {
-    const id = url.searchParams.get('id');
-    if (!id || !players.has(id)) { res.writeHead(400); return res.end('bad id'); }
-    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
-    res.write('\n');
-    playerClients.set(id, res);
-    send(res, 'hello', { id, round });
-    req.on('close', () => playerClients.delete(id));
+    res.end('ok');
     return;
   }
 
-  if (p === '/events/host') {
-    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
-    res.write('\n');
-    hostClients.add(res);
-    send(res, 'leaderboard', { board: leaderboard(), stats: stats() });
-    req.on('close', () => hostClients.delete(res));
+  // ----------------------------------------------------------
+  // 画面
+  // ----------------------------------------------------------
+
+  if (pathname === '/' || pathname === '/player') {
+    serveFile(res, path.join(PUBLIC_DIR, 'player.html'));
     return;
   }
 
-  if (req.method === 'POST' && p === '/api/join') {
-    const { name } = await readBody(req);
-    const nm = (name || '').toString().trim().slice(0, 20) || '名無し';
-    const found = findByName(nm);
-    if (found) {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ id: found.id, name: found.pl.name, round, merged: true }));
-    }
-    const id = uid();
-    players.set(id, newPlayer(nm));
-    pushLeaderboard();
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ id, name: nm, round, merged: false }));
+  if (pathname === '/host') {
+    serveFile(res, path.join(PUBLIC_DIR, 'host.html'));
+    return;
   }
 
-  if (req.method === 'POST' && p === '/api/rejoin') {
-    const { id, name } = await readBody(req);
-    const nm = (name || '').toString().trim().slice(0, 20) || '名無し';
-    if (id && players.has(id)) {
-      const pl = players.get(id);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ id, name: pl.name, round, restored: true }));
-    }
-    const found = findByName(nm);
-    if (found) {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ id: found.id, name: found.pl.name, round, restored: true, merged: true }));
-    }
-    const newId = id || uid();
-    players.set(newId, newPlayer(nm));
-    pushLeaderboard();
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ id: newId, name: nm, round, restored: false }));
-  }
+  // ----------------------------------------------------------
+  // プレイヤー用SSE
+  // ----------------------------------------------------------
 
-  // 結果送信：モード別
-  if (req.method === 'POST' && p === '/api/result') {
-    const { id, roundId, timeMs, taps, foul } = await readBody(req);
-    const pl = players.get(id);
-    if (pl && roundId === round.id) {
-      if (round.mode === 'tap') {
-        if (typeof taps === 'number' && taps >= 0 && taps < 100000) {
-          if (pl.tapBest == null || taps > pl.tapBest) pl.tapBest = Math.round(taps);
-          pl.tapTries++;
-        }
-      } else {
-        if (foul) {
-          // 反射神経のフライングは無効
-        } else if (typeof timeMs === 'number' && timeMs > 0 && timeMs < 60000) {
-          if (pl.best == null || timeMs < pl.best) pl.best = Math.round(timeMs);
-          pl.reflexTries++;
-        }
+  if (pathname === '/events/player') {
+    const id = requestUrl.searchParams.get('id');
+    const clientGeneration =
+      requestUrl.searchParams.get('generation');
+
+    // 全リセット前やサーバー再起動前の古いセッション
+    if (isOldSession(clientGeneration)) {
+      sendJson(res, 409, {
+        ok: false,
+        staleSession: true,
+        sessionGeneration
+      });
+      return;
+    }
+
+    if (!id || !players.has(id)) {
+      sendJson(res, 404, {
+        ok: false,
+        playerMissing: true,
+        sessionGeneration
+      });
+      return;
+    }
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no'
+    });
+
+    res.write('\n');
+
+    // 同じIDの古い接続が残っていれば置き換える
+    const oldConnection = playerClients.get(id);
+
+    if (oldConnection && oldConnection !== res) {
+      try {
+        oldConnection.end();
+      } catch (error) {
+        // 切断失敗は無視
       }
+    }
+
+    playerClients.set(id, res);
+
+    sendSse(res, 'hello', {
+      id,
+      round,
+      sessionGeneration
+    });
+
+    req.on('close', () => {
+      if (playerClients.get(id) === res) {
+        playerClients.delete(id);
+      }
+    });
+
+    return;
+  }
+
+  // ----------------------------------------------------------
+  // ホスト用SSE
+  // ----------------------------------------------------------
+
+  if (pathname === '/events/host') {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no'
+    });
+
+    res.write('\n');
+
+    hostClients.add(res);
+    sendSse(res, 'leaderboard', getHostPayload());
+
+    req.on('close', () => {
+      hostClients.delete(res);
+    });
+
+    return;
+  }
+
+  // ----------------------------------------------------------
+  // 新規参加
+  // ----------------------------------------------------------
+
+  if (
+    req.method === 'POST' &&
+    pathname === '/api/join'
+  ) {
+    const body = await readJsonBody(req);
+    const name = normalizeName(body.name);
+
+    // 同じ名前が既に存在する場合は、その人へ合流
+    const existing = findPlayerByName(name);
+
+    if (existing) {
+      sendJson(
+        res,
+        200,
+        buildJoinResponse(
+          existing.id,
+          existing.player,
+          {
+            merged: true,
+            restored: true
+          }
+        )
+      );
+      return;
+    }
+
+    const id = createPlayerId();
+    const player = createPlayer(name);
+
+    players.set(id, player);
+    pushLeaderboard();
+
+    sendJson(
+      res,
+      200,
+      buildJoinResponse(
+        id,
+        player,
+        {
+          merged: false,
+          restored: false
+        }
+      )
+    );
+
+    return;
+  }
+
+  // ----------------------------------------------------------
+  // 再入場
+  // ----------------------------------------------------------
+
+  if (
+    req.method === 'POST' &&
+    pathname === '/api/rejoin'
+  ) {
+    const body = await readJsonBody(req);
+
+    const id = (body.id || '').toString();
+    const name = normalizeName(body.name);
+    const clientGeneration =
+      (body.sessionGeneration || '').toString();
+
+    // 全リセット前やサーバー再起動前のID
+    //
+    // ここでは新しい参加者を自動作成しません。
+    // player.html側へ「名前入力画面に戻る」指示を返します。
+    if (isOldSession(clientGeneration)) {
+      sendJson(res, 409, {
+        ok: false,
+        staleSession: true,
+        reason: 'generation_mismatch',
+        sessionGeneration
+      });
+      return;
+    }
+
+    // IDが現在のサーバーに存在
+    if (id && players.has(id)) {
+      const player = players.get(id);
+
+      sendJson(
+        res,
+        200,
+        buildJoinResponse(
+          id,
+          player,
+          {
+            restored: true,
+            merged: false
+          }
+        )
+      );
+
+      return;
+    }
+
+    // IDがなくても同名が現在のサーバーに存在すれば合流
+    const existing = findPlayerByName(name);
+
+    if (existing) {
+      sendJson(
+        res,
+        200,
+        buildJoinResponse(
+          existing.id,
+          existing.player,
+          {
+            restored: true,
+            merged: true
+          }
+        )
+      );
+
+      return;
+    }
+
+    // 同じ世代なのにIDも名前も存在しない場合
+    // 自動作成せず、名前入力から再参加させます。
+    sendJson(res, 404, {
+      ok: false,
+      playerMissing: true,
+      sessionGeneration
+    });
+
+    return;
+  }
+
+  // ----------------------------------------------------------
+  // 結果登録
+  // ----------------------------------------------------------
+
+  if (
+    req.method === 'POST' &&
+    pathname === '/api/result'
+  ) {
+    const body = await readJsonBody(req);
+
+    const id = (body.id || '').toString();
+    const resultRoundId = Number(body.roundId);
+    const clientGeneration =
+      (body.sessionGeneration || '').toString();
+
+    if (isOldSession(clientGeneration)) {
+      sendJson(res, 409, {
+        ok: false,
+        staleSession: true,
+        sessionGeneration
+      });
+      return;
+    }
+
+    const player = players.get(id);
+
+    if (!player) {
+      sendJson(res, 404, {
+        ok: false,
+        playerMissing: true,
+        sessionGeneration
+      });
+      return;
+    }
+
+    if (resultRoundId !== round.id) {
+      sendJson(res, 409, {
+        ok: false,
+        oldRound: true,
+        currentRoundId: round.id,
+        sessionGeneration
+      });
+      return;
+    }
+
+    let saved = false;
+
+    if (round.mode === 'tap') {
+      saved = saveTapResult(
+        player,
+        body.taps,
+        round.duration
+      );
+    } else if (!body.foul) {
+      saved = saveReflexResult(
+        player,
+        body.timeMs
+      );
+    }
+
+    if (saved) {
       pushLeaderboard();
     }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ ok: true }));
+
+    sendJson(res, 200, {
+      ok: true,
+      saved,
+      mode: round.mode,
+      duration: round.duration,
+      sessionGeneration
+    });
+
+    return;
   }
 
-  // ラウンド開始：mode('reflex'|'tap') と duration(秒) を受ける
-  if (req.method === 'POST' && p === '/api/start') {
-    const { mode, duration } = await readBody(req);
-    const m = (mode === 'tap') ? 'tap' : 'reflex';
-    const d = Math.min(30, Math.max(3, parseInt(duration, 10) || 7));
-    round = { id: round.id + 1, active: true, mode: m, duration: d, startedAt: Date.now() };
-    if (m === 'tap') {
-      broadcastPlayers('tap-start', { roundId: round.id, duration: d });
+  // ----------------------------------------------------------
+  // ラウンド開始
+  // ----------------------------------------------------------
+
+  if (
+    req.method === 'POST' &&
+    pathname === '/api/start'
+  ) {
+    const body = await readJsonBody(req);
+
+    const mode =
+      body.mode === 'tap'
+        ? 'tap'
+        : 'reflex';
+
+    let duration =
+      Number.parseInt(body.duration, 10);
+
+    // 使用可能な連打時間を5秒、7秒、10秒に限定
+    if (![5, 7, 10].includes(duration)) {
+      duration = 7;
+    }
+
+    round = {
+      id: round.id + 1,
+      active: true,
+      mode,
+      duration,
+      startedAt: Date.now()
+    };
+
+    if (mode === 'tap') {
+      broadcastToPlayers('tap-start', {
+        roundId: round.id,
+        duration,
+        sessionGeneration
+      });
     } else {
-      broadcastPlayers('round-start', { roundId: round.id });
+      broadcastToPlayers('round-start', {
+        roundId: round.id,
+        sessionGeneration
+      });
     }
-    broadcastHosts('round-start', { roundId: round.id, mode: m, duration: d });
+
+    broadcastToHosts('round-start', {
+      roundId: round.id,
+      mode,
+      duration,
+      sessionGeneration
+    });
+
     pushLeaderboard();
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ ok: true, round }));
-  }
 
-  // 記録のみリセット（参加者は残す）
-  if (req.method === 'POST' && p === '/api/reset') {
-    for (const pl of players.values()) { pl.best = null; pl.tapBest = null; pl.reflexTries = 0; pl.tapTries = 0; }
-    round = { id: 0, active: false, mode: round.mode, duration: round.duration, startedAt: 0 };
-    broadcastPlayers('reset', {});
-    pushLeaderboard();
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ ok: true }));
-  }
-
-  // 全リセット（参加者も消す）
-  if (req.method === 'POST' && p === '/api/reset-all') {
-    players.clear();
-    round = { id: 0, active: false, mode: round.mode, duration: round.duration, startedAt: 0 };
-    broadcastPlayers('kick', {});
-    pushLeaderboard();
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ ok: true }));
-  }
-
-  res.writeHead(404); res.end('Not found');
-});
-
-server.listen(PORT, () => {
-  const nets = os.networkInterfaces();
-  let lan = 'localhost';
-  for (const name of Object.keys(nets)) {
-    for (const net of nets[name]) {
-      if (net.family === 'IPv4' && !net.internal) { lan = net.address; break; }
-    }
-  }
-  console.log('===================================================');
-  console.log('  反射神経＆連打バトル サーバー起動！');
-  console.log('---------------------------------------------------');
-  console.log(`  ホスト画面: http://${lan}:${PORT}/host`);
-  console.log(`  参加者用:   http://${lan}:${PORT}/`);
-  console.log('===================================================');
-});
+    sendJson(res, 200, {
+      ok: true,
+      
