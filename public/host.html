@@ -1273,38 +1273,33 @@ function connectHostEvents() {
 
 // ============================================================
 // ゲーム開始
+//
+// 確認ポップアップは表示せず、
+// 開始ボタンを押した時点でゲームを開始する。
 // ============================================================
 
 startButton.addEventListener(
   'click',
   async function () {
-    const gameLabel =
-      selectedMode === 'tap'
-        ? '連打' +
-          selectedDuration +
-          '秒'
-        : '反射神経';
-
-    const confirmed =
-      window.confirm(
-        gameLabel +
-        'を開始します。\n' +
-        '参加者全員のスマホへ開始合図を送ります。'
-      );
-
-    if (!confirmed) {
+    // 連続クリックによる二重開始を防止
+    if (startButton.disabled) {
       return;
     }
 
     startButton.disabled = true;
+
+    const originalText =
+      startButton.textContent;
+
+    startButton.textContent =
+      '開始処理中…';
 
     try {
       await postJson(
         '/api/start',
         {
           mode: selectedMode,
-          duration:
-            selectedDuration
+          duration: selectedDuration
         }
       );
     } catch (error) {
@@ -1313,9 +1308,12 @@ startButton.addEventListener(
       );
     } finally {
       startButton.disabled = false;
+      startButton.textContent =
+        originalText;
     }
   }
 );
+``
 
 // ============================================================
 // 記録リセット
