@@ -658,8 +658,11 @@
   QRコード生成ライブラリ
   このscriptタグは削除・変更しないでください
 -->
-https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.jsscript>
-
+<script
+  src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"
+  onerror="window.qrLibraryFailed = true;"
+></script>
+  
 <script>
 'use strict';
 
