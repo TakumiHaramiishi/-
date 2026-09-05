@@ -69,6 +69,13 @@ let round = {
   startedAt: 0
 };
 
+// ホスト画面で現在閲覧しているランキング条件
+// 実際に進行中のラウンドとは別管理する
+let rankingView = {
+  mode: 'reflex',
+  duration: 7
+};
+
 // ============================================================
 // 共通関数
 // ============================================================
@@ -170,57 +177,64 @@ function getTapTries(player, duration) {
 function getLeaderboard() {
   let sortedResults = [];
 
-  if (round.mode === 'tap') {
-    const duration = round.duration;
+  if (rankingView.mode === 'tap') {
+    const duration = rankingView.duration;
 
     sortedResults = [...players.values()]
       .map(player => ({
         name: player.name,
-        score: getTapBest(player, duration),
-        tries: getTapTries(player, duration)
+        score: getTapBest(
+          player,
+          duration
+        ),
+        tries: getTapTries(
+          player,
+          duration
+        )
       }))
       .filter(item => item.score !== null)
       .sort((a, b) => b.score - a.score);
-      // 連打はタップ数が多い方が上位
   } else {
     sortedResults = [...players.values()]
-      .filter(player => player.reflexBest !== null)
+      .filter(
+        player =>
+          player.reflexBest !== null
+      )
       .map(player => ({
         name: player.name,
         score: player.reflexBest,
         tries: player.reflexTries
       }))
       .sort((a, b) => a.score - b.score);
-      // 反射神経は時間が小さい方が上位
   }
 
   let previousScore = null;
   let previousRank = 0;
 
-  return sortedResults.map((item, index) => {
-    let rank;
+  return sortedResults.map(
+    (item, index) => {
+      let rank;
 
-    if (
-      previousScore !== null &&
-      item.score === previousScore
-    ) {
-      // 直前と同じスコアなら同順位
-      rank = previousRank;
-    } else {
-      // 新しいスコアなら、並び順に応じた順位
-      rank = index + 1;
+      if (
+        previousScore !== null &&
+        item.score === previousScore
+      ) {
+        rank = previousRank;
+      } else {
+        rank = index + 1;
+      }
+
+      previousScore = item.score;
+      previousRank = rank;
+
+      return {
+        rank,
+        name: item.name,
+        score: item.score,
+        tries: item.tries
+      };
     }
-
-    previousScore = item.score;
-    previousRank = rank;
-
-    return {
-      rank,
-      name: item.name,
-      score: item.score,
-      tries: item.tries
-    };
-  });
+  );
 }
 function getStats() {
   let answered = 0;
@@ -242,6 +256,46 @@ function getStats() {
     mode: round.mode,
     duration: round.duration,
     active: round.active,
+    sessionGeneration
+  };
+}function getStats() {
+  let answered = 0;
+
+  if (rankingView.mode === 'tap') {
+    answered = [...players.values()]
+      .filter(
+        player =>
+          getTapBest(
+            player,
+            rankingView.duration
+          ) !== null
+      )
+      .length;
+  } else {
+    answered = [...players.values()]
+      .filter(
+        player =>
+          player.reflexBest !== null
+      )
+      .length;
+  }
+
+  return {
+    joined: players.size,
+    answered,
+
+    // ラウンド番号は実際に開始した回数
+    round: round.id,
+    active: round.active,
+
+    // modeとdurationはホストが現在見ているランキング条件
+    mode: rankingView.mode,
+    duration: rankingView.duration,
+
+    // 実際に進行中のゲーム情報
+    activeMode: round.mode,
+    activeDuration: round.duration,
+
     sessionGeneration
   };
 }
@@ -747,7 +801,61 @@ const server = http.createServer(async (req, res) => {
 
     return;
   }
+// ----------------------------------------------------------
+// ホスト画面のランキング表示切り替え
+//
+// ゲームは開始しない。
+// 参加者側へ開始イベントも送らない。
+// ラウンドIDも増やさない。
+// ----------------------------------------------------------
 
+if (
+  req.method === 'POST' &&
+  pathname === '/api/select-ranking'
+) {
+  const body =
+    await readJsonBody(req);
+
+  const selectedMode =
+    body.mode === 'tap'
+      ? 'tap'
+      : 'reflex';
+
+  let selectedDuration =
+    Number.parseInt(
+      body.duration,
+      10
+    );
+
+  if (
+    ![5, 7, 10].includes(
+      selectedDuration
+    )
+  ) {
+    selectedDuration = 7;
+  }
+
+  rankingView = {
+    mode: selectedMode,
+    duration: selectedDuration
+  };
+
+  // ホスト画面へ選択したランキングを即時配信
+  pushLeaderboard();
+
+  sendJson(
+    res,
+    200,
+    {
+      ok: true,
+      rankingView,
+      board: getLeaderboard(),
+      stats: getStats()
+    }
+  );
+
+  return;
+}
   // ----------------------------------------------------------
   // ラウンド開始
   // ----------------------------------------------------------
@@ -778,7 +886,11 @@ const server = http.createServer(async (req, res) => {
       duration,
       startedAt: Date.now()
     };
-
+    // 開始したゲームのランキングへ表示を合わせる
+rankingView = {
+  mode,
+  duration
+};
     if (mode === 'tap') {
       broadcastToPlayers('tap-start', {
         roundId: round.id,
