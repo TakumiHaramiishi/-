@@ -2,157 +2,1404 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0"
+>
+
 <title>反射神経＆連打バトル｜ホスト画面</title>
+
 <style>
-  * { box-sizing:border-box; }
-  body { margin:0; font-family:-apple-system,"Noto Sans JP",sans-serif; background:#0b1f33; color:#fff; height:100vh; overflow:hidden; }
-  .wrap { display:grid; grid-template-columns: 380px 1fr; height:100vh; }
-  .side { background:#0e2947; padding:20px 18px; display:flex; flex-direction:column; gap:11px; overflow-y:auto; }
-  .main { padding:24px 32px; overflow:hidden; display:flex; flex-direction:column; }
-  h1 { margin:0; font-size:1.5rem; }
-  .qr { background:#fff; padding:10px; border-radius:16px; text-align:center; }
-  .qr img { width:170px; height:170px; }
-  .url { background:#08315a; padding:8px 10px; border-radius:10px; font-size:.78rem; word-break:break-all; }
-  .stat { display:flex; gap:8px; }
-  .card { background:#08315a; border-radius:12px; padding:8px 10px; flex:1; text-align:center; }
-  .card b { display:block; font-size:1.7rem; }
-  .card span { font-size:.75rem; color:#9db8d6; }
-  .modebox { background:#08315a; border-radius:12px; padding:10px 12px; }
-  .modebox .lbl { font-size:.82rem; color:#9db8d6; margin-bottom:6px; }
-  .seg { display:flex; gap:6px; }
-  .seg button { flex:1; font-size:.95rem; font-weight:700; padding:9px 4px; border:2px solid #2a4d70; border-radius:10px; background:transparent; color:#cfe0f2; cursor:pointer; }
-  .seg button.on { background:#0067c0; border-color:#0067c0; color:#fff; }
-  .dur { margin-top:8px; }
-  #durRow { display:none; }
-  button.act { font-size:1.12rem; font-weight:800; padding:14px; border:none; border-radius:14px; cursor:pointer; }
-  .start { background:#27ae60; color:#fff; }
-  .reset { background:#43607f; color:#fff; font-size:.95rem; }
-  .resetall { background:#8e3b3b; color:#fff; font-size:.95rem; }
-  .main h2 { margin:.1em 0 .3em; font-size:1.4rem; }
-  table { width:100%; border-collapse:collapse; font-size:1.35rem; }
-  th,td { padding:9px 12px; text-align:left; }
-  tbody tr:nth-child(odd){ background:#0e2947; }
-  .rk { width:70px; font-weight:800; }
-  .sc { text-align:right; font-variant-numeric: tabular-nums; font-weight:700; }
-  .top1 td { background:#f1c40f !important; color:#0b1f33; font-size:1.55rem; }
-  .top2 td { background:#bdc3c7 !important; color:#0b1f33; }
-  .top3 td { background:#cd7f32 !important; color:#0b1f33; }
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+
+    font-family:
+      -apple-system,
+      BlinkMacSystemFont,
+      "Hiragino Kaku Gothic ProN",
+      "Noto Sans JP",
+      sans-serif;
+
+    background: #0b1f33;
+    color: #ffffff;
+  }
+
+  body {
+    overflow: hidden;
+  }
+
+  .wrap {
+    display: grid;
+    grid-template-columns: 390px 1fr;
+
+    width: 100%;
+    height: 100vh;
+  }
+
+  .side {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+
+    padding: 18px;
+
+    overflow-y: auto;
+
+    background: #0e2947;
+  }
+
+  .main {
+    display: flex;
+    flex-direction: column;
+
+    min-width: 0;
+
+    padding: 24px 32px;
+
+    overflow: hidden;
+  }
+
+  h1 {
+    margin: 0;
+
+    font-size: 1.5rem;
+  }
+
+  .qr {
+    padding: 10px;
+
+    border-radius: 16px;
+
+    background: #ffffff;
+
+    text-align: center;
+  }
+
+  .qr img {
+    width: 170px;
+    height: 170px;
+  }
+
+  .url {
+    padding: 8px 10px;
+
+    border-radius: 10px;
+
+    background: #08315a;
+
+    font-size: 0.78rem;
+    line-height: 1.4;
+    word-break: break-all;
+  }
+
+  .stat {
+    display: flex;
+    gap: 8px;
+  }
+
+  .card {
+    flex: 1;
+
+    padding: 8px 10px;
+
+    border-radius: 12px;
+
+    background: #08315a;
+
+    text-align: center;
+  }
+
+  .card b {
+    display: block;
+
+    font-size: 1.7rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .card span {
+    color: #9db8d6;
+
+    font-size: 0.75rem;
+  }
+
+  .modebox {
+    padding: 10px 12px;
+
+    border-radius: 12px;
+
+    background: #08315a;
+  }
+
+  .label {
+    margin-bottom: 6px;
+
+    color: #9db8d6;
+
+    font-size: 0.82rem;
+  }
+
+  .seg {
+    display: flex;
+    gap: 6px;
+  }
+
+  .seg button {
+    flex: 1;
+
+    padding: 9px 4px;
+
+    border: 2px solid #2a4d70;
+    border-radius: 10px;
+
+    background: transparent;
+    color: #cfe0f2;
+
+    font-size: 0.95rem;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+      background-color 0.15s,
+      border-color 0.15s,
+      transform 0.05s;
+  }
+
+  .seg button:hover {
+    border-color: #5c88b3;
+  }
+
+  .seg button:active {
+    transform: scale(0.98);
+  }
+
+  .seg button.on {
+    border-color: #0067c0;
+
+    background: #0067c0;
+    color: #ffffff;
+  }
+
+  .duration-area {
+    display: none;
+
+    margin-top: 10px;
+  }
+
+  .view-status {
+    padding: 9px 11px;
+
+    border: 1px solid #315b84;
+    border-radius: 10px;
+
+    background: #092b4b;
+    color: #cfe0f2;
+
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  .view-status strong {
+    color: #ffffff;
+  }
+
+  button.action {
+    padding: 14px;
+
+    border: none;
+    border-radius: 14px;
+
+    font-size: 1.08rem;
+    font-weight: 800;
+
+    cursor: pointer;
+
+    transition:
+      opacity 0.15s,
+      transform 0.05s;
+  }
+
+  button.action:active {
+    transform: scale(0.98);
+  }
+
+  button.action:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+
+  .start {
+    background: #27ae60;
+    color: #ffffff;
+  }
+
+  .reset {
+    background: #43607f;
+    color: #ffffff;
+
+    font-size: 0.95rem;
+  }
+
+  .reset-all {
+    background: #8e3b3b;
+    color: #ffffff;
+
+    font-size: 0.95rem;
+  }
+
+  .operation-note {
+    color: #9db8d6;
+
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
+
+  .main-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+
+    margin-bottom: 10px;
+  }
+
+  .main-header h2 {
+    margin: 0;
+
+    font-size: 1.4rem;
+  }
+
+  .round-state {
+    padding: 7px 11px;
+
+    border-radius: 999px;
+
+    background: #173957;
+    color: #bcd2e7;
+
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
+  .table-wrap {
+    flex: 1;
+
+    min-height: 0;
+
+    overflow: auto;
+
+    border-radius: 12px;
+  }
+
+  table {
+    width: 100%;
+
+    border-collapse: collapse;
+
+    font-size: 1.35rem;
+  }
+
+  thead {
+    position: sticky;
+    z-index: 5;
+    top: 0;
+
+    background: #0b1f33;
+  }
+
+  th,
+  td {
+    padding: 10px 12px;
+
+    text-align: left;
+  }
+
+  th {
+    color: #b7cce1;
+
+    font-size: 0.93rem;
+  }
+
+  tbody tr:nth-child(odd) {
+    background: #0e2947;
+  }
+
+  tbody tr:nth-child(even) {
+    background: #102f50;
+  }
+
+  .rank {
+    width: 80px;
+
+    font-weight: 800;
+  }
+
+  .score {
+    text-align: right;
+
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  .tries {
+    width: 100px;
+
+    text-align: right;
+
+    font-variant-numeric: tabular-nums;
+  }
+
+  .top1 td {
+    background: #f1c40f !important;
+    color: #0b1f33;
+
+    font-size: 1.5rem;
+  }
+
+  .top2 td {
+    background: #bdc3c7 !important;
+    color: #0b1f33;
+  }
+
+  .top3 td {
+    background: #cd7f32 !important;
+    color: #0b1f33;
+  }
+
+  .empty {
+    padding: 36px 20px;
+
+    color: #9db8d6;
+
+    text-align: center;
+  }
+
+  .toast {
+    position: fixed;
+    z-index: 100;
+
+    right: 20px;
+    bottom: 20px;
+
+    display: none;
+
+    max-width: 420px;
+
+    padding: 12px 16px;
+
+    border-radius: 10px;
+
+    background: #c0392b;
+    color: #ffffff;
+
+    font-size: 0.9rem;
+    line-height: 1.5;
+
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  @media (max-width: 900px) {
+    .wrap {
+      grid-template-columns: 340px 1fr;
+    }
+
+    .side {
+      padding: 14px;
+    }
+
+    .main {
+      padding: 18px;
+    }
+
+    .qr img {
+      width: 145px;
+      height: 145px;
+    }
+
+    table {
+      font-size: 1.1rem;
+    }
+  }
 </style>
 </head>
+
 <body>
+
 <div class="wrap">
-  <div class="side">
+
+  <aside class="side">
+
     <h1>⚡ バトル操作盤</h1>
-    <div class="qr" id="qr">QR生成中…</div>
-    <div class="url" id="url"></div>
+
+    <div
+      class="qr"
+      id="qr"
+    >
+      QRコード生成中…
+    </div>
+
+    <div
+      class="url"
+      id="url"
+    ></div>
+
     <div class="stat">
-      <div class="card"><b id="joined">0</b><span>参加人数</span></div>
-      <div class="card"><b id="answered">0</b><span>回答済み</span></div>
-      <div class="card"><b id="rnd">0</b><span>ラウンド</span></div>
+
+      <div class="card">
+        <b id="joined">0</b>
+        <span>参加人数</span>
+      </div>
+
+      <div class="card">
+        <b id="answered">0</b>
+        <span>記録済み</span>
+      </div>
+
+      <div class="card">
+        <b id="roundNumber">0</b>
+        <span>ラウンド</span>
+      </div>
+
     </div>
 
     <div class="modebox">
-      <div class="lbl">ゲームを選ぶ</div>
+
+      <div class="label">
+        表示・実行するゲームを選択
+      </div>
+
       <div class="seg">
-        <button id="mReflex" class="on">⚡ 反射神経</button>
-        <button id="mTap">👆 連打</button>
+
+        <button
+          type="button"
+          id="modeReflex"
+          class="on"
+        >
+          ⚡ 反射神経
+        </button>
+
+        <button
+          type="button"
+          id="modeTap"
+        >
+          👆 連打
+        </button>
+
       </div>
-      <div class="dur" id="durRow">
-        <div class="lbl" style="margin-top:8px">連打の秒数（高齢の方が多い時は5秒推奨）</div>
-        <div class="seg">
-          <button data-d="5" id="d5">5秒</button>
-          <button data-d="7" id="d7" class="on">7秒</button>
-          <button data-d="10" id="d10">10秒</button>
+
+      <div
+        class="duration-area"
+        id="durationArea"
+      >
+
+        <div class="label">
+          連打時間を選択
         </div>
+
+        <div class="seg">
+
+          <button
+            type="button"
+            id="duration5"
+          >
+            5秒
+          </button>
+
+          <button
+            type="button"
+            id="duration7"
+            class="on"
+          >
+            7秒
+          </button>
+
+          <button
+            type="button"
+            id="duration10"
+          >
+            10秒
+          </button>
+
+        </div>
+
       </div>
+
     </div>
 
-    <button class="act start" id="startBtn">▶ ラウンド開始（よーいドン）</button>
-    <button class="act reset" id="resetBtn">記録をリセット（参加者は残す）</button>
-    <button class="act resetall" id="resetAllBtn">全リセット（参加者も消す）</button>
-  </div>
-  <div class="main">
-    <h2 id="title">🏆 ランキング</h2>
-    <div style="overflow:auto; flex:1">
-      <table>
-        <thead><tr><th class="rk">順位</th><th>なまえ</th><th class="sc" id="scHead">スコア</th><th class="sc">回数</th></tr></thead>
-        <tbody id="board"></tbody>
-      </table>
+    <div class="view-status">
+      表示中：
+      <strong id="currentView">
+        反射神経ランキング
+      </strong>
     </div>
-  </div>
+
+    <button
+      type="button"
+      class="action start"
+      id="startButton"
+    >
+      ▶ 反射神経を開始
+    </button>
+
+    <button
+      type="button"
+      class="action reset"
+      id="resetButton"
+    >
+      記録をリセット
+    </button>
+
+    <button
+      type="button"
+      class="action reset-all"
+      id="resetAllButton"
+    >
+      全リセット
+    </button>
+
+    <div class="operation-note">
+      ゲームまたは秒数を選択すると、過去ランキングだけが切り替わります。
+      <br>
+      参加者への開始合図は「開始」ボタンを押したときだけ送信されます。
+    </div>
+
+  </aside>
+
+  <main class="main">
+
+    <div class="main-header">
+
+      <h2 id="rankingTitle">
+        🏆 反射神経ランキング
+      </h2>
+
+      <div
+        class="round-state"
+        id="roundState"
+      >
+        待機中
+      </div>
+
+    </div>
+
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th class="rank">
+              順位
+            </th>
+
+            <th>
+              なまえ
+            </th>
+
+            <th
+              class="score"
+              id="scoreHeader"
+            >
+              ベスト
+            </th>
+
+            <th class="tries">
+              回数
+            </th>
+          </tr>
+        </thead>
+
+        <tbody id="rankingBody">
+
+          <tr>
+            <td
+              colspan="4"
+              class="empty"
+            >
+              まだ記録がありません
+            </td>
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </main>
+
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js" onerror="window._noqr=true"></script>
+<div
+  class="toast"
+  id="toast"
+></div>
+
+https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.jsscript>
+
 <script>
-const joinURL = location.origin + '/';
-document.getElementById('url').textContent = joinURL;
+'use strict';
 
-function drawQR() {
-  const box = document.getElementById('qr');
-  try {
-    const qr = qrcode(0, 'M'); qr.addData(joinURL); qr.make();
-    box.innerHTML = qr.createImgTag(5, 6);
-    box.querySelector('img').style.width='170px'; box.querySelector('img').style.height='170px';
-  } catch (e) { box.innerHTML = '<div style="color:#0b1f33">下のURLを手入力してください</div>'; }
+// ============================================================
+// 要素
+// ============================================================
+
+const joinedElement =
+  document.getElementById('joined');
+
+const answeredElement =
+  document.getElementById('answered');
+
+const roundNumberElement =
+  document.getElementById('roundNumber');
+
+const currentViewElement =
+  document.getElementById('currentView');
+
+const rankingTitleElement =
+  document.getElementById('rankingTitle');
+
+const scoreHeaderElement =
+  document.getElementById('scoreHeader');
+
+const rankingBodyElement =
+  document.getElementById('rankingBody');
+
+const roundStateElement =
+  document.getElementById('roundState');
+
+const modeReflexButton =
+  document.getElementById('modeReflex');
+
+const modeTapButton =
+  document.getElementById('modeTap');
+
+const durationArea =
+  document.getElementById('durationArea');
+
+const duration5Button =
+  document.getElementById('duration5');
+
+const duration7Button =
+  document.getElementById('duration7');
+
+const duration10Button =
+  document.getElementById('duration10');
+
+const startButton =
+  document.getElementById('startButton');
+
+const resetButton =
+  document.getElementById('resetButton');
+
+const resetAllButton =
+  document.getElementById('resetAllButton');
+
+const toastElement =
+  document.getElementById('toast');
+
+// ============================================================
+// ホスト側の選択状態
+// ============================================================
+
+let selectedMode = 'reflex';
+let selectedDuration = 7;
+
+let latestBoard = [];
+let latestStats = {
+  joined: 0,
+  answered: 0,
+  round: 0,
+  active: false,
+  mode: 'reflex',
+  duration: 7
+};
+
+let eventSource = null;
+let toastTimer = null;
+
+// ============================================================
+// 共通
+// ============================================================
+
+function escapeHtml(value) {
+  return String(value || '').replace(
+    /[<>&"]/g,
+    function (character) {
+      return {
+        '<': '&lt;',
+        '>': '&gt;',
+        '&': '&amp;',
+        '"': '&quot;'
+      }[character];
+    }
+  );
 }
-if (window._noqr) { document.getElementById('qr').innerHTML = '<div style="color:#0b1f33;padding:14px">下のURLをスマホで開いてください</div>'; }
-else { setTimeout(drawQR, 200); }
 
-// ---- モード選択 ----
-let mode = 'reflex';   // 'reflex' | 'tap'
-let duration = 7;
-const mReflex = document.getElementById('mReflex');
-const mTap = document.getElementById('mTap');
-const durRow = document.getElementById('durRow');
-mReflex.onclick = () => { mode='reflex'; mReflex.classList.add('on'); mTap.classList.remove('on'); durRow.style.display='none'; };
-mTap.onclick    = () => { mode='tap';    mTap.classList.add('on'); mReflex.classList.remove('on'); durRow.style.display='block'; };
-['5','7','10'].forEach(d=>{
-  document.getElementById('d'+d).onclick = (e)=>{
-    duration = parseInt(d,10);
-    ['5','7','10'].forEach(x=> document.getElementById('d'+x).classList.toggle('on', x===d));
-  };
-});
+function showToast(message) {
+  toastElement.textContent = message;
+  toastElement.style.display = 'block';
 
-// ---- ランキング購読 ----
-function esc(s){ return (s+'').replace(/[<>&]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
-const es = new EventSource('/events/host');
-es.addEventListener('leaderboard', e => {
-  const { board, stats } = JSON.parse(e.data);
-  document.getElementById('joined').textContent = stats.joined;
-  document.getElementById('answered').textContent = stats.answered;
-  document.getElementById('rnd').textContent = stats.round;
-  // 見出し：モードでスコアの単位を変える
-  document.getElementById('scHead').textContent = (stats.mode === 'tap') ? 'タップ数' : 'ベスト(ms)';
-  document.getElementById('title').textContent = (stats.mode === 'tap')
-      ? '🏆 連打ランキング（タップ数）' : '🏆 反射神経ランキング（ベストタイム）';
-  const unit = (stats.mode === 'tap') ? ' 回' : ' ms';
-  const tb = document.getElementById('board');
-  tb.innerHTML = board.slice(0, 20).map(r => {
-    const cls = r.rank===1?'top1':r.rank===2?'top2':r.rank===3?'top3':'';
-    const medal = r.rank===1?'🥇':r.rank===2?'🥈':r.rank===3?'🥉':r.rank;
-    return `<tr class="${cls}"><td class="rk">${medal}</td><td>${esc(r.name)}</td><td class="sc">${r.score}${unit}</td><td class="sc">${r.tries}</td></tr>`;
-  }).join('') || '<tr><td colspan="4" style="padding:24px;color:#9db8d6">まだ回答がありません</td></tr>';
-});
-es.addEventListener('round-start', (e) => {
-  const d = JSON.parse(e.data);
-  const t=document.getElementById('title');
-  t.textContent = (d.mode==='tap') ? '🟢 連打中… 各自ガンガンタップ！' : '🟢 ラウンド進行中… 各自タップ！';
-  const back = (d.mode==='tap') ? '🏆 連打ランキング（タップ数）' : '🏆 反射神経ランキング（ベストタイム）';
-  setTimeout(()=> t.textContent=back, (d.duration? d.duration*1000: 6000) + 3000);
-});
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+  }
 
-// ---- 操作 ----
-document.getElementById('startBtn').onclick = () => {
-  fetch('/api/start', {method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ mode, duration })});
-};
-document.getElementById('resetBtn').onclick = () => {
-  if(confirm('タイム/連打数だけ消します（参加者はそのまま）。よろしいですか？')) fetch('/api/reset',{method:'POST'});
-};
-document.getElementById('resetAllBtn').onclick = () => {
-  if(confirm('参加者も含めて全部消します。参加者は再度QRから入り直しになります。よろしいですか？')) fetch('/api/reset-all',{method:'POST'});
-};
+  toastTimer = window.setTimeout(
+    function () {
+      toastElement.style.display = 'none';
+    },
+    5000
+  );
+}
+
+async function postJson(
+  url,
+  body
+) {
+  const response = await fetch(
+    url,
+    {
+      method: 'POST',
+
+      headers: {
+        'Content-Type':
+          'application/json'
+      },
+
+      cache: 'no-store',
+
+      body: JSON.stringify(
+        body || {}
+      )
+    }
+  );
+
+  let result = {};
+
+  try {
+    result = await response.json();
+  } catch (error) {
+    result = {};
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      'HTTP ' +
+      response.status
+    );
+  }
+
+  return result;
+}
+
+// ============================================================
+// QRコード
+// ============================================================
+
+const joinUrl =
+  window.location.origin + '/';
+
+document.getElementById('url')
+  .textContent = joinUrl;
+
+function drawQrCode() {
+  const qrArea =
+    document.getElementById('qr');
+
+  try {
+    const qr =
+      qrcode(0, 'M');
+
+    qr.addData(joinUrl);
+    qr.make();
+
+    qrArea.innerHTML =
+      qr.createImgTag(5, 6);
+
+    const qrImage =
+      qrArea.querySelector('img');
+
+    if (qrImage) {
+      qrImage.style.width =
+        '170px';
+
+      qrImage.style.height =
+        '170px';
+    }
+  } catch (error) {
+    qrArea.innerHTML =
+      '<div style="color:#0b1f33;padding:16px">' +
+        '下のURLをスマホで開いてください' +
+      '</div>';
+  }
+}
+
+if (window.qrLibraryFailed) {
+  document.getElementById('qr')
+    .innerHTML =
+      '<div style="color:#0b1f33;padding:16px">' +
+        '下のURLをスマホで開いてください' +
+      '</div>';
+} else {
+  window.setTimeout(
+    drawQrCode,
+    200
+  );
+}
+
+// ============================================================
+// ボタン表示
+// ============================================================
+
+function updateSelectionButtons() {
+  modeReflexButton.classList.toggle(
+    'on',
+    selectedMode === 'reflex'
+  );
+
+  modeTapButton.classList.toggle(
+    'on',
+    selectedMode === 'tap'
+  );
+
+  durationArea.style.display =
+    selectedMode === 'tap'
+      ? 'block'
+      : 'none';
+
+  duration5Button.classList.toggle(
+    'on',
+    selectedDuration === 5
+  );
+
+  duration7Button.classList.toggle(
+    'on',
+    selectedDuration === 7
+  );
+
+  duration10Button.classList.toggle(
+    'on',
+    selectedDuration === 10
+  );
+
+  if (selectedMode === 'tap') {
+    currentViewElement.textContent =
+      '連打' +
+      selectedDuration +
+      '秒ランキング';
+
+    startButton.textContent =
+      '▶ 連打' +
+      selectedDuration +
+      '秒を開始';
+  } else {
+    currentViewElement.textContent =
+      '反射神経ランキング';
+
+    startButton.textContent =
+      '▶ 反射神経を開始';
+  }
+}
+
+// ============================================================
+// ランキング切り替え
+//
+// select-rankingはランキング表示だけを変更します。
+// ラウンド開始や参加者への通知は行いません。
+// ============================================================
+
+async function selectRanking(
+  mode,
+  duration
+) {
+  startButton.disabled = true;
+
+  try {
+    const result = await postJson(
+      '/api/select-ranking',
+      {
+        mode,
+        duration
+      }
+    );
+
+    if (
+      result &&
+      result.stats &&
+      result.board
+    ) {
+      renderRanking(
+        result.board,
+        result.stats
+      );
+    }
+  } catch (error) {
+    showToast(
+      'ランキングの切り替えに失敗しました。server.jsの更新状況を確認してください。'
+    );
+  } finally {
+    startButton.disabled = false;
+  }
+}
+
+// ============================================================
+// モード選択
+// ============================================================
+
+modeReflexButton.addEventListener(
+  'click',
+  async function () {
+    selectedMode = 'reflex';
+
+    updateSelectionButtons();
+
+    await selectRanking(
+      selectedMode,
+      selectedDuration
+    );
+  }
+);
+
+modeTapButton.addEventListener(
+  'click',
+  async function () {
+    selectedMode = 'tap';
+
+    updateSelectionButtons();
+
+    await selectRanking(
+      selectedMode,
+      selectedDuration
+    );
+  }
+);
+
+// ============================================================
+// 秒数選択
+// ============================================================
+
+async function selectDuration(
+  duration
+) {
+  selectedDuration = duration;
+  selectedMode = 'tap';
+
+  updateSelectionButtons();
+
+  await selectRanking(
+    selectedMode,
+    selectedDuration
+  );
+}
+
+duration5Button.addEventListener(
+  'click',
+  function () {
+    selectDuration(5);
+  }
+);
+
+duration7Button.addEventListener(
+  'click',
+  function () {
+    selectDuration(7);
+  }
+);
+
+duration10Button.addEventListener(
+  'click',
+  function () {
+    selectDuration(10);
+  }
+);
+
+// ============================================================
+// ランキング描画
+// ============================================================
+
+function getMedalOrRank(rank) {
+  if (rank === 1) {
+    return '🥇';
+  }
+
+  if (rank === 2) {
+    return '🥈';
+  }
+
+  if (rank === 3) {
+    return '🥉';
+  }
+
+  return String(rank);
+}
+
+function getTopClass(rank) {
+  if (rank === 1) {
+    return 'top1';
+  }
+
+  if (rank === 2) {
+    return 'top2';
+  }
+
+  if (rank === 3) {
+    return 'top3';
+  }
+
+  return '';
+}
+
+function renderRanking(
+  board,
+  stats
+) {
+  latestBoard =
+    Array.isArray(board)
+      ? board
+      : [];
+
+  latestStats =
+    stats || latestStats;
+
+  joinedElement.textContent =
+    Number(latestStats.joined || 0);
+
+  answeredElement.textContent =
+    Number(latestStats.answered || 0);
+
+  roundNumberElement.textContent =
+    Number(latestStats.round || 0);
+
+  const viewMode =
+    latestStats.mode === 'tap'
+      ? 'tap'
+      : 'reflex';
+
+  const viewDuration =
+    [5, 7, 10].includes(
+      Number(latestStats.duration)
+    )
+      ? Number(latestStats.duration)
+      : 7;
+
+  if (viewMode === 'tap') {
+    rankingTitleElement.textContent =
+      '🏆 連打' +
+      viewDuration +
+      '秒ランキング';
+
+    scoreHeaderElement.textContent =
+      'タップ数';
+
+    currentViewElement.textContent =
+      '連打' +
+      viewDuration +
+      '秒ランキング';
+  } else {
+    rankingTitleElement.textContent =
+      '🏆 反射神経ランキング';
+
+    scoreHeaderElement.textContent =
+      'ベスト';
+
+    currentViewElement.textContent =
+      '反射神経ランキング';
+  }
+
+  if (latestStats.active) {
+    roundStateElement.textContent =
+      'ラウンド' +
+      Number(latestStats.round || 0) +
+      ' 実行済み';
+  } else {
+    roundStateElement.textContent =
+      '待機中';
+  }
+
+  if (!latestBoard.length) {
+    rankingBodyElement.innerHTML =
+      '<tr>' +
+        '<td colspan="4" class="empty">' +
+          'この条件では、まだ記録がありません' +
+        '</td>' +
+      '</tr>';
+
+    return;
+  }
+
+  const scoreUnit =
+    viewMode === 'tap'
+      ? ' 回'
+      : ' ms';
+
+  rankingBodyElement.innerHTML =
+    latestBoard
+      .slice(0, 100)
+      .map(
+        function (record) {
+          const rank =
+            Number(record.rank);
+
+          const rowClass =
+            getTopClass(rank);
+
+          return (
+            '<tr class="' +
+              rowClass +
+            '">' +
+
+              '<td class="rank">' +
+                getMedalOrRank(rank) +
+              '</td>' +
+
+              '<td>' +
+                escapeHtml(record.name) +
+              '</td>' +
+
+              '<td class="score">' +
+                Number(record.score) +
+                scoreUnit +
+              '</td>' +
+
+              '<td class="tries">' +
+                Number(record.tries || 0) +
+              '</td>' +
+
+            '</tr>'
+          );
+        }
+      )
+      .join('');
+}
+
+// ============================================================
+// ホスト用SSE
+// ============================================================
+
+function connectHostEvents() {
+  if (eventSource) {
+    try {
+      eventSource.close();
+    } catch (error) {
+      // 切断エラーは無視
+    }
+  }
+
+  eventSource =
+    new EventSource(
+      '/events/host'
+    );
+
+  eventSource.addEventListener(
+    'leaderboard',
+    function (event) {
+      try {
+        const data =
+          JSON.parse(event.data);
+
+        renderRanking(
+          data.board,
+          data.stats
+        );
+      } catch (error) {
+        showToast(
+          'ランキング情報の読み取りに失敗しました。'
+        );
+      }
+    }
+  );
+
+  eventSource.addEventListener(
+    'round-start',
+    function (event) {
+      try {
+        const data =
+          JSON.parse(event.data);
+
+        if (data.mode === 'tap') {
+          roundStateElement.textContent =
+            '連打' +
+            Number(data.duration || 7) +
+            '秒 進行中';
+        } else {
+          roundStateElement.textContent =
+            '反射神経 進行中';
+        }
+      } catch (error) {
+        roundStateElement.textContent =
+          'ゲーム進行中';
+      }
+    }
+  );
+
+  eventSource.addEventListener(
+    'session-reset',
+    function () {
+      latestBoard = [];
+
+      latestStats = {
+        joined: 0,
+        answered: 0,
+        round: 0,
+        active: false,
+        mode: selectedMode,
+        duration: selectedDuration
+      };
+
+      renderRanking(
+        latestBoard,
+        latestStats
+      );
+
+      roundStateElement.textContent =
+        '全リセット完了';
+    }
+  );
+
+  eventSource.onerror =
+    function () {
+      roundStateElement.textContent =
+        '再接続中…';
+    };
+}
+
+// ============================================================
+// ゲーム開始
+// ============================================================
+
+startButton.addEventListener(
+  'click',
+  async function () {
+    const gameLabel =
+      selectedMode === 'tap'
+        ? '連打' +
+          selectedDuration +
+          '秒'
+        : '反射神経';
+
+    const confirmed =
+      window.confirm(
+        gameLabel +
+        'を開始します。\n' +
+        '参加者全員のスマホへ開始合図を送ります。'
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    startButton.disabled = true;
+
+    try {
+      await postJson(
+        '/api/start',
+        {
+          mode: selectedMode,
+          duration:
+            selectedDuration
+        }
+      );
+    } catch (error) {
+      showToast(
+        'ゲームの開始に失敗しました。'
+      );
+    } finally {
+      startButton.disabled = false;
+    }
+  }
+);
+
+// ============================================================
+// 記録リセット
+// ============================================================
+
+resetButton.addEventListener(
+  'click',
+  async function () {
+    const confirmed =
+      window.confirm(
+        'すべてのゲーム記録を削除します。\n' +
+        '参加者情報は残るため、同じメンバーで続けられます。\n\n' +
+        'よろしいですか？'
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    resetButton.disabled = true;
+
+    try {
+      await postJson(
+        '/api/reset',
+        {}
+      );
+
+      roundStateElement.textContent =
+        '記録リセット完了';
+    } catch (error) {
+      showToast(
+        '記録のリセットに失敗しました。'
+      );
+    } finally {
+      resetButton.disabled = false;
+    }
+  }
+);
+
+// ============================================================
+// 全リセット
+// ============================================================
+
+resetAllButton.addEventListener(
+  'click',
+  async function () {
+    const confirmed =
+      window.confirm(
+        '参加者とすべての記録を削除します。\n' +
+        '参加中のスマホは名前入力画面へ戻ります。\n\n' +
+        'よろしいですか？'
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    resetAllButton.disabled = true;
+
+    try {
+      await postJson(
+        '/api/reset-all',
+        {}
+      );
+
+      roundStateElement.textContent =
+        '全リセット完了';
+    } catch (error) {
+      showToast(
+        '全リセットに失敗しました。'
+      );
+    } finally {
+      resetAllButton.disabled = false;
+    }
+  }
+);
+
+// ============================================================
+// 初期化
+// ============================================================
+
+updateSelectionButtons();
+connectHostEvents();
 </script>
+
 </body>
 </html>
