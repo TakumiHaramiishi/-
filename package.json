@@ -1,1 +1,1 @@
-{"name":"reflex-tap-unique-battle","version":"4.0.0","main":"server.js","scripts":{"start":"node server.js"},"engines":{"node":">=18"}}
+{"name":"reflex-tap-unique-battle","version":"4.2.0","main":"server.js","scripts":{"start":"node server.js"},"engines":{"node":">=18"}}
