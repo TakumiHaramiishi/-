@@ -2,87 +2,48 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
-  >
-
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>技能人財養成部 ハロウィンパーティー｜ゲーム司会席</title>
 
   <style>
-    /* =========================================================
-       共通設定
-       ========================================================= */
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     html,
     body {
       width: 100%;
       height: 100%;
       margin: 0;
-
-      font-family:
-        -apple-system,
-        BlinkMacSystemFont,
-        "Hiragino Kaku Gothic ProN",
-        "Noto Sans JP",
-        sans-serif;
-
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
       background: #120b1e;
       color: #ffffff;
     }
 
-    button {
-      font: inherit;
-    }
+    button { font: inherit; }
 
-    /* =========================================================
-       全体レイアウト
-       ========================================================= */
     .wrap {
       display: grid;
       grid-template-columns: 430px minmax(0, 1fr);
-
       width: 100%;
       height: 100vh;
     }
 
     .side {
       padding: 16px;
-
       overflow-y: auto;
-
       border-right: 2px solid #f28a24;
-
-      background:
-        linear-gradient(
-          180deg,
-          #321747,
-          #1b1029
-        );
+      background: linear-gradient(180deg, #321747, #1b1029);
     }
 
     .main {
       min-width: 0;
       padding: 22px;
-
       overflow-y: auto;
-
-      background:
-        radial-gradient(
-          circle at 80% 0,
-          #301840,
-          #120b1e 55%
-        );
+      background: radial-gradient(circle at 80% 0, #301840, #120b1e 55%);
     }
 
     h1,
     h2,
-    h3 {
-      margin: 0.2em 0;
-    }
+    h3 { margin: 0.2em 0; }
 
     .eventTitle {
       color: #ff9c2e;
@@ -90,19 +51,13 @@
       font-weight: 800;
     }
 
-    /* =========================================================
-       QRコード・URL
-       ========================================================= */
     .qr {
       display: flex;
       align-items: center;
       justify-content: center;
-
       min-height: 155px;
       padding: 8px;
-
       border-radius: 14px;
-
       background: #ffffff;
       color: #12303f;
     }
@@ -115,19 +70,13 @@
     .url {
       margin: 8px 0;
       padding: 8px;
-
       border-radius: 8px;
-
       background: #42245a;
-
       font-size: 0.76rem;
       line-height: 1.4;
       word-break: break-all;
     }
 
-    /* =========================================================
-       参加状況カード
-       ========================================================= */
     .stats {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -136,31 +85,22 @@
 
     .card {
       padding: 8px 5px;
-
       border-radius: 10px;
-
       background: #42245a;
-
       text-align: center;
     }
 
     .card b {
       display: block;
-
       color: #ffb257;
       font-size: 1.45rem;
       font-variant-numeric: tabular-nums;
     }
 
-    /* =========================================================
-       操作欄
-       ========================================================= */
     .group {
       margin-top: 10px;
       padding: 10px;
-
       border-radius: 12px;
-
       background: #321c45;
     }
 
@@ -173,20 +113,16 @@
     .buttons button,
     .action {
       padding: 10px 12px;
-
       border: 2px solid #6e4d84;
       border-radius: 10px;
-
       background: #43235c;
       color: #ffffff;
-
       font-weight: 800;
       cursor: pointer;
     }
 
     .buttons button.on {
       border-color: #ffb257;
-
       background: #ef7f1a;
     }
 
@@ -194,133 +130,126 @@
       width: 100%;
       margin-top: 8px;
       padding: 14px;
-
       border: 0;
     }
 
-    .action:disabled {
-      opacity: 0.55;
+    .action:disabled,
+    .rankingPager button:disabled {
+      opacity: 0.45;
       cursor: default;
     }
 
-    .start {
-      background: #27ae60;
-    }
+    .start { background: #27ae60; }
+    .closeAction { background: #d07816; }
+    .revealAction { background: #843bad; }
+    .reset { background: #526d88; }
+    .danger { background: #8e3b3b; }
 
-    .closeAction {
-      background: #d07816;
-    }
-
-    .revealAction {
-      background: #843bad;
-    }
-
-    .reset {
-      background: #526d88;
-    }
-
-    .danger {
-      background: #8e3b3b;
-    }
-
-    /* =========================================================
-       接続・進行状況
-       ========================================================= */
     .status {
       margin-top: 10px;
       padding: 12px;
-
       border-radius: 10px;
-
       background: #3c2550;
-
       line-height: 1.45;
     }
 
-    .status.ok {
-      background: #17633a;
-    }
-
-    .status.warn {
-      background: #8b6914;
-    }
-
-    .status.playing {
-      background: #075b87;
-    }
+    .status.ok { background: #17633a; }
+    .status.warn { background: #8b6914; }
+    .status.playing { background: #075b87; }
 
     .detail {
       margin-top: 5px;
-
       font-size: 0.84rem;
       line-height: 1.5;
     }
 
-    .hidden {
-      display: none !important;
+    .hidden { display: none !important; }
+
+    /* ランキングページ切り替え */
+    .rankingPager {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 8px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: #21132f;
     }
 
-    /* =========================================================
-       コンパクトランキング
+    .rankingPager button {
+      padding: 7px 11px;
+      border: 1px solid #80599a;
+      border-radius: 8px;
+      background: #442558;
+      color: #ffffff;
+      font-weight: 800;
+      cursor: pointer;
+    }
 
-       大画面：3列
-       中画面：2列
-       小画面：1列
-       ========================================================= */
+    .rankingPager button:hover:not(:disabled) { border-color: #ffb257; }
+
+    .rankingPageButtons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .rankingPageButtons button.on {
+      border-color: #ffb257;
+      background: #ef7f1a;
+    }
+
+    #rankingRange {
+      margin-left: auto;
+      color: #d8c6e4;
+      font-size: 0.85rem;
+    }
+
+    /*
+      1ページ最大30人、3列×10行。
+      JavaScriptで 1,11,21 / 2,12,22 ... の順に並べ替えます。
+    */
     .rankingGrid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 7px;
-
       margin-top: 10px;
     }
 
     .rankCard {
       display: grid;
-      grid-template-columns:
-        38px
-        minmax(0, 1fr)
-        auto
-        auto;
+      grid-template-columns: 36px minmax(0, 1fr) auto auto;
       align-items: center;
-      gap: 7px;
-
-      min-height: 46px;
-      padding: 7px 9px;
-
+      gap: 6px;
+      min-height: 42px;
+      padding: 6px 8px;
       border: 1px solid #452b59;
-      border-radius: 10px;
-
+      border-radius: 9px;
       background: #2a183b;
     }
 
-    .rankCard:nth-child(even) {
-      background: #321d45;
-    }
+    .rankCard:nth-child(even) { background: #321d45; }
 
     .rankNo {
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 900;
       text-align: center;
     }
 
     .rankName {
       min-width: 0;
-
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 750;
     }
 
     .rankScore {
       white-space: nowrap;
-
       color: #ffd08a;
-
-      font-size: 0.97rem;
+      font-size: 0.92rem;
       font-weight: 800;
       font-variant-numeric: tabular-nums;
       text-align: right;
@@ -328,31 +257,26 @@
 
     .rankTries {
       white-space: nowrap;
-
       color: #c7b8d2;
-
-      font-size: 0.76rem;
+      font-size: 0.7rem;
       font-variant-numeric: tabular-nums;
       text-align: right;
     }
 
     .rankCard.top1 {
       border-color: #ffe86f;
-
       background: #f1c40f !important;
       color: #20142b;
     }
 
     .rankCard.top2 {
       border-color: #e8ecef;
-
       background: #bdc3c7 !important;
       color: #20142b;
     }
 
     .rankCard.top3 {
       border-color: #e6a66b;
-
       background: #cd7f32 !important;
       color: #20142b;
     }
@@ -368,47 +292,32 @@
 
     .emptyRanking {
       grid-column: 1 / -1;
-
       padding: 30px;
-
       border-radius: 12px;
-
       background: #2a183b;
       color: #c6b2d4;
-
       text-align: center;
     }
 
-    /* =========================================================
-       ブービー賞
-       ========================================================= */
     .awards {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-
       margin-top: 14px;
     }
 
     .award,
     .panel {
       padding: 12px;
-
       border-radius: 12px;
-
       background: #2f1b41;
     }
 
-    /* =========================================================
-       最大ユニークナンバー履歴グラフ
-       ========================================================= */
     .historyPanel {
       margin-top: 18px;
       padding: 16px;
-
       border: 1px solid #744c90;
       border-radius: 14px;
-
       background: #21132f;
     }
 
@@ -416,26 +325,21 @@
       display: flex;
       flex-wrap: wrap;
       gap: 7px;
-
       margin: 10px 0;
     }
 
     .historyButtons button {
       padding: 8px 11px;
-
       border: 1px solid #8359a0;
       border-radius: 9px;
-
       background: #442558;
       color: #ffffff;
-
       font-weight: 800;
       cursor: pointer;
     }
 
     .historyButtons button.on {
       border-color: #ffb257;
-
       background: #ef7f1a;
     }
 
@@ -446,49 +350,35 @@
 
     .chart {
       position: relative;
-
       display: flex;
       align-items: flex-end;
       gap: 3px;
-
       min-width: 1000px;
       height: 290px;
       padding: 32px 12px 25px;
-
       border-left: 1px solid #86699a;
       border-bottom: 1px solid #86699a;
-
       background: #170d22;
     }
 
     .barCol {
       position: relative;
-
       display: flex;
       align-items: flex-end;
-
       width: 8px;
       height: 100%;
     }
 
     .bar {
       position: relative;
-
       width: 100%;
       min-height: 0;
-
       border-radius: 3px 3px 0 0;
-
       background: #80549c;
     }
 
-    .bar.selected {
-      background: #ea8b29;
-    }
-
-    .bar.unique {
-      background: #2fbc72;
-    }
+    .bar.selected { background: #ea8b29; }
+    .bar.unique { background: #2fbc72; }
 
     .bar.winner {
       background: #ffd447;
@@ -499,9 +389,7 @@
       position: absolute;
       bottom: -20px;
       left: 50%;
-
       transform: translateX(-50%);
-
       color: #bcaac8;
       font-size: 9px;
     }
@@ -510,9 +398,7 @@
       position: absolute;
       top: -18px;
       left: 50%;
-
       transform: translateX(-50%);
-
       color: #ffffff;
       font-size: 9px;
     }
@@ -521,74 +407,49 @@
       display: flex;
       flex-wrap: wrap;
       gap: 16px;
-
       margin: 8px 0;
-
       font-size: 0.83rem;
     }
 
     .legend i {
       display: inline-block;
-
       width: 12px;
       height: 12px;
       margin-right: 5px;
-
       border-radius: 2px;
     }
 
     .resultSummary {
       margin: 8px 0;
       padding: 10px;
-
       border-radius: 10px;
-
       background: #402655;
     }
 
     .emptyHistory {
       padding: 25px;
-
       color: #c6b2d4;
-
       text-align: center;
     }
 
-    /* =========================================================
-       エラー通知
-       ========================================================= */
     .toast {
       position: fixed;
       right: 18px;
       bottom: 18px;
       z-index: 100;
-
       display: none;
-
       padding: 12px;
-
       border-radius: 10px;
-
       background: #c0392b;
       color: #ffffff;
     }
 
-    /* =========================================================
-       画面幅によるランキング列数の切り替え
-       ========================================================= */
-    @media (max-width: 1250px) {
-      .rankingGrid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
-    @media (max-width: 850px) {
-      .wrap {
-        grid-template-columns: 360px minmax(0, 1fr);
-      }
-
-      .rankingGrid {
-        grid-template-columns: 1fr;
+    @media (max-width: 950px) {
+      .wrap { grid-template-columns: 360px minmax(0, 1fr); }
+      .rankingGrid { grid-template-columns: 1fr; }
+      #rankingRange {
+        width: 100%;
+        margin-left: 0;
       }
     }
   </style>
@@ -596,279 +457,103 @@
 
 <body>
   <div class="wrap">
-    <!-- =====================================================
-         左側：司会操作欄
-         ===================================================== -->
     <aside class="side">
-      <div class="eventTitle">
-        🎃 技能人財養成部
-      </div>
+      <div class="eventTitle">🎃 技能人財養成部</div>
+      <h1>ハロウィンパーティー<br>ゲーム司会席 👻</h1>
 
-      <h1>
-        ハロウィンパーティー<br>
-        ゲーム司会席 👻
-      </h1>
-
-      <div
-        id="qr"
-        class="qr"
-      >
-        QR生成中…
-      </div>
-
-      <div
-        id="url"
-        class="url"
-      ></div>
+      <div id="qr" class="qr">QR生成中…</div>
+      <div id="url" class="url"></div>
 
       <div class="stats">
-        <div class="card">
-          <b id="joined">0</b>
-          参加
-        </div>
-
-        <div class="card">
-          <b id="standby">0</b>
-          待機中
-        </div>
-
-        <div class="card">
-          <b id="answered">0</b>
-          完了・回答
-        </div>
-
-        <div class="card">
-          <b id="connected">0</b>
-          接続中
-        </div>
-
-        <div class="card">
-          <b id="missing">0</b>
-          要確認
-        </div>
-
-        <div class="card">
-          <b id="round">0</b>
-          ラウンド
-        </div>
+        <div class="card"><b id="joined">0</b>参加</div>
+        <div class="card"><b id="standby">0</b>待機中</div>
+        <div class="card"><b id="answered">0</b>完了・回答</div>
+        <div class="card"><b id="connected">0</b>接続中</div>
+        <div class="card"><b id="missing">0</b>要確認</div>
+        <div class="card"><b id="round">0</b>ラウンド</div>
       </div>
 
-      <div
-        id="readyStatus"
-        class="status"
-      >
-        状態確認中
-      </div>
-
-      <div
-        id="detail"
-        class="detail"
-      ></div>
+      <div id="readyStatus" class="status">状態確認中</div>
+      <div id="detail" class="detail"></div>
 
       <div class="group">
         <div>🎮 ゲームを選択</div>
-
         <div class="buttons">
-          <button
-            type="button"
-            id="reflex"
-            class="on"
-          >
-            反射神経
-          </button>
-
-          <button
-            type="button"
-            id="tap"
-          >
-            連打
-          </button>
-
-          <button
-            type="button"
-            id="unique"
-          >
-            最大ユニーク
-          </button>
+          <button type="button" id="reflex" class="on">反射神経</button>
+          <button type="button" id="tap">連打</button>
+          <button type="button" id="unique">最大ユニーク</button>
         </div>
 
-        <div
-          id="durations"
-          class="buttons hidden"
-          style="margin-top: 8px;"
-        >
-          <button
-            type="button"
-            data-d="5"
-          >
-            5秒
-          </button>
-
-          <button
-            type="button"
-            data-d="7"
-            class="on"
-          >
-            7秒
-          </button>
-
-          <button
-            type="button"
-            data-d="10"
-          >
-            10秒
-          </button>
+        <div id="durations" class="buttons hidden" style="margin-top: 8px;">
+          <button type="button" data-d="5">5秒</button>
+          <button type="button" data-d="7" class="on">7秒</button>
+          <button type="button" data-d="10">10秒</button>
         </div>
       </div>
 
       <div class="group">
         <div>モード</div>
-
         <div class="buttons">
-          <button
-            type="button"
-            id="official"
-            class="on"
-          >
-            本番
-          </button>
-
-          <button
-            type="button"
-            id="practice"
-          >
-            練習
-          </button>
+          <button type="button" id="official" class="on">本番</button>
+          <button type="button" id="practice">練習</button>
         </div>
       </div>
 
-      <button
-        type="button"
-        id="start"
-        class="action start"
-      >
-        反射神経を開始
-      </button>
-
-      <button
-        type="button"
-        id="uniqueNext"
-        class="action start hidden"
-      >
-        回答受付開始
-      </button>
-
-      <button
-        type="button"
-        id="reset"
-        class="action reset"
-      >
-        記録をリセット
-      </button>
-
-      <button
-        type="button"
-        id="resetAll"
-        class="action danger"
-      >
-        全リセット
-      </button>
+      <button type="button" id="start" class="action start">反射神経を開始</button>
+      <button type="button" id="uniqueNext" class="action start hidden">回答受付開始</button>
+      <button type="button" id="reset" class="action reset">記録をリセット</button>
+      <button type="button" id="resetAll" class="action danger">全リセット</button>
     </aside>
 
-    <!-- =====================================================
-         右側：ランキング・結果表示
-         ===================================================== -->
     <main class="main">
-      <h2 id="title">
-        🏆 反射神経ランキング
-      </h2>
+      <h2 id="title">🏆 反射神経ランキング</h2>
 
-      <!--
-        ここが新しいコンパクトランキング領域です。
-        JavaScriptで参加者カードが追加されます。
-      -->
-      <div
-        id="body"
-        class="rankingGrid"
-      >
-        <div class="emptyRanking">
-          記録なし
-        </div>
+      <div id="rankingPager" class="rankingPager hidden">
+        <button type="button" id="previousRankingPage">◀ 前へ</button>
+        <div id="rankingPageButtons" class="rankingPageButtons"></div>
+        <button type="button" id="nextRankingPage">次へ ▶</button>
+        <span id="rankingRange"></span>
+      </div>
+
+      <div id="body" class="rankingGrid">
+        <div class="emptyRanking">記録なし</div>
       </div>
 
       <div class="awards">
         <div class="award">
           <b>🎁 ブービー賞</b>
-          <div id="booby">
-            該当なし
-          </div>
+          <div id="booby">該当なし</div>
         </div>
-
         <div class="award">
           <b>🫣 ブービーメーカー</b>
-          <div id="maker">
-            該当なし
-          </div>
+          <div id="maker">該当なし</div>
         </div>
       </div>
 
-      <section
-        id="historyPanel"
-        class="historyPanel hidden"
-      >
-        <h2>
-          🧠 最大ユニークナンバー 過去ラウンド分析
-        </h2>
-
-        <p>
-          過去の分布を見て、次に狙う数字の作戦を立てられます。
-        </p>
-
-        <div
-          id="historyButtons"
-          class="historyButtons"
-        ></div>
-
+      <section id="historyPanel" class="historyPanel hidden">
+        <h2>🧠 最大ユニークナンバー 過去ラウンド分析</h2>
+        <p>過去の分布を見て、次に狙う数字の作戦を立てられます。</p>
+        <div id="historyButtons" class="historyButtons"></div>
         <div id="historySummary"></div>
 
         <div class="legend">
-          <span>
-            <i style="background: #80549c;"></i>
-            重複
-          </span>
-
-          <span>
-            <i style="background: #2fbc72;"></i>
-            ユニーク
-          </span>
-
-          <span>
-            <i style="background: #ffd447;"></i>
-            勝利数字
-          </span>
+          <span><i style="background: #80549c;"></i>重複</span>
+          <span><i style="background: #2fbc72;"></i>ユニーク</span>
+          <span><i style="background: #ffd447;"></i>勝利数字</span>
         </div>
 
         <div class="chartScroll">
-          <div
-            id="chart"
-            class="chart"
-          ></div>
+          <div id="chart" class="chart"></div>
         </div>
       </section>
     </main>
   </div>
 
-  <div
-    id="toast"
-    class="toast"
-  ></div>
+  <div id="toast" class="toast"></div>
 
   <script>
     'use strict';
 
-    // =========================================================
-    // DOM取得と画面状態
-    // =========================================================
     const $ = id => document.getElementById(id);
 
     let mode = 'reflex';
@@ -880,9 +565,14 @@
     let uniqueHistory = [];
     let selectedHistoryId = null;
 
-    // =========================================================
-    // 共通処理
-    // =========================================================
+    const RANKING_PAGE_SIZE = 30;
+    const RANKING_ROWS_PER_COLUMN = 10;
+
+    let rankingPage = 1;
+    let latestRanking = [];
+    let latestScoreUnit = ' ms';
+    let latestRankingModeKey = '';
+
     function escapeHtml(value) {
       return String(value || '').replace(
         /[<>&"]/g,
@@ -898,30 +588,20 @@
     function showToast(message) {
       $('toast').textContent = message;
       $('toast').style.display = 'block';
-
-      window.setTimeout(
-        () => {
-          $('toast').style.display = 'none';
-        },
-        4000
-      );
+      window.setTimeout(() => {
+        $('toast').style.display = 'none';
+      }, 4000);
     }
 
     async function postJson(url, requestBody) {
-      const response = await fetch(
-        url,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          cache: 'no-store',
-          body: JSON.stringify(requestBody || {})
-        }
-      );
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        body: JSON.stringify(requestBody || {})
+      });
 
       let result = {};
-
       try {
         result = await response.json();
       } catch (error) {
@@ -929,25 +609,16 @@
       }
 
       if (!response.ok) {
-        throw new Error(
-          'HTTP ' + response.status
-        );
+        throw new Error('HTTP ' + response.status);
       }
 
       return result;
     }
 
-    // =========================================================
-    // QRコード生成
-    // =========================================================
     function createQrCode() {
-      const joinUrl =
-        window.location.origin + '/';
-
+      const joinUrl = window.location.origin + '/';
       $('url').textContent = joinUrl;
 
-      // チャットやHTML編集時にURLがリンク化されるのを避けるため、
-      // URLを分割して実行時に組み立てます。
       const libraryParts = [
         'https:',
         '',
@@ -957,108 +628,50 @@
         'qrcode.js'
       ];
 
-      const script =
-        document.createElement('script');
-
-      script.src =
-        libraryParts.join('/');
+      const script = document.createElement('script');
+      script.src = libraryParts.join('/');
 
       script.onload = () => {
         try {
-          const qr =
-            window.qrcode(0, 'M');
-
+          const qr = window.qrcode(0, 'M');
           qr.addData(joinUrl);
           qr.make();
-
-          $('qr').innerHTML =
-            qr.createImgTag(5, 5);
+          $('qr').innerHTML = qr.createImgTag(5, 5);
         } catch (error) {
-          console.error(
-            'QRコード生成失敗',
-            error
-          );
-
-          $('qr').textContent =
-            'QR生成失敗';
+          console.error('QRコード生成失敗', error);
+          $('qr').textContent = 'QR生成失敗';
         }
       };
 
       script.onerror = () => {
-        $('qr').textContent =
-          'QR読込失敗';
+        $('qr').textContent = 'QR読込失敗';
       };
 
       document.head.appendChild(script);
     }
 
-    // =========================================================
-    // ボタン表示
-    // =========================================================
     function updateButtons() {
-      [
-        'reflex',
-        'tap',
-        'unique'
-      ].forEach(
-        gameMode => {
-          $(gameMode).classList.toggle(
-            'on',
-            mode === gameMode
-          );
-        }
-      );
+      ['reflex', 'tap', 'unique'].forEach(gameMode => {
+        $(gameMode).classList.toggle('on', mode === gameMode);
+      });
 
-      $('durations').classList.toggle(
-        'hidden',
-        mode !== 'tap'
-      );
-
-      $('start').classList.toggle(
-        'hidden',
-        mode === 'unique'
-      );
-
-      $('uniqueNext').classList.toggle(
-        'hidden',
-        mode !== 'unique'
-      );
-
-      $('historyPanel').classList.toggle(
-        'hidden',
-        mode !== 'unique'
-      );
-
-      $('official').classList.toggle(
-        'on',
-        !practice
-      );
-
-      $('practice').classList.toggle(
-        'on',
-        practice
-      );
+      $('durations').classList.toggle('hidden', mode !== 'tap');
+      $('start').classList.toggle('hidden', mode === 'unique');
+      $('uniqueNext').classList.toggle('hidden', mode !== 'unique');
+      $('historyPanel').classList.toggle('hidden', mode !== 'unique');
+      $('official').classList.toggle('on', !practice);
+      $('practice').classList.toggle('on', practice);
 
       $('start').textContent =
-        (
-          mode === 'tap'
-            ? '連打' + duration + '秒'
-            : '反射神経'
-        ) +
+        (mode === 'tap' ? '連打' + duration + '秒' : '反射神経') +
         'を開始' +
-        (
-          practice
-            ? '［練習］'
-            : ''
-        );
+        (practice ? '［練習］' : '');
 
       updateUniqueButton();
     }
 
     function updateUniqueButton() {
-      const button =
-        $('uniqueNext');
-
+      const button = $('uniqueNext');
       const colorClass =
         uniqueStatus === 'open'
           ? 'closeAction'
@@ -1067,98 +680,54 @@
             : 'start';
 
       button.className =
-        'action ' +
-        colorClass +
-        (
-          mode === 'unique'
-            ? ''
-            : ' hidden'
-        );
+        'action ' + colorClass + (mode === 'unique' ? '' : ' hidden');
 
       if (uniqueStatus === 'open') {
-        button.textContent =
-          '回答を締め切る';
+        button.textContent = '回答を締め切る';
       } else if (uniqueStatus === 'closed') {
-        button.textContent =
-          '結果を発表する';
+        button.textContent = '結果を発表する';
       } else if (uniqueStatus === 'revealed') {
-        button.textContent =
-          '次のラウンドを開始';
+        button.textContent = '次のラウンドを開始';
       } else {
-        button.textContent =
-          '回答受付開始' +
-          (
-            practice
-              ? '［練習］'
-              : ''
-          );
+        button.textContent = '回答受付開始' + (practice ? '［練習］' : '');
       }
     }
 
-    // =========================================================
-    // ランキング表示条件の切り替え
-    // =========================================================
     async function selectRanking() {
       updateButtons();
 
       try {
-        const result = await postJson(
-          '/api/select-ranking',
-          {
-            mode,
-            duration
-          }
-        );
-
+        const result = await postJson('/api/select-ranking', {
+          mode,
+          duration
+        });
         render(result);
       } catch (error) {
-        console.error(
-          'ランキング切替失敗',
-          error
-        );
-
-        showToast(
-          'ランキングの切り替えに失敗しました。'
-        );
+        console.error('ランキング切替失敗', error);
+        showToast('ランキングの切り替えに失敗しました。');
       }
     }
 
-    [
-      'reflex',
-      'tap',
-      'unique'
-    ].forEach(
-      gameMode => {
-        $(gameMode).onclick = () => {
-          mode = gameMode;
-          selectRanking();
-        };
-      }
-    );
+    ['reflex', 'tap', 'unique'].forEach(gameMode => {
+      $(gameMode).onclick = () => {
+        mode = gameMode;
+        rankingPage = 1;
+        selectRanking();
+      };
+    });
 
-    document
-      .querySelectorAll('[data-d]')
-      .forEach(
-        button => {
-          button.onclick = () => {
-            duration =
-              Number(button.dataset.d);
+    document.querySelectorAll('[data-d]').forEach(button => {
+      button.onclick = () => {
+        duration = Number(button.dataset.d);
+        rankingPage = 1;
 
-            document
-              .querySelectorAll('[data-d]')
-              .forEach(
-                durationButton => {
-                  durationButton.classList.toggle(
-                    'on',
-                    durationButton === button
-                  );
-                }
-              );
+        document.querySelectorAll('[data-d]').forEach(durationButton => {
+          durationButton.classList.toggle('on', durationButton === button);
+        });
 
-            selectRanking();
-          };
-        }
-      );
+        selectRanking();
+      };
+    });
 
     $('official').onclick = () => {
       practice = false;
@@ -1170,18 +739,9 @@
       updateButtons();
     };
 
-    // =========================================================
-    // ホスト状態表示
-    // =========================================================
     function renderStatus(stats) {
       const isActive =
-        stats.active ||
-        [
-          'open',
-          'closed'
-        ].includes(
-          stats.uniqueStatus
-        );
+        stats.active || ['open', 'closed'].includes(stats.uniqueStatus);
 
       if (isActive) {
         const gameName =
@@ -1199,118 +759,64 @@
               : 'ゲーム進行中';
 
         $('readyStatus').textContent =
-          '▶ ' +
-          gameName +
-          '：' +
-          gameStage +
+          '▶ ' + gameName + '：' + gameStage +
           '　完了・回答 ' +
-          (
-            stats.roundCompleted ||
-            stats.answered ||
-            0
-          ) +
-          '/' +
-          (
-            stats.joined ||
-            0
-          );
+          (stats.roundCompleted || stats.answered || 0) +
+          '/' + (stats.joined || 0);
 
-        $('readyStatus').className =
-          'status playing';
+        $('readyStatus').className = 'status playing';
 
-        const problemPlayers =
-          (stats.detail || []).filter(
-            player =>
-              [
-                '切断・未確認',
-                '画面非表示'
-              ].includes(player.state)
-          );
+        const problemPlayers = (stats.detail || []).filter(player =>
+          ['切断・未確認', '画面非表示'].includes(player.state)
+        );
 
-        $('missing').textContent =
-          problemPlayers.length;
-
-        $('detail').innerHTML =
-          problemPlayers.length
-            ? '要確認：' +
-              problemPlayers.map(
-                player =>
-                  escapeHtml(player.name) +
-                  '（' +
-                  escapeHtml(player.state) +
-                  '）'
-              ).join('、')
-            : '';
+        $('missing').textContent = problemPlayers.length;
+        $('detail').innerHTML = problemPlayers.length
+          ? '要確認：' + problemPlayers.map(player =>
+              escapeHtml(player.name) + '（' + escapeHtml(player.state) + '）'
+            ).join('、')
+          : '';
 
         return;
       }
 
-      const allReady =
-        stats.joined > 0 &&
-        stats.standby === stats.joined;
+      const allReady = stats.joined > 0 && stats.standby === stats.joined;
 
-      $('readyStatus').textContent =
-        allReady
-          ? '✓ 全員ゲームスタンバイ中'
-          : '⚠ ' +
-            (stats.notStandby || 0) +
-            '人が待機画面ではありません';
+      $('readyStatus').textContent = allReady
+        ? '✓ 全員ゲームスタンバイ中'
+        : '⚠ ' + (stats.notStandby || 0) + '人が待機画面ではありません';
 
-      $('readyStatus').className =
-        'status ' +
-        (
-          allReady
-            ? 'ok'
-            : 'warn'
-        );
-
-      $('missing').textContent =
-        stats.notStandby || 0;
-
-      $('detail').innerHTML =
-        (stats.detail || []).map(
-          player =>
-            escapeHtml(player.name) +
-            '：' +
-            escapeHtml(player.state)
-        ).join('<br>');
+      $('readyStatus').className = 'status ' + (allReady ? 'ok' : 'warn');
+      $('missing').textContent = stats.notStandby || 0;
+      $('detail').innerHTML = (stats.detail || []).map(player =>
+        escapeHtml(player.name) + '：' + escapeHtml(player.state)
+      ).join('<br>');
     }
 
-    // =========================================================
-    // 全体描画
-    // =========================================================
     function render(data) {
-      const stats =
-        data.stats || {};
+      const stats = data.stats || {};
 
-      uniqueStatus =
-        stats.uniqueStatus ||
-        'idle';
+      uniqueStatus = stats.uniqueStatus || 'idle';
+      uniqueHistory = data.uniqueHistory || [];
 
-      uniqueHistory =
-        data.uniqueHistory || [];
-
-      $('joined').textContent =
-        stats.joined || 0;
-
-      $('standby').textContent =
-        stats.standby || 0;
-
-      $('connected').textContent =
-        stats.connected || 0;
-
-      $('answered').textContent =
-        stats.mode === 'unique'
-          ? stats.answered || 0
-          : stats.practice
-            ? stats.roundCompleted || 0
-            : stats.answered || 0;
-
-      $('round').textContent =
-        stats.round || 0;
+      $('joined').textContent = stats.joined || 0;
+      $('standby').textContent = stats.standby || 0;
+      $('connected').textContent = stats.connected || 0;
+      $('answered').textContent = stats.mode === 'unique'
+        ? stats.answered || 0
+        : stats.practice
+          ? stats.roundCompleted || 0
+          : stats.answered || 0;
+      $('round').textContent = stats.round || 0;
 
       renderStatus(stats);
       updateUniqueButton();
+
+      const modeKey = stats.mode + ':' + (stats.duration || 0);
+      if (modeKey !== latestRankingModeKey) {
+        latestRankingModeKey = modeKey;
+        rankingPage = 1;
+      }
 
       const scoreUnit =
         stats.mode === 'tap'
@@ -1320,474 +826,291 @@
             : ' ms';
 
       if (stats.mode === 'tap') {
-        $('title').textContent =
-          '🏆 連打' +
-          stats.duration +
-          '秒ランキング';
+        $('title').textContent = '🏆 連打' + stats.duration + '秒ランキング';
       } else if (stats.mode === 'unique') {
-        $('title').textContent =
-          '🎃 最大ユニークナンバー 累積ランキング';
+        $('title').textContent = '🎃 最大ユニークナンバー 累積ランキング';
       } else {
-        $('title').textContent =
-          '🏆 反射神経ランキング';
+        $('title').textContent = '🏆 反射神経ランキング';
       }
 
-      renderRanking(
-        data.board || [],
-        scoreUnit
-      );
+      renderRanking(data.board || [], scoreUnit);
 
       $('booby').textContent =
-        data.booby &&
-        data.booby.prize &&
-        data.booby.prize.length
+        data.booby && data.booby.prize && data.booby.prize.length
           ? data.booby.prize.join('、')
           : '該当なし';
 
       $('maker').textContent =
-        data.booby &&
-        data.booby.maker &&
-        data.booby.maker.length
+        data.booby && data.booby.maker && data.booby.maker.length
           ? data.booby.maker.join('、')
           : '該当なし';
 
       renderHistory();
     }
 
-    // =========================================================
-    // コンパクトランキング描画
-    // =========================================================
-    function renderRanking(
-      ranking,
-      scoreUnit
-    ) {
-      if (!ranking.length) {
-        $('body').innerHTML =
-          '<div class="emptyRanking">' +
-            '記録なし' +
-          '</div>';
+    function renderRanking(ranking, scoreUnit) {
+      latestRanking = Array.isArray(ranking) ? ranking : [];
+      latestScoreUnit = scoreUnit;
 
+      if (!latestRanking.length) {
+        rankingPage = 1;
+        $('body').innerHTML = '<div class="emptyRanking">記録なし</div>';
+        $('rankingPager').classList.add('hidden');
         return;
       }
 
-      $('body').innerHTML =
-        ranking.map(
-          record => {
-            const rankClass =
-              record.rank === 1
-                ? 'top1'
-                : record.rank === 2
-                  ? 'top2'
-                  : record.rank === 3
-                    ? 'top3'
-                    : '';
+      const totalPages = Math.ceil(latestRanking.length / RANKING_PAGE_SIZE);
+      rankingPage = Math.max(1, Math.min(rankingPage, totalPages));
 
-            const rankDisplay =
-              record.rank <= 3
-                ? [
-                    '',
-                    '🥇',
-                    '🥈',
-                    '🥉'
-                  ][record.rank]
-                : record.rank;
+      const startIndex = (rankingPage - 1) * RANKING_PAGE_SIZE;
+      const endIndex = Math.min(startIndex + RANKING_PAGE_SIZE, latestRanking.length);
+      const pageRecords = latestRanking.slice(startIndex, endIndex);
+      const displayRecords = [];
 
-            return (
-              '<div class="rankCard ' +
-                rankClass +
-              '" title="' +
-                escapeHtml(record.name) +
-              '">' +
-
-                '<span class="rankNo">' +
-                  rankDisplay +
-                '</span>' +
-
-                '<span class="rankName">' +
-                  escapeHtml(record.name) +
-                '</span>' +
-
-                '<span class="rankScore">' +
-                  record.score +
-                  scoreUnit +
-                '</span>' +
-
-                '<span class="rankTries">' +
-                  (record.tries || 0) +
-                  '回' +
-                '</span>' +
-
-              '</div>'
-            );
+      /*
+        1,11,21
+        2,12,22
+        ...
+        10,20,30
+        の順でDOMへ追加します。
+      */
+      for (let row = 0; row < RANKING_ROWS_PER_COLUMN; row += 1) {
+        for (let column = 0; column < 3; column += 1) {
+          const index = row + column * RANKING_ROWS_PER_COLUMN;
+          if (index < pageRecords.length) {
+            displayRecords.push(pageRecords[index]);
           }
-        ).join('');
+        }
+      }
+
+      $('body').innerHTML = displayRecords.map(record => {
+        const rankClass =
+          record.rank === 1
+            ? 'top1'
+            : record.rank === 2
+              ? 'top2'
+              : record.rank === 3
+                ? 'top3'
+                : '';
+
+        const rankDisplay = record.rank <= 3
+          ? ['', '🥇', '🥈', '🥉'][record.rank]
+          : record.rank;
+
+        return (
+          '<div class="rankCard ' + rankClass + '" title="' + escapeHtml(record.name) + '">' +
+            '<span class="rankNo">' + rankDisplay + '</span>' +
+            '<span class="rankName">' + escapeHtml(record.name) + '</span>' +
+            '<span class="rankScore">' + record.score + latestScoreUnit + '</span>' +
+            '<span class="rankTries">' + (record.tries || 0) + '回</span>' +
+          '</div>'
+        );
+      }).join('');
+
+      renderRankingPager(totalPages, startIndex, endIndex);
     }
 
-    // =========================================================
-    // 最大ユニークナンバー履歴
-    // =========================================================
+    function renderRankingPager(totalPages, startIndex, endIndex) {
+      if (totalPages <= 1) {
+        $('rankingPager').classList.add('hidden');
+        return;
+      }
+
+      $('rankingPager').classList.remove('hidden');
+      $('previousRankingPage').disabled = rankingPage <= 1;
+      $('nextRankingPage').disabled = rankingPage >= totalPages;
+
+      $('rankingPageButtons').innerHTML = Array.from(
+        { length: totalPages },
+        (_, index) => {
+          const pageNumber = index + 1;
+          return (
+            '<button type="button" ' +
+              'class="' + (pageNumber === rankingPage ? 'on' : '') + '" ' +
+              'data-ranking-page="' + pageNumber + '">' +
+              pageNumber +
+            '</button>'
+          );
+        }
+      ).join('');
+
+      document.querySelectorAll('[data-ranking-page]').forEach(button => {
+        button.onclick = () => {
+          rankingPage = Number(button.dataset.rankingPage);
+          renderRanking(latestRanking, latestScoreUnit);
+        };
+      });
+
+      $('rankingRange').textContent =
+        (startIndex + 1) + '～' + endIndex + '番目 / ' + latestRanking.length + '人';
+    }
+
+    $('previousRankingPage').onclick = () => {
+      if (rankingPage <= 1) return;
+      rankingPage -= 1;
+      renderRanking(latestRanking, latestScoreUnit);
+    };
+
+    $('nextRankingPage').onclick = () => {
+      const totalPages = Math.ceil(latestRanking.length / RANKING_PAGE_SIZE);
+      if (rankingPage >= totalPages) return;
+      rankingPage += 1;
+      renderRanking(latestRanking, latestScoreUnit);
+    };
+
     function renderHistory() {
       if (!uniqueHistory.length) {
         $('historyButtons').innerHTML = '';
-
         $('historySummary').innerHTML =
-          '<div class="emptyHistory">' +
-            '結果発表済みの本番ラウンドはまだありません' +
-          '</div>';
-
+          '<div class="emptyHistory">結果発表済みの本番ラウンドはまだありません</div>';
         $('chart').innerHTML = '';
-
         return;
       }
 
-      const selectedExists =
-        selectedHistoryId &&
-        uniqueHistory.some(
-          history =>
-            history.historyId ===
-            selectedHistoryId
-        );
+      const selectedExists = selectedHistoryId && uniqueHistory.some(history =>
+        history.historyId === selectedHistoryId
+      );
 
       if (!selectedExists) {
-        selectedHistoryId =
-          uniqueHistory[
-            uniqueHistory.length - 1
-          ].historyId;
+        selectedHistoryId = uniqueHistory[uniqueHistory.length - 1].historyId;
       }
 
-      $('historyButtons').innerHTML =
-        uniqueHistory.map(
-          history =>
-            '<button ' +
-              'type="button" ' +
-              'class="' +
-                (
-                  history.historyId ===
-                  selectedHistoryId
-                    ? 'on'
-                    : ''
-                ) +
-              '" ' +
-              'data-history="' +
-                history.historyId +
-              '">' +
-              '第' +
-              history.roundNumber +
-              'ラウンド' +
-            '</button>'
-        ).join('');
+      $('historyButtons').innerHTML = uniqueHistory.map(history =>
+        '<button type="button" ' +
+          'class="' + (history.historyId === selectedHistoryId ? 'on' : '') + '" ' +
+          'data-history="' + history.historyId + '">' +
+          '第' + history.roundNumber + 'ラウンド' +
+        '</button>'
+      ).join('');
 
-      document
-        .querySelectorAll('[data-history]')
-        .forEach(
-          button => {
-            button.onclick = () => {
-              selectedHistoryId =
-                button.dataset.history;
+      document.querySelectorAll('[data-history]').forEach(button => {
+        button.onclick = () => {
+          selectedHistoryId = button.dataset.history;
+          renderHistory();
+        };
+      });
 
-              renderHistory();
-            };
-          }
-        );
+      const selectedHistory = uniqueHistory.find(history =>
+        history.historyId === selectedHistoryId
+      );
 
-      const selectedHistory =
-        uniqueHistory.find(
-          history =>
-            history.historyId ===
-            selectedHistoryId
-        );
+      const distributionMap = new Map(
+        selectedHistory.distribution.map(item => [item.number, item])
+      );
 
-      const distributionMap =
-        new Map(
-          selectedHistory.distribution.map(
-            item => [
-              item.number,
-              item
-            ]
-          )
-        );
-
-      const maximumCount =
-        Math.max(
-          1,
-          ...selectedHistory.distribution.map(
-            item => item.count
-          )
-        );
+      const maximumCount = Math.max(
+        1,
+        ...selectedHistory.distribution.map(item => item.count)
+      );
 
       $('historySummary').innerHTML =
         '<div class="resultSummary">' +
-          '<b>' +
-            '第' +
-            selectedHistory.roundNumber +
-            'ラウンド' +
-          '</b>' +
-          '　回答 ' +
-          selectedHistory.answerCount +
-          '人' +
+          '<b>第' + selectedHistory.roundNumber + 'ラウンド</b>' +
+          '　回答 ' + selectedHistory.answerCount + '人' +
           '　' +
-          (
-            selectedHistory.winningNumber === null
-              ? 'ユニーク数字なし'
-              : '勝利数字 ' +
-                selectedHistory.winningNumber
-          ) +
+          (selectedHistory.winningNumber === null
+            ? 'ユニーク数字なし'
+            : '勝利数字 ' + selectedHistory.winningNumber) +
           '<br>' +
-          '勝者：' +
-          escapeHtml(
-            selectedHistory.winners.join('、') ||
-            'なし'
-          ) +
+          '勝者：' + escapeHtml(selectedHistory.winners.join('、') || 'なし') +
         '</div>';
 
-      $('chart').innerHTML =
-        Array.from(
-          {
-            length: 100
-          },
-          (_, index) => {
-            const number =
-              index + 1;
+      $('chart').innerHTML = Array.from({ length: 100 }, (_, index) => {
+        const number = index + 1;
+        const result = distributionMap.get(number);
+        const count = result ? result.count : 0;
+        const height = count
+          ? Math.max(5, Math.round(count / maximumCount * 220))
+          : 0;
+        const barClass =
+          result && result.winner
+            ? 'winner'
+            : result && result.unique
+              ? 'unique'
+              : count
+                ? 'selected'
+                : '';
+        const showLabel = number === 1 || number % 5 === 0;
 
-            const result =
-              distributionMap.get(number);
-
-            const count =
-              result
-                ? result.count
-                : 0;
-
-            const height =
-              count
-                ? Math.max(
-                    5,
-                    Math.round(
-                      count /
-                      maximumCount *
-                      220
-                    )
-                  )
-                : 0;
-
-            const barClass =
-              result && result.winner
-                ? 'winner'
-                : result && result.unique
-                  ? 'unique'
-                  : count
-                    ? 'selected'
-                    : '';
-
-            const showLabel =
-              number === 1 ||
-              number % 5 === 0;
-
-            return (
-              '<div class="barCol">' +
-                '<div ' +
-                  'class="bar ' +
-                    barClass +
-                  '" ' +
-                  'style="height: ' +
-                    height +
-                    'px;"' +
-                '>' +
-                  (
-                    count
-                      ? '<span class="barCount">' +
-                          count +
-                        '</span>'
-                      : ''
-                  ) +
-                '</div>' +
-
-                (
-                  showLabel
-                    ? '<span class="barLabel">' +
-                        number +
-                      '</span>'
-                    : ''
-                ) +
-              '</div>'
-            );
-          }
-        ).join('');
+        return (
+          '<div class="barCol">' +
+            '<div class="bar ' + barClass + '" style="height: ' + height + 'px;">' +
+              (count ? '<span class="barCount">' + count + '</span>' : '') +
+            '</div>' +
+            (showLabel ? '<span class="barLabel">' + number + '</span>' : '') +
+          '</div>'
+        );
+      }).join('');
     }
 
-    // =========================================================
-    // ゲーム開始
-    // =========================================================
     $('start').onclick = async () => {
-      const button =
-        $('start');
-
-      if (button.disabled) {
-        return;
-      }
-
+      const button = $('start');
+      if (button.disabled) return;
       button.disabled = true;
 
       try {
-        await postJson(
-          '/api/start',
-          {
-            mode,
-            duration,
-            practice
-          }
-        );
+        await postJson('/api/start', { mode, duration, practice });
       } catch (error) {
-        console.error(
-          'ゲーム開始失敗',
-          error
-        );
-
-        showToast(
-          'ゲームを開始できませんでした。'
-        );
+        console.error('ゲーム開始失敗', error);
+        showToast('ゲームを開始できませんでした。');
       } finally {
         button.disabled = false;
       }
     };
 
-    // =========================================================
-    // 最大ユニークナンバーの段階式操作
-    // =========================================================
     $('uniqueNext').onclick = async () => {
-      const button =
-        $('uniqueNext');
-
-      if (button.disabled) {
-        return;
-      }
-
+      const button = $('uniqueNext');
+      if (button.disabled) return;
       button.disabled = true;
 
       try {
         if (uniqueStatus === 'open') {
-          await postJson(
-            '/api/unique',
-            {
-              action: 'close'
-            }
-          );
+          await postJson('/api/unique', { action: 'close' });
         } else if (uniqueStatus === 'closed') {
-          await postJson(
-            '/api/unique',
-            {
-              action: 'reveal'
-            }
-          );
+          await postJson('/api/unique', { action: 'reveal' });
         } else {
-          await postJson(
-            '/api/unique',
-            {
-              action: 'open',
-              practice
-            }
-          );
+          await postJson('/api/unique', { action: 'open', practice });
         }
       } catch (error) {
-        console.error(
-          '最大ユニーク操作失敗',
-          error
-        );
-
-        showToast(
-          '最大ユニークナンバーの操作に失敗しました。'
-        );
+        console.error('最大ユニーク操作失敗', error);
+        showToast('最大ユニークナンバーの操作に失敗しました。');
       } finally {
         button.disabled = false;
       }
     };
 
-    // =========================================================
-    // 記録リセット
-    // =========================================================
     $('reset').onclick = async () => {
-      const confirmed =
-        window.confirm(
-          '全ゲームの記録と最大ユニーク履歴を削除しますか？'
-        );
-
-      if (!confirmed) {
-        return;
-      }
-
+      if (!window.confirm('全ゲームの記録と最大ユニーク履歴を削除しますか？')) return;
       try {
-        await postJson(
-          '/api/reset',
-          {}
-        );
+        await postJson('/api/reset', {});
       } catch (error) {
-        showToast(
-          '記録をリセットできませんでした。'
-        );
+        showToast('記録をリセットできませんでした。');
       }
     };
 
-    // =========================================================
-    // 全リセット
-    // =========================================================
     $('resetAll').onclick = async () => {
-      const confirmed =
-        window.confirm(
-          '参加者・記録・履歴をすべて削除しますか？'
-        );
-
-      if (!confirmed) {
-        return;
-      }
-
+      if (!window.confirm('参加者・記録・履歴をすべて削除しますか？')) return;
       try {
-        await postJson(
-          '/api/reset-all',
-          {}
-        );
+        await postJson('/api/reset-all', {});
       } catch (error) {
-        showToast(
-          '全リセットできませんでした。'
-        );
+        showToast('全リセットできませんでした。');
       }
     };
 
-    // =========================================================
-    // ホスト用リアルタイム通信
-    // =========================================================
     function connectHostEvents() {
-      if (eventSource) {
-        eventSource.close();
-      }
+      if (eventSource) eventSource.close();
 
-      eventSource =
-        new EventSource(
-          '/events/host'
-        );
-
-      eventSource.addEventListener(
-        'leaderboard',
-        event => {
-          try {
-            render(
-              JSON.parse(event.data)
-            );
-          } catch (error) {
-            console.error(
-              'ホストデータ読込失敗',
-              error
-            );
-          }
+      eventSource = new EventSource('/events/host');
+      eventSource.addEventListener('leaderboard', event => {
+        try {
+          render(JSON.parse(event.data));
+        } catch (error) {
+          console.error('ホストデータ読込失敗', error);
         }
-      );
+      });
     }
 
-    // =========================================================
-    // 初期化
-    // =========================================================
-    console.log(
-      'HALLOWEEN HOST STARTED'
-    );
-
+    console.log('HALLOWEEN HOST STARTED - 100 PLAYER PAGING');
     createQrCode();
     updateButtons();
     connectHostEvents();
