@@ -219,11 +219,11 @@
 
     .rankCard {
       display: grid;
-      grid-template-columns: 36px minmax(0, 1fr) auto auto;
+      grid-template-columns: 45px minmax(0, 1fr) auto auto;
       align-items: center;
-      gap: 6px;
-      min-height: 42px;
-      padding: 6px 8px;
+      gap: 9px;
+      min-height: 58px;
+      padding: 8px 10px;
       border: 1px solid #452b59;
       border-radius: 9px;
       background: #2a183b;
@@ -232,7 +232,7 @@
     .rankCard:nth-child(even) { background: #321d45; }
 
     .rankNo {
-      font-size: 0.95rem;
+      font-size: 1.4rem;
       font-weight: 900;
       text-align: center;
     }
@@ -242,14 +242,14 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      font-size: 0.95rem;
+      font-size: 1.4rem;
       font-weight: 750;
     }
 
     .rankScore {
       white-space: nowrap;
       color: #ffd08a;
-      font-size: 0.92rem;
+      font-size: 1.35rem;
       font-weight: 800;
       font-variant-numeric: tabular-nums;
       text-align: right;
@@ -258,7 +258,7 @@
     .rankTries {
       white-space: nowrap;
       color: #c7b8d2;
-      font-size: 0.7rem;
+      font-size: 1rem;
       font-variant-numeric: tabular-nums;
       text-align: right;
     }
@@ -288,6 +288,12 @@
     .rankCard.top2 .rankTries,
     .rankCard.top3 .rankTries {
       color: #20142b;
+    }
+
+    .rankPlaceholder {
+      min-height: 58px;
+      visibility: hidden;
+      pointer-events: none;
     }
 
     .emptyRanking {
@@ -377,7 +383,7 @@
       background: #80549c;
     }
 
-    .bar.selected { background: #ea8b29; }
+    .bar.selected { background: #80549c; }
     .bar.unique { background: #2fbc72; }
 
     .bar.winner {
@@ -865,25 +871,32 @@
       const startIndex = (rankingPage - 1) * RANKING_PAGE_SIZE;
       const endIndex = Math.min(startIndex + RANKING_PAGE_SIZE, latestRanking.length);
       const pageRecords = latestRanking.slice(startIndex, endIndex);
-      const displayRecords = [];
+      const displaySlots = [];
 
       /*
-        1,11,21
-        2,12,22
-        ...
-        10,20,30
-        の順でDOMへ追加します。
+        常に3列×10行の30枠を作ります。
+
+        1ページ目:
+        1,11,21 / 2,12,22 / ... / 10,20,30
+
+        3ページ目が61～77番目の場合:
+        61,71,空欄 / 62,72,空欄 / ... / 70,空欄,空欄
+
+        空欄を省略しないことで、残り人数が30人未満でも
+        左列と中央列の縦方向の順番を維持します。
       */
       for (let row = 0; row < RANKING_ROWS_PER_COLUMN; row += 1) {
         for (let column = 0; column < 3; column += 1) {
           const index = row + column * RANKING_ROWS_PER_COLUMN;
-          if (index < pageRecords.length) {
-            displayRecords.push(pageRecords[index]);
-          }
+          displaySlots.push(pageRecords[index] || null);
         }
       }
 
-      $('body').innerHTML = displayRecords.map(record => {
+      $('body').innerHTML = displaySlots.map(record => {
+        if (!record) {
+          return '<div class="rankPlaceholder" aria-hidden="true"></div>';
+        }
+
         const rankClass =
           record.rank === 1
             ? 'top1'
