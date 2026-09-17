@@ -305,6 +305,71 @@
       text-align: center;
     }
 
+    .uniquePodium {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .podiumCard {
+      min-height: 104px;
+      padding: 16px;
+      border-radius: 14px;
+      background: #2f1b41;
+      border: 2px solid #5f4174;
+    }
+
+    .podiumCard.place1 {
+      background: #f1c40f;
+      color: #20142b;
+      border-color: #ffe877;
+    }
+
+    .podiumCard.place2 {
+      background: #bdc3c7;
+      color: #20142b;
+      border-color: #eef1f3;
+    }
+
+    .podiumCard.place3 {
+      background: #cd7f32;
+      color: #20142b;
+      border-color: #e8aa70;
+    }
+
+    .podiumPlace {
+      font-size: 1.35rem;
+      font-weight: 900;
+    }
+
+    .podiumName {
+      margin-top: 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 1.55rem;
+      font-weight: 900;
+    }
+
+    .podiumNumber {
+      margin-top: 5px;
+      font-size: 1.25rem;
+      font-weight: 800;
+    }
+
+    .uniqueNoResult {
+      padding: 22px;
+      border-radius: 12px;
+      background: #2f1b41;
+      color: #c6b2d4;
+      text-align: center;
+    }
+
+    .historyPanel.compactUniqueHistory {
+      margin-top: 12px;
+    }
+
     .awards {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -525,7 +590,9 @@
         <div class="emptyRanking">記録なし</div>
       </div>
 
-      <div class="awards">
+      <section id="uniquePodium" class="uniquePodium hidden"></section>
+
+      <div id="awards" class="awards">
         <div class="award">
           <b>🎁 ブービー賞</b>
           <div id="booby">該当なし</div>
@@ -536,7 +603,7 @@
         </div>
       </div>
 
-      <section id="historyPanel" class="historyPanel hidden">
+      <section id="historyPanel" class="historyPanel compactUniqueHistory hidden">
         <h2>🧠 最大ユニークナンバー 過去ラウンド分析</h2>
         <p>過去の分布を見て、次に狙う数字の作戦を立てられます。</p>
         <div id="historyButtons" class="historyButtons"></div>
@@ -839,7 +906,19 @@
         $('title').textContent = '🏆 反射神経ランキング';
       }
 
-      renderRanking(data.board || [], scoreUnit);
+      const isUniqueMode = stats.mode === 'unique';
+
+      $('rankingPager').classList.toggle('hidden', isUniqueMode);
+      $('body').classList.toggle('hidden', isUniqueMode);
+      $('awards').classList.toggle('hidden', isUniqueMode);
+      $('uniquePodium').classList.toggle('hidden', !isUniqueMode);
+
+      if (isUniqueMode) {
+        $('title').textContent = '🎃 最大ユニークナンバー ラウンド結果';
+        renderUniquePodium(data.uniqueResult, uniqueHistory);
+      } else {
+        renderRanking(data.board || [], scoreUnit);
+      }
 
       $('booby').textContent =
         data.booby && data.booby.prize && data.booby.prize.length
@@ -971,6 +1050,40 @@
       renderRanking(latestRanking, latestScoreUnit);
     };
 
+    function renderUniquePodium(currentResult, history) {
+      const result = currentResult || (history.length ? history[history.length - 1] : null);
+
+      if (!result || !Array.isArray(result.podium) || !result.podium.length) {
+        $('uniquePodium').innerHTML =
+          '<div class="uniqueNoResult">結果発表後に1位・2位・3位を表示します</div>';
+        return;
+      }
+
+      const medals = ['', '🥇', '🥈', '🥉'];
+      const labels = ['', '1位', '2位', '3位'];
+
+      $('uniquePodium').innerHTML = [1, 2, 3].map(place => {
+        const entry = result.podium.find(item => item.place === place);
+
+        if (!entry) {
+          return (
+            '<div class="podiumCard place' + place + '">' +
+              '<div class="podiumPlace">' + medals[place] + ' ' + labels[place] + '</div>' +
+              '<div class="podiumName">該当なし</div>' +
+            '</div>'
+          );
+        }
+
+        return (
+          '<div class="podiumCard place' + place + '">' +
+            '<div class="podiumPlace">' + medals[place] + ' ' + labels[place] + '</div>' +
+            '<div class="podiumName">' + escapeHtml(entry.name) + '</div>' +
+            '<div class="podiumNumber">選択数字 ' + entry.number + '</div>' +
+          '</div>'
+        );
+      }).join('');
+    }
+
     function renderHistory() {
       if (!uniqueHistory.length) {
         $('historyButtons').innerHTML = '';
@@ -1025,7 +1138,9 @@
             ? 'ユニーク数字なし'
             : '勝利数字 ' + selectedHistory.winningNumber) +
           '<br>' +
-          '勝者：' + escapeHtml(selectedHistory.winners.join('、') || 'なし') +
+          (selectedHistory.podium || []).map(entry =>
+            entry.place + '位：' + escapeHtml(entry.name) + '（' + entry.number + '）'
+          ).join('　') +
         '</div>';
 
       $('chart').innerHTML = Array.from({ length: 100 }, (_, index) => {
