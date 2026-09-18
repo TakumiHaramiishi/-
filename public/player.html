@@ -1,9 +1,2507 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><title>技能人財養成部 ハロウィンパーティー</title><style>
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:-apple-system,"Noto Sans JP",sans-serif;background:#140d21}#screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px;background:#fff;color:#17212b}#screen.wait{background:radial-gradient(circle at 50% 20%,#43265c,#1a1028 65%,#0d0715);color:#fff}#screen.count{background:#27203c;color:#fff}#screen.red{background:#c62828;color:#fff}#screen.green{background:#159447;color:#fff}#screen.tap{background:#6f2da8;color:#fff}#screen.result{background:#fff0df;color:#261431}#screen.unique{background:linear-gradient(145deg,#44205e,#20102e);color:#fff}#screen.closed{background:#37474f;color:#fff}#screen.tempo{background:#160b20;color:#fff}h1{font-size:clamp(1.7rem,7vw,2.8rem);margin:.2em}p{font-size:clamp(1rem,4vw,1.25rem);line-height:1.55}.event{color:#ff9f2f;font-weight:900}.pumpkins{font-size:2.5rem}.countNumber{font-size:clamp(8rem,42vw,16rem);font-weight:950;line-height:.95}.record{font-size:clamp(3.6rem,18vw,7rem);font-weight:900}.practice{background:#f39c12;color:#fff;padding:7px 14px;border-radius:999px;margin-bottom:12px;font-weight:800}.waitingDots{display:flex;gap:14px;margin:22px}.waitingDots i{width:18px;height:18px;border-radius:50%;background:#ff8c26;animation:bounce 1.2s infinite}.waitingDots i:nth-child(2){animation-delay:.18s}.waitingDots i:nth-child(3){animation-delay:.36s}@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.35}30%{transform:translateY(-16px);opacity:1}}.live{display:flex;align-items:center;gap:8px;color:#8ff0b4;font-weight:800}.live i{width:11px;height:11px;background:#36d477;border-radius:50%}input{font-size:2rem;width:min(230px,78vw);text-align:center;padding:12px;border:3px solid #ffb158;border-radius:14px;-webkit-user-select:text;user-select:text}button{font-size:1.15rem;font-weight:800;padding:14px 22px;margin:8px;border:0;border-radius:13px;background:#ef7f1a;color:#fff}.adjust{display:grid;grid-template-columns:repeat(4,1fr);width:min(390px,96vw);gap:6px}.adjust button{margin:0;padding:12px 4px}.answerButton{width:min(360px,90vw);background:#21a366}.answerPanel{display:none;width:min(390px,92vw);margin-top:14px;padding:15px;border:2px solid #ffffffaa;border-radius:16px;background:#ffffff2d}.answerPanel.show{display:block}.bar{width:min(420px,85vw);height:18px;background:#ffffff55;border-radius:10px;overflow:hidden}.bar div{height:100%;background:#fff}.badge{position:fixed;z-index:12;top:10px;left:10px;right:10px;text-align:center;color:#d7c4e8;font-size:.85rem}.error{position:fixed;z-index:20;bottom:0;left:0;right:0;background:#c0392b;color:#fff;padding:12px;display:none}.ranking{width:min(94vw,540px);padding:20px;border:2px solid #f28a24;border-radius:18px;background:#2b1838;color:#fff}.rankingList{display:grid;gap:7px;margin:12px 0}.rankingList div{padding:10px;border-radius:10px;background:#43255a;font-weight:800}.myRank{padding:14px;border:2px solid #f28a24;border-radius:12px;background:#21132f;font-size:1.3rem;font-weight:900}.resultBar{height:8px;margin-top:14px;background:#f28a24;animation:shrink 5s linear forwards}@keyframes shrink{to{width:0}}.tempoTarget{position:relative;width:230px;height:230px;margin:22px}.tempoRing{position:absolute;inset:0;border:7px solid #ffb35c;border-radius:50%;box-shadow:0 0 22px #f28a2455}.tempoDot{position:absolute;left:50%;top:50%;width:24px;height:24px;border-radius:50%;background:#f28a24;transform:translate(-50%,-50%);box-shadow:0 0 25px #f28a24}.tempoDot.grow{animation:grow var(--beat) linear forwards}@keyframes grow{from{width:24px;height:24px}to{width:216px;height:216px}}.tempoCue{font-size:2rem;font-weight:950;min-height:2.5rem;opacity:0}.tempoCue.show{animation:cue .42s ease-out}@keyframes cue{0%{opacity:0;transform:scale(.7)}25%{opacity:1;transform:scale(1.1)}100%{opacity:0}}#screen.flash{background:#884514}.ripple{position:fixed;width:70px;height:70px;border:4px solid #fff;border-radius:50%;transform:translate(-50%,-50%);animation:rip .4s ease-out forwards}@keyframes rip{to{width:180px;height:180px;opacity:0}}
-</style></head><body><div id="screen" class="wait"></div><div id="badge" class="badge"></div><div id="error" class="error"></div><script>
-'use strict';const KEY='battle.session.v5',screen=document.getElementById('screen'),badge=document.getElementById('badge'),err=document.getElementById('error');let me=null,es=null,state='standby',roundId=0,phase='idle',timer=null,tick=null,count=0,lastInput=0,down=null,lastResult=null,tempoTimes=[],tempoHidden=false,tempoStart=0,tempoAccept=0;const now=()=>performance?.now?performance.now():Date.now(),sleep=ms=>new Promise(r=>setTimeout(r,ms)),esc=s=>String(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));function save(){localStorage.setItem(KEY,JSON.stringify(me))}function load(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch{return null}}function clearSaved(){localStorage.removeItem(KEY);me=null}async function post(url,b){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify(b||{})});let d={};try{d=await r.json()}catch{}if(!r.ok){const e=new Error('HTTP '+r.status);e.status=r.status;throw e}return d}function error(m){err.textContent=m;err.style.display='block';setTimeout(()=>err.style.display='none',4000)}function setView(c,h,s){unbind();screen.className=c;screen.innerHTML=h;state=s||state;sendState()}async function sendState(){if(!me)return;try{await post('/api/state',{id:me.id,sessionGeneration:me.sessionGeneration,state,visible:!document.hidden})}catch(e){if(e.status===409)invalid()}}function invalid(){close();clearSaved();badge.textContent='';joinView('参加情報がリセットされました')}function joinView(note=''){setView('wait',`<div class="pumpkins">🎃 👻 🎃</div><div class="event">技能人財養成部</div><h1>ハロウィンパーティー</h1><p>ニックネームを入力</p><input id="name" maxlength="20"><button id="join">パーティーに参加</button><p>${esc(note)}</p>`,'join');document.getElementById('join').onclick=join}async function join(){const name=document.getElementById('name').value.trim();if(!name)return error('名前を入力してください');try{const d=await post('/api/join',{name});me={id:d.id,name:d.name,sessionGeneration:d.sessionGeneration};save();badge.textContent=d.name+' として参加中';connect();standby()}catch{error('参加できませんでした')}}async function boot(){const s=load();if(!s)return joinView();try{const d=await post('/api/rejoin',s);me={id:d.id,name:d.name,sessionGeneration:d.sessionGeneration};save();badge.textContent=d.name+' として参加中';connect();standby()}catch{invalid()}}function close(){if(es)es.close();es=null}function connect(){close();es=new EventSource(`/events/player?id=${encodeURIComponent(me.id)}&generation=${encodeURIComponent(me.sessionGeneration)}`);es.addEventListener('reflex-start',e=>startReflex(JSON.parse(e.data)));es.addEventListener('tap-start',e=>startTap(JSON.parse(e.data)));es.addEventListener('unique-open',e=>openUnique(JSON.parse(e.data)));es.addEventListener('unique-closed',()=>setView('closed','<h1>回答締切</h1><p>結果発表をお待ちください</p>','closed'));es.addEventListener('unique-result',e=>uniqueResult(JSON.parse(e.data)));es.addEventListener('tempo-start',e=>startTempo(JSON.parse(e.data)));es.addEventListener('ranking-show',e=>showRanking(JSON.parse(e.data),true));es.addEventListener('standby',standby);es.addEventListener('reset',standby);es.addEventListener('kick',invalid)}function standby(){clearTimeout(timer);clearInterval(tick);phase='idle';setView('wait','<div class="pumpkins">🎃 👻 🎃</div><div class="event">技能人財養成部 ハロウィンパーティー</div><div class="live"><i></i>サーバー接続中</div><h1>ゲームスタンバイ中</h1><div class="waitingDots"><i></i><i></i><i></i></div><p>司会の合図をお待ちください</p>'+(lastResult?'<button id="lastResult">直前の結果を確認</button>':''),'standby');if(lastResult)document.getElementById('lastResult').onclick=()=>showRanking(lastResult,false)}const tag=p=>p?'<div class="practice">練習モード</div>':'';function countdown(p,done,label){let n=3;setView('count',`${tag(p)}<h1>${label}</h1><div id="cd" class="countNumber">3</div>`,'countdown');tick=setInterval(()=>{n--;if(n>0)document.getElementById('cd').textContent=n;else{clearInterval(tick);done()}},1000)}function startReflex(d){roundId=d.roundId;countdown(d.practice,()=>{phase='ready';setView('red',`${tag(d.practice)}<h1>まだ！</h1><div class="record">●</div>`,'ready');bind(reflexHit);timer=setTimeout(()=>{phase='go';window.greenAt=now();setView('green',`${tag(d.practice)}<h1>今だ！</h1><div class="record">●</div>`,'playing');bind(reflexHit)},1500+Math.random()*3000)},'反射神経ゲーム開始まで')}function reflexHit(){if(phase==='ready'){clearTimeout(timer);phase='done';setView('result','<h1>フライング</h1><p>結果確定をお待ちください</p>','result');post('/api/result',{id:me.id,sessionGeneration:me.sessionGeneration,roundId,foul:true})}else if(phase==='go'){const ms=Math.round(now()-window.greenAt);phase='done';setView('result',`<h1>記録</h1><div class="record">${ms} ms</div><p>ランキング確定をお待ちください</p>`,'result');post('/api/result',{id:me.id,sessionGeneration:me.sessionGeneration,roundId,timeMs:ms})}}function startTap(d){roundId=d.roundId;countdown(d.practice,()=>{count=0;const total=d.duration*1000,start=now();setView('tap',`${tag(d.practice)}<h1>連打！</h1><div id="cnt" class="countNumber">0</div><p id="rem">残り ${d.duration}.0 秒</p><div class="bar"><div id="bar"></div></div>`,'playing');bind(()=>document.getElementById('cnt').textContent=++count);tick=setInterval(()=>{const left=Math.max(0,total-(now()-start));document.getElementById('rem').textContent='残り '+(left/1000).toFixed(1)+' 秒';document.getElementById('bar').style.width=(left/total*100)+'%'},100);timer=setTimeout(()=>{clearInterval(tick);setView('result',`<h1>記録</h1><div class="record">${count} 回</div><p>ランキング確定をお待ちください</p>`,'result');post('/api/result',{id:me.id,sessionGeneration:me.sessionGeneration,roundId,taps:count})},total)},'連打ゲーム開始まで')}
-function openUnique(d){roundId=d.roundId;setView('unique',`${tag(d.practice)}<div class="pumpkins">🎃 🔢 🎃</div><h1>最大ユニークナンバー</h1><p>1～100から選択</p><input id="num" type="number" inputmode="numeric" min="1" max="100" value="50"><div class="adjust"><button data-v="-10">-10</button><button data-v="-1">-1</button><button data-v="1">+1</button><button data-v="10">+10</button></div><button id="answer" class="answerButton">この数字で決定</button><div id="panel" class="answerPanel"><div>✓ 回答済み</div><div id="saved" class="record"></div><p>締切までは変更できます</p></div>`,'answering');document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{const e=document.getElementById('num');e.value=Math.max(1,Math.min(100,Number(e.value)+Number(b.dataset.v)))});document.getElementById('answer').onclick=submitUnique}async function submitUnique(){const e=document.getElementById('num'),b=document.getElementById('answer'),n=parseInt(e.value,10);if(!(n>=1&&n<=100))return error('1～100を入力');b.disabled=true;try{await post('/api/unique-answer',{id:me.id,sessionGeneration:me.sessionGeneration,number:n});document.getElementById('saved').textContent=n;document.getElementById('panel').classList.add('show');b.textContent='✓ 決定済み（変更可）'}catch{error('回答できませんでした')}finally{b.disabled=false}}function uniqueResult(r){const boxes=(r.podium||[]).map((x,i)=>`<div>${['🥇','🥈','🥉'][i]} ${esc(x.name)}　数字 ${x.number}</div>`).join('');let mine=r.ownNumber?`あなたの選択 ${r.ownNumber}<br>${r.ownPlace?`第${r.ownPlace}位`:`${r.ownCount}人と重複・順位対象外`}`:'回答なし';lastResult={kind:'unique',label:'最大ユニークナンバー 結果',top3:r.podium?.map(x=>({name:x.name,score:x.number}))||[],selfText:mine};setView('result',`<div class="ranking"><h1>最大ユニーク 結果</h1><div class="rankingList">${boxes||'<div>ユニーク数字なし</div>'}</div><div class="myRank">${mine}</div><div class="resultBar"></div></div>`,'result');setTimeout(standby,5000)}
-async function startTempo(d){roundId=d.roundId;tempoTimes=[];tempoHidden=false;clearTimeout(timer);countdown(d.practice,async()=>{phase='sample';setView('tempo',`${tag(d.practice)}<h1 id="tempoCount">見本 1 / 5</h1><div class="tempoTarget"><div class="tempoRing"></div><div id="tempoDot" class="tempoDot"></div></div><div id="tempoCue" class="tempoCue">タップ！👆</div><p id="tempoMsg">円が重なる瞬間にタップ</p>`,'sample');document.getElementById('tempoDot').style.setProperty('--beat',d.tempoMs+'ms');bind(e=>ripple(e));for(let i=1;i<=5;i++)await tempoBeat(i,d.tempoMs);const dot=document.getElementById('tempoDot');dot.style.display='none';phase='transition';document.getElementById('tempoCount').textContent='そのまま続けて！';document.getElementById('tempoMsg').textContent='同じテンポで10回タップ';tempoStart=now();tempoAccept=tempoStart+d.tempoMs*.45;bind(tempoTap);setTimeout(()=>{if(phase==='transition')phase='measure'},d.tempoMs*.45);timer=setTimeout(tempoTimeout,d.tempoMs*15)},'テンポゲーム開始まで')}async function tempoBeat(i,ms){document.getElementById('tempoCount').textContent=`見本 ${i} / 5`;const dot=document.getElementById('tempoDot'),cue=document.getElementById('tempoCue');dot.classList.remove('grow');void dot.offsetWidth;dot.classList.add('grow');await sleep(ms);screen.classList.add('flash');cue.classList.remove('show');void cue.offsetWidth;cue.classList.add('show');setTimeout(()=>screen.classList.remove('flash'),120)}function ripple(e){if(!e)return;const r=document.createElement('i');r.className='ripple';r.style.left=e.clientX+'px';r.style.top=e.clientY+'px';document.body.append(r);setTimeout(()=>r.remove(),450)}function tempoTap(e){ripple(e);const t=now();if(!['transition','measure'].includes(phase)||t<tempoAccept)return;if(tempoTimes.length&&t-tempoTimes.at(-1)<200)return;phase='measure';tempoTimes.push(t);document.getElementById('tempoCount').textContent=`${tempoTimes.length} / 10`;if(tempoTimes.length===10)finishTempo()}async function finishTempo(){phase='done';clearTimeout(timer);unbind();const intervals=tempoTimes.slice(1).map((x,i)=>x-tempoTimes[i]);await post('/api/tempo/result',{id:me.id,sessionGeneration:me.sessionGeneration,roundId,intervals,transitionMs:tempoTimes[0]-tempoStart,elapsedMs:tempoTimes.at(-1)-tempoTimes[0],hidden:tempoHidden});setView('result','<h1>完了！</h1><p>ランキング確定をお待ちください</p>','result')}async function tempoTimeout(){if(!['transition','measure'].includes(phase))return;phase='done';await post('/api/tempo/result',{id:me.id,sessionGeneration:me.sessionGeneration,roundId,intervals:[],transitionMs:999999,elapsedMs:999999,hidden:tempoHidden});setView('result','<h1>時間切れ</h1><p>結果確定をお待ちください</p>','result')}
-function showRanking(d,auto){lastResult=d;const top=(d.top3||[]).map((x,i)=>`<div>${['🥇','🥈','🥉'][i]} ${esc(x.name)}　${x.score}${d.unit||''}</div>`).join('')||'<div>有効記録なし</div>';let mine=d.self?`あなたの順位 ${d.self.rank}位<br>${d.self.score}${d.unit||''}`:d.raw?.valid===false?`無効記録<br>${esc(d.raw.reason)}`:d.selfText||'今回の記録なし';if(d.kind==='tempo-overall'&&d.self?.rounds)mine+=`<br><small>${d.self.rounds.join(' / ')} ms</small>`;setView('result',`<div class="ranking"><h1>${esc(d.label)}</h1><div class="rankingList">${top}</div><div class="myRank">${mine}</div>${auto?'<div class="resultBar"></div>':'<button id="back">待機画面へ戻る</button>'}</div>`,'result');if(auto)setTimeout(standby,5000);else document.getElementById('back').onclick=standby}
-function bind(fn){unbind();down=e=>{e.preventDefault();const t=now();if(t-lastInput<25)return;lastInput=t;fn(e)};screen.addEventListener('pointerdown',down,{passive:false})}function unbind(){if(down)screen.removeEventListener('pointerdown',down);down=null}document.addEventListener('visibilitychange',()=>{if(document.hidden&&['sample','transition','measure'].includes(phase))tempoHidden=true;sendState()});setInterval(sendState,10000);boot();
-</script></body></html>
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"
+  >
+
+  <title>技能人財養成部 ハロウィンパーティー</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      overscroll-behavior: none;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Noto Sans JP",
+        sans-serif;
+      background: #140d21;
+    }
+
+    #screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+      overflow: hidden;
+      text-align: center;
+      background: #ffffff;
+      color: #17212b;
+    }
+
+    #screen.wait {
+      background:
+        radial-gradient(
+          circle at 50% 20%,
+          #43265c,
+          #1a1028 65%,
+          #0d0715
+        );
+      color: #ffffff;
+    }
+
+    #screen.count {
+      background: #27203c;
+      color: #ffffff;
+    }
+
+    #screen.red {
+      background: #c62828;
+      color: #ffffff;
+    }
+
+    #screen.green {
+      background: #159447;
+      color: #ffffff;
+    }
+
+    #screen.tap {
+      background: #6f2da8;
+      color: #ffffff;
+      touch-action: none;
+      overscroll-behavior: none;
+    }
+
+    #screen.result {
+      background: #fff0df;
+      color: #261431;
+    }
+
+    #screen.unique {
+      background:
+        linear-gradient(
+          145deg,
+          #44205e,
+          #20102e
+        );
+      color: #ffffff;
+    }
+
+    #screen.closed {
+      background: #37474f;
+      color: #ffffff;
+    }
+
+    #screen.tempo {
+      background: #160b20;
+      color: #ffffff;
+      touch-action: none;
+    }
+
+    #screen.flash {
+      background: #884514;
+    }
+
+    h1 {
+      margin: 0.2em;
+      font-size: clamp(
+        1.7rem,
+        7vw,
+        2.8rem
+      );
+    }
+
+    p {
+      font-size: clamp(
+        1rem,
+        4vw,
+        1.25rem
+      );
+      line-height: 1.55;
+    }
+
+    small {
+      font-size: 0.82rem;
+      line-height: 1.5;
+    }
+
+    .event {
+      color: #ff9f2f;
+      font-weight: 900;
+    }
+
+    .pumpkins {
+      font-size: 2.5rem;
+    }
+
+    .countNumber {
+      font-size: clamp(
+        8rem,
+        42vw,
+        16rem
+      );
+      font-weight: 950;
+      line-height: 0.95;
+    }
+
+    .record {
+      font-size: clamp(
+        3.6rem,
+        18vw,
+        7rem
+      );
+      font-weight: 900;
+    }
+
+    .practice {
+      margin-bottom: 12px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: #f39c12;
+      color: #ffffff;
+      font-weight: 800;
+    }
+
+    .waitingDots {
+      display: flex;
+      gap: 14px;
+      margin: 22px;
+    }
+
+    .waitingDots i {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #ff8c26;
+      animation: bounce 1.2s infinite;
+    }
+
+    .waitingDots i:nth-child(2) {
+      animation-delay: 0.18s;
+    }
+
+    .waitingDots i:nth-child(3) {
+      animation-delay: 0.36s;
+    }
+
+    @keyframes bounce {
+      0%,
+      60%,
+      100% {
+        transform: translateY(0);
+        opacity: 0.35;
+      }
+
+      30% {
+        transform: translateY(-16px);
+        opacity: 1;
+      }
+    }
+
+    .live {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #8ff0b4;
+      font-weight: 800;
+    }
+
+    .live i {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: #36d477;
+    }
+
+    input {
+      width: min(
+        230px,
+        78vw
+      );
+      padding: 12px;
+      border: 3px solid #ffb158;
+      border-radius: 14px;
+      font-size: 2rem;
+      text-align: center;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    button {
+      margin: 8px;
+      padding: 14px 22px;
+      border: 0;
+      border-radius: 13px;
+      background: #ef7f1a;
+      color: #ffffff;
+      font-size: 1.15rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+    }
+
+    .adjust {
+      display: grid;
+      grid-template-columns:
+        repeat(4, 1fr);
+      gap: 6px;
+      width: min(
+        390px,
+        96vw
+      );
+    }
+
+    .adjust button {
+      margin: 0;
+      padding: 12px 4px;
+    }
+
+    .answerButton {
+      width: min(
+        360px,
+        90vw
+      );
+      background: #21a366;
+    }
+
+    .answerButton.saved {
+      background: #156b40;
+    }
+
+    .answerPanel {
+      display: none;
+      width: min(
+        390px,
+        92vw
+      );
+      margin-top: 14px;
+      padding: 15px;
+      border: 2px solid #ffffffaa;
+      border-radius: 16px;
+      background: #ffffff2d;
+    }
+
+    .answerPanel.show {
+      display: block;
+    }
+
+    .bar {
+      width: min(
+        420px,
+        85vw
+      );
+      height: 18px;
+      overflow: hidden;
+      border-radius: 10px;
+      background: #ffffff55;
+    }
+
+    .bar div {
+      height: 100%;
+      background: #ffffff;
+    }
+
+    .badge {
+      position: fixed;
+      z-index: 12;
+      top: 10px;
+      right: 10px;
+      left: 10px;
+      color: #d7c4e8;
+      font-size: 0.85rem;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .error {
+      position: fixed;
+      z-index: 20;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      display: none;
+      padding: 12px;
+      background: #c0392b;
+      color: #ffffff;
+    }
+
+    .ranking {
+      width: min(
+        94vw,
+        540px
+      );
+      max-height: 90vh;
+      padding: 20px;
+      overflow-y: auto;
+      border: 2px solid #f28a24;
+      border-radius: 18px;
+      background: #2b1838;
+      color: #ffffff;
+    }
+
+    .rankingList {
+      display: grid;
+      gap: 7px;
+      margin: 12px 0;
+    }
+
+    .rankingList div {
+      padding: 10px;
+      border-radius: 10px;
+      background: #43255a;
+      font-weight: 800;
+    }
+
+    .myRank {
+      padding: 14px;
+      border: 2px solid #f28a24;
+      border-radius: 12px;
+      background: #21132f;
+      font-size: 1.3rem;
+      font-weight: 900;
+    }
+
+    .resultBar {
+      width: 100%;
+      height: 8px;
+      margin-top: 14px;
+      border-radius: 6px;
+      background: #f28a24;
+      animation: shrink 5s linear forwards;
+    }
+
+    @keyframes shrink {
+      to {
+        width: 0;
+      }
+    }
+
+    .tempoTarget {
+      position: relative;
+      width: 230px;
+      height: 230px;
+      margin: 22px;
+    }
+
+    .tempoRing {
+      position: absolute;
+      inset: 0;
+      border: 7px solid #ffb35c;
+      border-radius: 50%;
+      box-shadow:
+        0 0 22px #f28a2455;
+    }
+
+    .tempoDot {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #f28a24;
+      box-shadow:
+        0 0 25px #f28a24;
+      transform:
+        translate(-50%, -50%);
+    }
+
+    .tempoDot.grow {
+      animation:
+        grow var(--beat)
+        linear forwards;
+    }
+
+    @keyframes grow {
+      from {
+        width: 24px;
+        height: 24px;
+      }
+
+      to {
+        width: 216px;
+        height: 216px;
+      }
+    }
+
+    .tempoCue {
+      min-height: 2.5rem;
+      font-size: 2rem;
+      font-weight: 950;
+      opacity: 0;
+    }
+
+    .tempoCue.show {
+      animation:
+        cue 0.42s ease-out;
+    }
+
+    @keyframes cue {
+      0% {
+        opacity: 0;
+        transform: scale(0.7);
+      }
+
+      25% {
+        opacity: 1;
+        transform: scale(1.1);
+      }
+
+      100% {
+        opacity: 0;
+        transform: scale(1);
+      }
+    }
+
+    .tempoFeedback {
+      min-height: 2.3rem;
+      margin-top: 6px;
+      color: #ffcf8c;
+      font-size: 1.7rem;
+      font-weight: 950;
+      font-variant-numeric:
+        tabular-nums;
+    }
+
+    .tempoFeedback.good {
+      color: #8ff0b4;
+    }
+
+    .tempoFeedback.fast {
+      color: #73c8ff;
+    }
+
+    .tempoFeedback.slow {
+      color: #ffcf8c;
+    }
+
+    .ripple {
+      position: fixed;
+      z-index: 5;
+      width: 70px;
+      height: 70px;
+      border: 4px solid #ffffff;
+      border-radius: 50%;
+      pointer-events: none;
+      transform:
+        translate(-50%, -50%);
+      animation:
+        rippleAnimation
+        0.4s ease-out forwards;
+    }
+
+    @keyframes rippleAnimation {
+      to {
+        width: 180px;
+        height: 180px;
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div
+    id="screen"
+    class="wait"
+  ></div>
+
+  <div
+    id="badge"
+    class="badge"
+  ></div>
+
+  <div
+    id="error"
+    class="error"
+  ></div>
+
+  <script>
+    'use strict';
+
+    const SESSION_KEY =
+      'battle.session.v5';
+
+    const CLIENT_KEY =
+      'battle.client.v1';
+
+    const screen =
+      document.getElementById(
+        'screen'
+      );
+
+    const badge =
+      document.getElementById(
+        'badge'
+      );
+
+    const errorPanel =
+      document.getElementById(
+        'error'
+      );
+
+    let me = null;
+    let eventSource = null;
+    let state = 'standby';
+    let roundId = 0;
+    let phase = 'idle';
+
+    let timer = null;
+    let intervalTimer = null;
+
+    let tapCount = 0;
+    let lastInput = 0;
+    let pointerHandler = null;
+
+    let lastResult = null;
+
+    let tempoData = null;
+    let tempoTimes = [];
+    let tempoHidden = false;
+    let tempoStart = 0;
+    let tempoAccept = 0;
+
+    let previousTouchEnd = 0;
+
+    const now = () =>
+      performance?.now
+        ? performance.now()
+        : Date.now();
+
+    const sleep = milliseconds =>
+      new Promise(resolve =>
+        setTimeout(
+          resolve,
+          milliseconds
+        )
+      );
+
+    function getClientKey() {
+      let key =
+        localStorage.getItem(
+          CLIENT_KEY
+        );
+
+      if (!key) {
+        key =
+          crypto.randomUUID?.() ||
+          (
+            Date.now() +
+            '-' +
+            Math.random()
+              .toString(16)
+              .slice(2)
+          );
+
+        localStorage.setItem(
+          CLIENT_KEY,
+          key
+        );
+      }
+
+      return key;
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(
+          /[<>&"]/g,
+          character => ({
+            '<': '&lt;',
+            '>': '&gt;',
+            '&': '&amp;',
+            '"': '&quot;'
+          })[character]
+        );
+    }
+
+    function saveSession() {
+      localStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify(me)
+      );
+    }
+
+    function loadSession() {
+      try {
+        return JSON.parse(
+          localStorage.getItem(
+            SESSION_KEY
+          ) || 'null'
+        );
+      } catch {
+        return null;
+      }
+    }
+
+    function clearSession() {
+      localStorage.removeItem(
+        SESSION_KEY
+      );
+
+      me = null;
+    }
+
+    async function post(
+      url,
+      body
+    ) {
+      const response = await fetch(
+        url,
+        {
+          method: 'POST',
+
+          headers: {
+            'Content-Type':
+              'application/json'
+          },
+
+          cache: 'no-store',
+
+          body: JSON.stringify(
+            body || {}
+          )
+        }
+      );
+
+      let data = {};
+
+      try {
+        data =
+          await response.json();
+      } catch {
+        data = {};
+      }
+
+      if (!response.ok) {
+        const requestError =
+          new Error(
+            'HTTP ' +
+            response.status
+          );
+
+        requestError.status =
+          response.status;
+
+        requestError.data =
+          data;
+
+        throw requestError;
+      }
+
+      return data;
+    }
+
+    function showError(message) {
+      errorPanel.textContent =
+        message;
+
+      errorPanel.style.display =
+        'block';
+
+      setTimeout(() => {
+        errorPanel.style.display =
+          'none';
+      }, 4000);
+    }
+
+    function setView(
+      className,
+      html,
+      nextState
+    ) {
+      unbind();
+
+      screen.className =
+        className;
+
+      screen.innerHTML = html;
+
+      state =
+        nextState || state;
+
+      sendState();
+    }
+
+    async function sendState() {
+      if (!me) {
+        return;
+      }
+
+      try {
+        await post(
+          '/api/state',
+          {
+            id: me.id,
+
+            sessionGeneration:
+              me.sessionGeneration,
+
+            state,
+
+            visible:
+              !document.hidden
+          }
+        );
+      } catch (requestError) {
+        if (
+          requestError.status === 409
+        ) {
+          invalidateSession();
+        }
+      }
+    }
+
+    function invalidateSession() {
+      closeEventSource();
+      clearSession();
+
+      badge.textContent = '';
+
+      joinView(
+        '参加情報がリセットされました。名前を入力して参加し直してください。'
+      );
+    }
+
+    function joinView(note = '') {
+      setView(
+        'wait',
+        `
+          <div class="pumpkins">
+            🎃 👻 🎃
+          </div>
+
+          <div class="event">
+            技能人財養成部
+          </div>
+
+          <h1>
+            ハロウィンパーティー
+          </h1>
+
+          <p>
+            ニックネームを入力
+          </p>
+
+          <input
+            id="name"
+            maxlength="20"
+            autocomplete="off"
+          >
+
+          <button id="join">
+            パーティーに参加
+          </button>
+
+          <p>
+            ${escapeHtml(note)}
+          </p>
+        `,
+        'join'
+      );
+
+      document
+        .getElementById('join')
+        .onclick = join;
+    }
+
+    async function join() {
+      const nameInput =
+        document.getElementById(
+          'name'
+        );
+
+      const name =
+        nameInput.value.trim();
+
+      if (!name) {
+        showError(
+          '名前を入力してください'
+        );
+
+        return;
+      }
+
+      try {
+        const data = await post(
+          '/api/join',
+          {
+            name,
+            clientKey:
+              getClientKey()
+          }
+        );
+
+        me = {
+          id: data.id,
+          name: data.name,
+
+          sessionGeneration:
+            data.sessionGeneration
+        };
+
+        saveSession();
+
+        badge.textContent =
+          data.name +
+          ' として参加中';
+
+        connect();
+        standby();
+      } catch {
+        showError(
+          '参加できませんでした'
+        );
+      }
+    }
+
+    async function boot() {
+      getClientKey();
+
+      const saved =
+        loadSession();
+
+      if (!saved) {
+        joinView();
+        return;
+      }
+
+      try {
+        const data = await post(
+          '/api/rejoin',
+          saved
+        );
+
+        me = {
+          id: data.id,
+          name: data.name,
+
+          sessionGeneration:
+            data.sessionGeneration
+        };
+
+        saveSession();
+
+        badge.textContent =
+          data.name +
+          ' として参加中';
+
+        connect();
+        standby();
+      } catch {
+        invalidateSession();
+      }
+    }
+
+    function closeEventSource() {
+      if (eventSource) {
+        eventSource.close();
+      }
+
+      eventSource = null;
+    }
+
+    function connect() {
+      closeEventSource();
+
+      eventSource =
+        new EventSource(
+          '/events/player' +
+          '?id=' +
+          encodeURIComponent(me.id) +
+          '&generation=' +
+          encodeURIComponent(
+            me.sessionGeneration
+          )
+        );
+
+      eventSource.addEventListener(
+        'reflex-start',
+        event => {
+          startReflex(
+            JSON.parse(event.data)
+          );
+        }
+      );
+
+      eventSource.addEventListener(
+        'tap-start',
+        event => {
+          startTap(
+            JSON.parse(event.data)
+          );
+        }
+      );
+
+      eventSource.addEventListener(
+        'unique-open',
+        event => {
+          openUnique(
+            JSON.parse(event.data)
+          );
+        }
+      );
+
+      eventSource.addEventListener(
+        'unique-closed',
+        () => {
+          setView(
+            'closed',
+            `
+              <h1>
+                回答締切
+              </h1>
+
+              <p>
+                結果発表をお待ちください
+              </p>
+            `,
+            'closed'
+          );
+        }
+      );
+
+      eventSource.addEventListener(
+        'unique-result',
+        event => {
+          uniqueResult(
+            JSON.parse(event.data)
+          );
+        }
+      );
+
+      eventSource.addEventListener(
+        'tempo-start',
+        event => {
+          startTempo(
+            JSON.parse(event.data)
+          );
+        }
+      );
+
+      eventSource.addEventListener(
+        'ranking-show',
+        event => {
+          showRanking(
+            JSON.parse(event.data),
+            true
+          );
+        }
+      );
+
+      eventSource.addEventListener(
+        'standby',
+        standby
+      );
+
+      eventSource.addEventListener(
+        'reset',
+        standby
+      );
+
+      eventSource.addEventListener(
+        'kick',
+        invalidateSession
+      );
+    }
+
+    function standby() {
+      clearTimeout(timer);
+      clearInterval(intervalTimer);
+
+      phase = 'idle';
+
+      setView(
+        'wait',
+        `
+          <div class="pumpkins">
+            🎃 👻 🎃
+          </div>
+
+          <div class="event">
+            技能人財養成部
+            ハロウィンパーティー
+          </div>
+
+          <div class="live">
+            <i></i>
+            サーバー接続中
+          </div>
+
+          <h1>
+            ゲームスタンバイ中
+          </h1>
+
+          <div class="waitingDots">
+            <i></i>
+            <i></i>
+            <i></i>
+          </div>
+
+          <p>
+            司会の合図をお待ちください
+          </p>
+
+          ${
+            lastResult
+              ? `
+                <button id="lastResult">
+                  直前の結果を確認
+                </button>
+              `
+              : ''
+          }
+        `,
+        'standby'
+      );
+
+      if (lastResult) {
+        document
+          .getElementById(
+            'lastResult'
+          )
+          .onclick = () => {
+            showRanking(
+              lastResult,
+              false
+            );
+          };
+      }
+    }
+
+    const practiceTag = practice =>
+      practice
+        ? `
+          <div class="practice">
+            練習モード
+          </div>
+        `
+        : '';
+
+    function countdown(
+      practice,
+      done,
+      label
+    ) {
+      let number = 3;
+
+      setView(
+        'count',
+        `
+          ${practiceTag(practice)}
+
+          <h1>
+            ${escapeHtml(label)}
+          </h1>
+
+          <div
+            id="countdown"
+            class="countNumber"
+          >
+            3
+          </div>
+        `,
+        'countdown'
+      );
+
+      intervalTimer =
+        setInterval(() => {
+          number -= 1;
+
+          if (number > 0) {
+            const countdownElement =
+              document.getElementById(
+                'countdown'
+              );
+
+            if (countdownElement) {
+              countdownElement
+                .textContent =
+                  number;
+            }
+
+            return;
+          }
+
+          clearInterval(
+            intervalTimer
+          );
+
+          done();
+        }, 1000);
+    }
+
+    function startReflex(data) {
+      roundId = data.roundId;
+
+      countdown(
+        data.practice,
+        () => {
+          phase = 'ready';
+
+          setView(
+            'red',
+            `
+              ${practiceTag(
+                data.practice
+              )}
+
+              <h1>
+                まだ！
+              </h1>
+
+              <div class="record">
+                ●
+              </div>
+            `,
+            'ready'
+          );
+
+          bind(reflexHit);
+
+          timer = setTimeout(
+            () => {
+              phase = 'go';
+
+              window.greenAt =
+                now();
+
+              setView(
+                'green',
+                `
+                  ${practiceTag(
+                    data.practice
+                  )}
+
+                  <h1>
+                    今だ！
+                  </h1>
+
+                  <div class="record">
+                    ●
+                  </div>
+                `,
+                'playing'
+              );
+
+              bind(reflexHit);
+            },
+            1500 +
+              Math.random() *
+                3000
+          );
+        },
+        '反射神経ゲーム開始まで'
+      );
+    }
+
+    function reflexHit() {
+      if (phase === 'ready') {
+        clearTimeout(timer);
+
+        phase = 'done';
+
+        setView(
+          'result',
+          `
+            <h1>
+              フライング
+            </h1>
+
+            <p>
+              結果確定をお待ちください
+            </p>
+          `,
+          'result'
+        );
+
+        post(
+          '/api/result',
+          {
+            id: me.id,
+
+            sessionGeneration:
+              me.sessionGeneration,
+
+            roundId,
+            foul: true
+          }
+        );
+
+        return;
+      }
+
+      if (phase === 'go') {
+        const timeMs = Math.round(
+          now() -
+          window.greenAt
+        );
+
+        phase = 'done';
+
+        setView(
+          'result',
+          `
+            <h1>
+              記録
+            </h1>
+
+            <div class="record">
+              ${timeMs} ms
+            </div>
+
+            <p>
+              ランキング確定をお待ちください
+            </p>
+          `,
+          'result'
+        );
+
+        post(
+          '/api/result',
+          {
+            id: me.id,
+
+            sessionGeneration:
+              me.sessionGeneration,
+
+            roundId,
+            timeMs
+          }
+        );
+      }
+    }
+
+    function startTap(data) {
+      roundId = data.roundId;
+
+      countdown(
+        data.practice,
+        () => {
+          tapCount = 0;
+
+          const total =
+            data.duration * 1000;
+
+          const startedAt = now();
+
+          setView(
+            'tap',
+            `
+              ${practiceTag(
+                data.practice
+              )}
+
+              <h1>
+                連打！
+              </h1>
+
+              <div
+                id="tapCount"
+                class="countNumber"
+              >
+                0
+              </div>
+
+              <p id="remaining">
+                残り
+                ${data.duration}.0 秒
+              </p>
+
+              <div class="bar">
+                <div id="timeBar"></div>
+              </div>
+            `,
+            'playing'
+          );
+
+          bind(() => {
+            tapCount += 1;
+
+            const countElement =
+              document.getElementById(
+                'tapCount'
+              );
+
+            if (countElement) {
+              countElement.textContent =
+                tapCount;
+            }
+          });
+
+          intervalTimer =
+            setInterval(() => {
+              const left = Math.max(
+                0,
+                total -
+                (
+                  now() -
+                  startedAt
+                )
+              );
+
+              const remainingElement =
+                document.getElementById(
+                  'remaining'
+                );
+
+              if (
+                remainingElement
+              ) {
+                remainingElement
+                  .textContent =
+                    '残り ' +
+                    (
+                      left / 1000
+                    ).toFixed(1) +
+                    ' 秒';
+              }
+
+              const timeBar =
+                document.getElementById(
+                  'timeBar'
+                );
+
+              if (timeBar) {
+                timeBar.style.width =
+                  (
+                    left /
+                    total *
+                    100
+                  ) +
+                  '%';
+              }
+            }, 100);
+
+          timer = setTimeout(
+            () => {
+              clearInterval(
+                intervalTimer
+              );
+
+              unbind();
+
+              setView(
+                'result',
+                `
+                  <h1>
+                    記録
+                  </h1>
+
+                  <div class="record">
+                    ${tapCount} 回
+                  </div>
+
+                  <p>
+                    ランキング確定をお待ちください
+                  </p>
+                `,
+                'result'
+              );
+
+              post(
+                '/api/result',
+                {
+                  id: me.id,
+
+                  sessionGeneration:
+                    me.sessionGeneration,
+
+                  roundId,
+                  taps: tapCount
+                }
+              );
+            },
+            total
+          );
+        },
+        '連打ゲーム開始まで'
+      );
+    }
+
+    function openUnique(data) {
+      roundId = data.roundId;
+
+      setView(
+        'unique',
+        `
+          ${practiceTag(
+            data.practice
+          )}
+
+          <div class="pumpkins">
+            🎃 🔢 🎃
+          </div>
+
+          <h1>
+            最大ユニークナンバー
+          </h1>
+
+          <p>
+            1～100から選択
+          </p>
+
+          <input
+            id="numberInput"
+            type="number"
+            inputmode="numeric"
+            min="1"
+            max="100"
+            value="50"
+          >
+
+          <div class="adjust">
+            <button data-value="-10">
+              -10
+            </button>
+
+            <button data-value="-1">
+              -1
+            </button>
+
+            <button data-value="1">
+              +1
+            </button>
+
+            <button data-value="10">
+              +10
+            </button>
+          </div>
+
+          <button
+            id="answerButton"
+            class="answerButton"
+          >
+            この数字で決定
+          </button>
+
+          <div
+            id="answerPanel"
+            class="answerPanel"
+          >
+            <div>
+              ✓ 回答済み
+            </div>
+
+            <div
+              id="savedNumber"
+              class="record"
+            ></div>
+
+            <p>
+              締切までは変更できます
+            </p>
+          </div>
+        `,
+        'answering'
+      );
+
+      document
+        .querySelectorAll(
+          '[data-value]'
+        )
+        .forEach(button => {
+          button.onclick = () => {
+            const numberInput =
+              document.getElementById(
+                'numberInput'
+              );
+
+            numberInput.value =
+              Math.max(
+                1,
+                Math.min(
+                  100,
+                  Number(
+                    numberInput.value
+                  ) +
+                  Number(
+                    button.dataset.value
+                  )
+                )
+              );
+          };
+        });
+
+      document
+        .getElementById(
+          'answerButton'
+        )
+        .onclick = submitUnique;
+    }
+
+    async function submitUnique() {
+      const numberInput =
+        document.getElementById(
+          'numberInput'
+        );
+
+      const answerButton =
+        document.getElementById(
+          'answerButton'
+        );
+
+      const number = parseInt(
+        numberInput.value,
+        10
+      );
+
+      if (
+        number < 1 ||
+        number > 100
+      ) {
+        showError(
+          '1～100を入力してください'
+        );
+
+        return;
+      }
+
+      answerButton.disabled = true;
+      answerButton.textContent =
+        '送信中…';
+
+      try {
+        await post(
+          '/api/unique-answer',
+          {
+            id: me.id,
+
+            sessionGeneration:
+              me.sessionGeneration,
+
+            number
+          }
+        );
+
+        document
+          .getElementById(
+            'savedNumber'
+          )
+          .textContent = number;
+
+        document
+          .getElementById(
+            'answerPanel'
+          )
+          .classList.add('show');
+
+        answerButton.textContent =
+          '✓ 決定済み（変更可）';
+
+        answerButton.classList.add(
+          'saved'
+        );
+
+        navigator.vibrate?.(80);
+      } catch {
+        showError(
+          '回答できませんでした'
+        );
+
+        answerButton.textContent =
+          'この数字で決定';
+      } finally {
+        answerButton.disabled =
+          false;
+      }
+    }
+
+    function uniqueResult(result) {
+      const boxes =
+        (
+          result.podium || []
+        )
+          .map(
+            (entry, index) => `
+              <div>
+                ${
+                  [
+                    '🥇',
+                    '🥈',
+                    '🥉'
+                  ][index]
+                }
+                ${escapeHtml(
+                  entry.name
+                )}
+                数字
+                ${entry.number}
+              </div>
+            `
+          )
+          .join('');
+
+      let personalResult =
+        '回答なし';
+
+      if (result.ownNumber) {
+        personalResult =
+          'あなたの選択 ' +
+          result.ownNumber +
+          '<br>';
+
+        if (result.ownPlace) {
+          personalResult +=
+            '第' +
+            result.ownPlace +
+            '位';
+        } else {
+          personalResult +=
+            result.ownCount +
+            '人と重複・順位対象外';
+        }
+      }
+
+      lastResult = {
+        kind: 'unique',
+        label:
+          '最大ユニークナンバー 結果',
+
+        top3:
+          (
+            result.podium || []
+          ).map(entry => ({
+            name: entry.name,
+            score: entry.number
+          })),
+
+        selfText:
+          personalResult,
+
+        unit: ''
+      };
+
+      setView(
+        'result',
+        `
+          <div class="ranking">
+            <h1>
+              最大ユニーク 結果
+            </h1>
+
+            <div class="rankingList">
+              ${
+                boxes ||
+                '<div>ユニーク数字なし</div>'
+              }
+            </div>
+
+            <div class="myRank">
+              ${personalResult}
+            </div>
+
+            <div class="resultBar"></div>
+          </div>
+        `,
+        'result'
+      );
+
+      setTimeout(
+        standby,
+        result.durationMs || 5000
+      );
+    }
+
+    async function startTempo(data) {
+      roundId = data.roundId;
+      tempoData = data;
+      tempoTimes = [];
+      tempoHidden = false;
+
+      clearTimeout(timer);
+
+      countdown(
+        data.practice,
+        async () => {
+          phase = 'sample';
+
+          setView(
+            'tempo',
+            `
+              ${practiceTag(
+                data.practice
+              )}
+
+              <h1 id="tempoCount">
+                見本 1 / 5
+              </h1>
+
+              <div class="tempoTarget">
+                <div class="tempoRing"></div>
+
+                <div
+                  id="tempoDot"
+                  class="tempoDot"
+                ></div>
+              </div>
+
+              <div
+                id="tempoCue"
+                class="tempoCue"
+              >
+                タップ！👆
+              </div>
+
+              <div
+                id="tempoFeedback"
+                class="tempoFeedback"
+              ></div>
+
+              <p id="tempoMessage">
+                円が重なる瞬間にタップ
+              </p>
+            `,
+            'sample'
+          );
+
+          const tempoDot =
+            document.getElementById(
+              'tempoDot'
+            );
+
+          tempoDot.style.setProperty(
+            '--beat',
+            data.tempoMs + 'ms'
+          );
+
+          bind(event => {
+            createRipple(event);
+          });
+
+          for (
+            let index = 1;
+            index <= 5;
+            index += 1
+          ) {
+            await tempoBeat(
+              index,
+              data.tempoMs
+            );
+          }
+
+          const dot =
+            document.getElementById(
+              'tempoDot'
+            );
+
+          if (dot) {
+            dot.classList.remove(
+              'grow'
+            );
+
+            dot.style.display =
+              'none';
+          }
+
+          phase = 'transition';
+
+          document
+            .getElementById(
+              'tempoCount'
+            )
+            .textContent =
+              'そのまま続けて！';
+
+          document
+            .getElementById(
+              'tempoMessage'
+            )
+            .textContent =
+              '同じテンポで10回タップ';
+
+          const feedback =
+            document.getElementById(
+              'tempoFeedback'
+            );
+
+          if (feedback) {
+            feedback.textContent =
+              data.practice
+                ? 'タップごとの差を表示します'
+                : '';
+          }
+
+          tempoStart = now();
+
+          tempoAccept =
+            tempoStart +
+            data.tempoMs * 0.45;
+
+          bind(tempoTap);
+
+          setTimeout(() => {
+            if (
+              phase ===
+              'transition'
+            ) {
+              phase = 'measure';
+            }
+          }, data.tempoMs * 0.45);
+
+          timer = setTimeout(
+            tempoTimeout,
+            data.tempoMs * 15
+          );
+        },
+        'テンポゲーム開始まで'
+      );
+    }
+
+    async function tempoBeat(
+      index,
+      tempoMs
+    ) {
+      const countElement =
+        document.getElementById(
+          'tempoCount'
+        );
+
+      if (countElement) {
+        countElement.textContent =
+          `見本 ${index} / 5`;
+      }
+
+      const dot =
+        document.getElementById(
+          'tempoDot'
+        );
+
+      const cue =
+        document.getElementById(
+          'tempoCue'
+        );
+
+      if (!dot || !cue) {
+        return;
+      }
+
+      dot.classList.remove('grow');
+
+      void dot.offsetWidth;
+
+      dot.classList.add('grow');
+
+      await sleep(tempoMs);
+
+      screen.classList.add(
+        'flash'
+      );
+
+      cue.classList.remove(
+        'show'
+      );
+
+      void cue.offsetWidth;
+
+      cue.classList.add('show');
+
+      setTimeout(() => {
+        screen.classList.remove(
+          'flash'
+        );
+      }, 120);
+    }
+
+    function createRipple(event) {
+      if (!event) {
+        return;
+      }
+
+      const ripple =
+        document.createElement(
+          'i'
+        );
+
+      ripple.className =
+        'ripple';
+
+      ripple.style.left =
+        event.clientX + 'px';
+
+      ripple.style.top =
+        event.clientY + 'px';
+
+      document.body.appendChild(
+        ripple
+      );
+
+      setTimeout(() => {
+        ripple.remove();
+      }, 450);
+    }
+
+    function updateTempoFeedback(
+      differenceMs
+    ) {
+      if (!tempoData?.practice) {
+        return;
+      }
+
+      const feedback =
+        document.getElementById(
+          'tempoFeedback'
+        );
+
+      if (!feedback) {
+        return;
+      }
+
+      const differenceSeconds =
+        differenceMs / 1000;
+
+      const display =
+        (
+          differenceSeconds >= 0
+            ? '+'
+            : ''
+        ) +
+        differenceSeconds.toFixed(2) +
+        '秒';
+
+      feedback.textContent =
+        display;
+
+      feedback.classList.remove(
+        'good',
+        'fast',
+        'slow'
+      );
+
+      if (
+        Math.abs(differenceMs) <= 50
+      ) {
+        feedback.classList.add(
+          'good'
+        );
+      } else if (
+        differenceMs < 0
+      ) {
+        feedback.classList.add(
+          'fast'
+        );
+      } else {
+        feedback.classList.add(
+          'slow'
+        );
+      }
+    }
+
+    function tempoTap(event) {
+      createRipple(event);
+
+      const currentTime = now();
+
+      if (
+        ![
+          'transition',
+          'measure'
+        ].includes(phase) ||
+        currentTime < tempoAccept
+      ) {
+        return;
+      }
+
+      const previousTime =
+        tempoTimes.at(-1);
+
+      if (
+        previousTime &&
+        currentTime -
+          previousTime <
+          200
+      ) {
+        return;
+      }
+
+      phase = 'measure';
+
+      tempoTimes.push(
+        currentTime
+      );
+
+      const countElement =
+        document.getElementById(
+          'tempoCount'
+        );
+
+      if (countElement) {
+        countElement.textContent =
+          `${tempoTimes.length} / 10`;
+      }
+
+      if (
+        previousTime &&
+        tempoData?.practice
+      ) {
+        const interval =
+          currentTime -
+          previousTime;
+
+        const difference =
+          interval -
+          tempoData.tempoMs;
+
+        updateTempoFeedback(
+          difference
+        );
+      }
+
+      if (
+        tempoTimes.length === 10
+      ) {
+        finishTempo();
+      }
+    }
+
+    async function finishTempo() {
+      phase = 'done';
+
+      clearTimeout(timer);
+      unbind();
+
+      const intervals =
+        tempoTimes
+          .slice(1)
+          .map(
+            (time, index) =>
+              time -
+              tempoTimes[index]
+          );
+
+      try {
+        await post(
+          '/api/tempo/result',
+          {
+            id: me.id,
+
+            sessionGeneration:
+              me.sessionGeneration,
+
+            roundId,
+            intervals,
+
+            transitionMs:
+              tempoTimes[0] -
+              tempoStart,
+
+            elapsedMs:
+              tempoTimes.at(-1) -
+              tempoTimes[0],
+
+            hidden: tempoHidden
+          }
+        );
+
+        setView(
+          'result',
+          `
+            <h1>
+              完了！
+            </h1>
+
+            <p>
+              ランキング確定をお待ちください
+            </p>
+          `,
+          'result'
+        );
+      } catch {
+        setView(
+          'result',
+          `
+            <h1>
+              送信できませんでした
+            </h1>
+
+            <p>
+              司会へお知らせください
+            </p>
+          `,
+          'result'
+        );
+      }
+    }
+
+    async function tempoTimeout() {
+      if (
+        ![
+          'transition',
+          'measure'
+        ].includes(phase)
+      ) {
+        return;
+      }
+
+      phase = 'done';
+
+      unbind();
+
+      try {
+        await post(
+          '/api/tempo/result',
+          {
+            id: me.id,
+
+            sessionGeneration:
+              me.sessionGeneration,
+
+            roundId,
+            intervals: [],
+
+            transitionMs: 999999,
+            elapsedMs: 999999,
+
+            hidden: tempoHidden
+          }
+        );
+      } catch {
+        // 締切後の場合は表示のみ
+      }
+
+      setView(
+        'result',
+        `
+          <h1>
+            時間切れ
+          </h1>
+
+          <p>
+            結果確定をお待ちください
+          </p>
+        `,
+        'result'
+      );
+    }
+
+    function showRanking(
+      result,
+      automatic
+    ) {
+      lastResult = result;
+
+      const unit =
+        result.unit || '';
+
+      const topHtml =
+        (
+          result.top3 || []
+        )
+          .map(
+            (entry, index) => `
+              <div>
+                ${
+                  [
+                    '🥇',
+                    '🥈',
+                    '🥉'
+                  ][index]
+                }
+                ${escapeHtml(
+                  entry.name
+                )}
+                ${entry.score}${unit}
+              </div>
+            `
+          )
+          .join('') ||
+        '<div>有効記録なし</div>';
+
+      let personalHtml =
+        '今回の記録なし';
+
+      if (result.self) {
+        personalHtml =
+          'あなたの順位 ' +
+          result.self.rank +
+          '位' +
+          '<br>' +
+          result.self.score +
+          unit;
+      } else if (
+        result.raw?.valid === false
+      ) {
+        personalHtml =
+          '無効記録' +
+          '<br>' +
+          escapeHtml(
+            result.raw.reason
+          );
+      } else if (
+        result.selfText
+      ) {
+        personalHtml =
+          result.selfText;
+      }
+
+      if (
+        result.kind ===
+          'tempo-overall' &&
+        result.self?.rounds
+      ) {
+        personalHtml +=
+          '<br>' +
+          '<small>' +
+          '第1回 ' +
+          result.self.rounds[0] +
+          'ms / ' +
+          '第2回 ' +
+          result.self.rounds[1] +
+          'ms / ' +
+          '第3回 ' +
+          result.self.rounds[2] +
+          'ms' +
+          '</small>';
+      }
+
+      setView(
+        'result',
+        `
+          <div class="ranking">
+            <h1>
+              ${escapeHtml(
+                result.label
+              )}
+            </h1>
+
+            <div class="rankingList">
+              ${topHtml}
+            </div>
+
+            <div class="myRank">
+              ${personalHtml}
+            </div>
+
+            ${
+              automatic
+                ? `
+                  <div class="resultBar"></div>
+                `
+                : `
+                  <button id="back">
+                    待機画面へ戻る
+                  </button>
+                `
+            }
+          </div>
+        `,
+        'result'
+      );
+
+      if (automatic) {
+        setTimeout(
+          standby,
+          result.durationMs ||
+            5000
+        );
+      } else {
+        document
+          .getElementById('back')
+          .onclick = standby;
+      }
+    }
+
+    function bind(handler) {
+      unbind();
+
+      pointerHandler = event => {
+        event.preventDefault();
+
+        const currentTime = now();
+
+        if (
+          currentTime -
+            lastInput <
+          25
+        ) {
+          return;
+        }
+
+        lastInput =
+          currentTime;
+
+        handler(event);
+      };
+
+      screen.addEventListener(
+        'pointerdown',
+        pointerHandler,
+        {
+          passive: false
+        }
+      );
+    }
+
+    function unbind() {
+      if (pointerHandler) {
+        screen.removeEventListener(
+          'pointerdown',
+          pointerHandler
+        );
+      }
+
+      pointerHandler = null;
+    }
+
+    document.addEventListener(
+      'touchstart',
+      event => {
+        if (
+          screen.classList.contains(
+            'tap'
+          ) &&
+          event.touches.length > 1
+        ) {
+          event.preventDefault();
+        }
+      },
+      {
+        passive: false
+      }
+    );
+
+    document.addEventListener(
+      'touchmove',
+      event => {
+        if (
+          screen.classList.contains(
+            'tap'
+          ) &&
+          event.touches.length > 1
+        ) {
+          event.preventDefault();
+        }
+      },
+      {
+        passive: false
+      }
+    );
+
+    document.addEventListener(
+      'touchend',
+      event => {
+        const currentTime =
+          Date.now();
+
+        if (
+          screen.classList.contains(
+            'tap'
+          ) &&
+          currentTime -
+            previousTouchEnd <
+            350
+        ) {
+          event.preventDefault();
+        }
+
+        previousTouchEnd =
+          currentTime;
+      },
+      {
+        passive: false
+      }
+    );
+
+    document.addEventListener(
+      'gesturestart',
+      event => {
+        if (
+          screen.classList.contains(
+            'tap'
+          )
+        ) {
+          event.preventDefault();
+        }
+      },
+      {
+        passive: false
+      }
+    );
+
+    document.addEventListener(
+      'gesturechange',
+      event => {
+        if (
+          screen.classList.contains(
+            'tap'
+          )
+        ) {
+          event.preventDefault();
+        }
+      },
+      {
+        passive: false
+      }
+    );
+
+    document.addEventListener(
+      'dblclick',
+      event => {
+        if (
+          screen.classList.contains(
+            'tap'
+          )
+        ) {
+          event.preventDefault();
+        }
+      },
+      {
+        passive: false
+      }
+    );
+
+    document.addEventListener(
+      'visibilitychange',
+      () => {
+        if (
+          document.hidden &&
+          [
+            'sample',
+            'transition',
+            'measure'
+          ].includes(phase)
+        ) {
+          tempoHidden = true;
+        }
+
+        sendState();
+      }
+    );
+
+    setInterval(
+      sendState,
+      10000
+    );
+
+    document.addEventListener(
+      'contextmenu',
+      event => {
+        if (
+          screen.classList.contains(
+            'tap'
+          ) ||
+          screen.classList.contains(
+            'tempo'
+          )
+        ) {
+          event.preventDefault();
+        }
+      }
+    );
+
+    boot();
+  </script>
+</body>
+</html>
