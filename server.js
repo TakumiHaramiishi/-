@@ -1,63 +1,557 @@
 'use strict';
-const http=require('http'),fs=require('fs'),path=require('path'),crypto=require('crypto');
-const PORT=process.env.PORT||3000,RESULT_MS=Math.max(20,Number(process.env.RESULT_MS||5000)),PUBLIC=path.join(__dirname,'public'),uid=()=>crypto.randomBytes(12).toString('hex');
-const players=new Map(),playerStreams=new Map(),hostStreams=new Set();
-let generation=uid(),roundNo=0,view={mode:'reflex',duration:7};
-let active={type:'idle'},uniqueHistory=[],tempoPlan=[],tempoPracticeDone=false,tempoNext=0,lastReveal=null;
-function newPlayer(name){return{name,reflexBest:null,reflexTries:0,tapBest:{},tapTries:{},uniquePoints:0,uniqueWins:0,tempoRounds:[null,null,null],state:'standby',visible:true,lastSeen:Date.now()}}
-const clean=v=>String(v||'').trim().slice(0,20)||'蜷咲┌縺�';
-const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data))};
-const read=req=>new Promise(ok=>{let b='';req.on('data',c=>b+=c);req.on('end',()=>{try{ok(JSON.parse(b||'{}'))}catch{ok({})}});req.on('error',()=>ok({}))});
-function sse(res,event,data){try{res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)}catch{}}
-function emitAll(event,data){for(const res of playerStreams.values())sse(res,event,data)}
-function emitOne(id,event,data){const res=playerStreams.get(id);if(res)sse(res,event,data)}
-function emitHosts(){const d=payload();for(const res of hostStreams)sse(res,'leaderboard',d)}
-function byName(name){const key=clean(name).toLowerCase();for(const [id,p] of players)if(p.name.toLowerCase()===key)return[id,p];return null}
-function valid(b){return b&&b.sessionGeneration===generation&&players.has(String(b.id||''))}
-function setState(id,state,visible=true){const p=players.get(id);if(!p)return;p.state=state||p.state;p.visible=visible!==false;p.lastSeen=Date.now()}
-function rank(rows,ascending){let prev=null,prevRank=0;return rows.sort((a,b)=>ascending?a.score-b.score:b.score-a.score).map((x,i)=>{const r=prev!==null&&x.score===prev?prevRank:i+1;prev=x.score;prevRank=r;return{...x,rank:r}})}
-function tempoOverall(){const rows=[];for(const [id,p] of players){if(p.tempoRounds.every(x=>x&&x.valid)){const score=Math.round(p.tempoRounds.reduce((s,x)=>s+x.avg,0)/3*10)/10;rows.push({id,name:p.name,score,rounds:p.tempoRounds.map(x=>x.avg),tries:3})}}return rank(rows,true)}
-function leaderboard(){
- if(view.mode==='tempo')return tempoOverall();
- if(view.mode==='unique')return rank([...players.values()].map(p=>({name:p.name,score:p.uniquePoints,tries:p.uniqueWins})).filter(x=>x.score>0),false);
- if(view.mode==='tap'){const k=String(view.duration);return rank([...players.values()].map(p=>({name:p.name,score:p.tapBest[k],tries:p.tapTries[k]||0})).filter(x=>Number.isFinite(x.score)),false)}
- return rank([...players.values()].filter(p=>Number.isFinite(p.reflexBest)).map(p=>({name:p.name,score:p.reflexBest,tries:p.reflexTries})),true)
+
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+const PORT = process.env.PORT || 3000;
+const RESULT_MS = Math.max(
+  20,
+  Number(process.env.RESULT_MS || 5000)
+);
+const PUBLIC = path.join(__dirname, 'public');
+
+const uid = () => crypto.randomBytes(12).toString('hex');
+
+const players = new Map();
+const playerStreams = new Map();
+const hostStreams = new Set();
+
+let generation = uid();
+let roundNo = 0;
+
+let view = {
+  mode: 'reflex',
+  duration: 7
+};
+
+let active = {
+  type: 'idle'
+};
+
+let uniqueHistory = [];
+let tempoHistory = [];
+let tempoPlan = [];
+let tempoPracticeDone = false;
+let tempoNext = 0;
+let lastReveal = null;
+
+function newPlayer(name, clientKey = '') {
+  return {
+    clientKey: String(clientKey || ''),
+    name,
+    reflexBest: null,
+    reflexTries: 0,
+    tapBest: {},
+    tapTries: {},
+    uniquePoints: 0,
+    uniqueWins: 0,
+    tempoRounds: [null, null, null],
+    state: 'standby',
+    visible: true,
+    lastSeen: Date.now()
+  };
 }
-function booby(board){if(['unique','tempo'].includes(view.mode)||board.length<2)return{prize:[],maker:[]};const scores=[...new Set(board.map(x=>x.score))];if(scores.length<2)return{prize:[],maker:board.map(x=>x.name)};return{prize:board.filter(x=>x.score===scores.at(-2)).map(x=>x.name),maker:board.filter(x=>x.score===scores.at(-1)).map(x=>x.name)}}
-function presence(){const now=Date.now();let standby=0,connected=0,playing=0;const detail=[];for(const[id,p]of players){const online=playerStreams.has(id)&&now-p.lastSeen<30000;if(online)connected++;if(online&&p.visible&&p.state==='standby')standby++;else{if(online&&p.state!=='standby')playing++;detail.push({name:p.name,state:!online?'蛻�妙繝ｻ譛ｪ遒ｺ隱�':!p.visible?'逕ｻ髱｢髱櫁｡ｨ遉ｺ':p.state})}}return{connected,standby,playing,notStandby:players.size-standby,detail}}
-function completedCount(){if(active.type.startsWith('unique'))return active.answers?.size||0;return active.results?.size||0}
-function stats(){return{joined:players.size,answered:completedCount(),round:roundNo,active:!['idle','revealed'].includes(active.type),activeMode:active.mode||view.mode,mode:view.mode,duration:view.duration,practice:!!active.practice,roundCompleted:completedCount(),uniqueStatus:active.type.startsWith('unique')?active.type.replace('unique-',''):'idle',generation,tempoPracticeDone,tempoNext,tempoLabel:active.mode==='tempo'?active.label:null,tempoMs:active.mode==='tempo'?active.tempoMs:null,...presence()}}
-function payload(){const board=leaderboard();return{board,stats:stats(),booby:booby(board),uniqueResult:lastReveal?.kind==='unique'?lastReveal.result:null,uniqueHistory,lastReveal}}
-function push(){emitHosts()}
-function currentParticipants(){return [...players.keys()]}
-function readyForAuto(){return players.size>0&&completedCount()>=players.size}
-function personalRanking(board,id,raw){const self=board.find(x=>x.id===id||x.name===players.get(id)?.name);return{top3:board.slice(0,3),self,raw,durationMs:RESULT_MS}}
-function showRanking(kind,board,rawMap,label,extra={}){lastReveal={kind,label,board,at:Date.now(),...extra};for(const id of players.keys())emitOne(id,'ranking-show',{kind,label,...personalRanking(board,id,rawMap?.get(id)),...extra});push();setTimeout(()=>{for(const p of players.values())p.state='standby';emitAll('standby',{});active={type:'idle'};push()},RESULT_MS)}
-function finishSpeedRound(force=false){if(active.type!=='speed')return;const board=active.practice?rank([...active.results.entries()].map(([id,x])=>({...x,id})).filter(x=>x.valid).map(x=>({id:x.id,name:x.name,score:x.score,tries:1})),active.mode==='reflex'):leaderboard();active.type='revealed';showRanking(active.mode,board,active.results,active.label,{unit:active.mode==='tap'?'蝗�':'ms',practice:active.practice});}
-function tempoBoard(map){return rank([...map.entries()].map(([id,x])=>({id,name:x.name,score:x.avg,tries:1,raw:x})).filter(x=>x.raw.valid),true)}
-function finishTempoRound(){if(active.type!=='tempo')return;const done=active;const board=tempoBoard(done.results);if(done.practice)tempoPracticeDone=true;else tempoNext=Math.max(tempoNext,done.index+1);active.type='revealed';lastReveal={kind:'tempo-round',label:done.label,board,at:Date.now(),tempoMs:done.tempoMs};for(const id of players.keys())emitOne(id,'ranking-show',{kind:'tempo-round',label:done.label,unit:'ms',...personalRanking(board,id,done.results),tempoMs:done.tempoMs,durationMs:RESULT_MS});push();setTimeout(()=>{for(const p of players.values())p.state='standby';emitAll('standby',{});active={type:'idle'};push();if(!done.practice&&done.index===2)setTimeout(showTempoOverall,Math.min(600,RESULT_MS+20))},RESULT_MS)}
-function showTempoOverall(){const board=tempoOverall();lastReveal={kind:'tempo-overall',label:'繝�Φ繝昴ご繝ｼ繝� 邱丞粋邨先棡',board,at:Date.now()};for(const id of players.keys())emitOne(id,'ranking-show',{kind:'tempo-overall',label:'繝�Φ繝昴ご繝ｼ繝� 邱丞粋邨先棡',unit:'ms',...personalRanking(board,id,null),durationMs:RESULT_MS});push();setTimeout(()=>{emitAll('standby',{});push()},RESULT_MS)}
-function maybeFinish(){if(!readyForAuto())return;if(active.type==='speed')finishSpeedRound();else if(active.type==='tempo')finishTempoRound()}
-function evaluateUnique(){const counts=new Map();for(const n of active.answers.values())counts.set(n,(counts.get(n)||0)+1);const nums=[...counts].filter(([,c])=>c===1).map(([n])=>n).sort((a,b)=>b-a);const podium=nums.slice(0,3).map((number,i)=>{let id='',name='';for(const[pid,n]of active.answers)if(n===number){id=pid;name=players.get(pid)?.name||'';break}return{place:i+1,number,id,name}});const winningNumber=nums[0]??null,winners=podium[0]?[podium[0].name]:[];if(!active.practice&&podium[0]){const p=players.get(podium[0].id);p.uniquePoints++;p.uniqueWins++}const result={historyId:uid(),roundId:roundNo,roundNumber:uniqueHistory.length+1,winningNumber,winners,podium,answerCount:active.answers.size,distribution:[...counts].sort((a,b)=>a[0]-b[0]).map(([number,count])=>({number,count,unique:count===1,winner:number===winningNumber})),practice:active.practice};if(!active.practice)uniqueHistory.push(result);return result}
-function revealUnique(){if(active.type!=='unique-closed')return null;const result=evaluateUnique(),answers=active.answers;active={type:'revealed',mode:'unique'};lastReveal={kind:'unique',label:'譛螟ｧ繝ｦ繝九�繧ｯ繝翫Φ繝舌� 邨先棡',result,at:Date.now()};for(const id of players.keys()){const own=answers.get(id),count=own?[...answers.values()].filter(n=>n===own).length:0,place=result.podium.find(x=>x.id===id)?.place||null;emitOne(id,'unique-result',{...result,ownNumber:own||null,ownCount:count,ownPlace:place,durationMs:RESULT_MS})}push();setTimeout(()=>{for(const p of players.values())p.state='standby';emitAll('standby',{});active={type:'idle'};push()},RESULT_MS);return result}
-function resetScores(){for(const p of players.values()){p.reflexBest=null;p.reflexTries=0;p.tapBest={};p.tapTries={};p.uniquePoints=0;p.uniqueWins=0;p.tempoRounds=[null,null,null]}uniqueHistory=[];tempoPlan=[];tempoPracticeDone=false;tempoNext=0;lastReveal=null;active={type:'idle'}}
-function serve(res,file){fs.readFile(file,(e,d)=>{if(e){res.writeHead(404);return res.end('Not found')}res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(d)})}
-const server=http.createServer(async(req,res)=>{const u=new URL(req.url,`http://${req.headers.host||'localhost'}`),p=u.pathname;
- if(p==='/healthz')return json(res,200,{ok:true});if(p==='/'||p==='/player'||p==='/player.html')return serve(res,path.join(PUBLIC,'player.html'));if(p==='/host'||p==='/host.html')return serve(res,path.join(PUBLIC,'host.html'));
- if(p==='/events/player'){const id=u.searchParams.get('id');if(u.searchParams.get('generation')!==generation)return json(res,409,{staleSession:true});if(!players.has(id))return json(res,404,{playerMissing:true});res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store',Connection:'keep-alive','X-Accel-Buffering':'no'});res.write('\n');const old=playerStreams.get(id);if(old&&old!==res)try{old.end()}catch{}playerStreams.set(id,res);setState(id,'standby');sse(res,'hello',{generation});push();req.on('close',()=>{if(playerStreams.get(id)===res)playerStreams.delete(id);push()});return}
- if(p==='/events/host'){res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store',Connection:'keep-alive','X-Accel-Buffering':'no'});res.write('\n');hostStreams.add(res);sse(res,'leaderboard',payload());req.on('close',()=>hostStreams.delete(res));return}
- if(req.method==='POST'&&p==='/api/join'){const b=await read(req),name=clean(b.name),old=byName(name);if(old)return json(res,200,{id:old[0],name:old[1].name,sessionGeneration:generation});const id=uid();players.set(id,newPlayer(name));push();return json(res,200,{id,name,sessionGeneration:generation})}
- if(req.method==='POST'&&p==='/api/rejoin'){const b=await read(req),id=String(b.id||'');if(b.sessionGeneration!==generation)return json(res,409,{staleSession:true});if(!players.has(id))return json(res,404,{playerMissing:true});setState(id,'standby');return json(res,200,{id,name:players.get(id).name,sessionGeneration:generation})}
- if(req.method==='POST'&&p==='/api/state'){const b=await read(req);if(!valid(b))return json(res,409,{staleSession:true});setState(String(b.id),b.state,b.visible);push();return json(res,200,{ok:true})}
- if(req.method==='POST'&&p==='/api/select-ranking'){const b=await read(req);view.mode=['reflex','tap','unique','tempo'].includes(b.mode)?b.mode:'reflex';view.duration=[5,7,10].includes(Number(b.duration))?Number(b.duration):7;push();return json(res,200,payload())}
- if(req.method==='POST'&&p==='/api/start'){if(active.type!=='idle')return json(res,409,{busy:true});const b=await read(req),mode=b.mode==='tap'?'tap':'reflex',duration=[5,7,10].includes(Number(b.duration))?Number(b.duration):7;roundNo++;view={mode,duration};active={type:'speed',mode,duration,practice:!!b.practice,results:new Map(),label:(mode==='tap'?`騾｣謇�${duration}遘蛋:'蜿榊ｰ�･樒ｵ�')+(b.practice?'�ｻ邱ｴ鄙抵ｼｽ':'')};for(const pl of players.values())pl.state='playing';emitAll(mode==='tap'?'tap-start':'reflex-start',{roundId:roundNo,duration,practice:active.practice,countdown:3,generation});push();return json(res,200,{ok:true})}
- if(req.method==='POST'&&p==='/api/result'){const b=await read(req);if(!valid(b)||active.type!=='speed')return json(res,409,{closed:true});const id=String(b.id),pl=players.get(id);let raw;if(active.mode==='tap'){const n=Math.max(0,Math.round(Number(b.taps)||0));raw={name:pl.name,valid:true,score:n};if(!active.practice){const k=String(active.duration);if(!Number.isFinite(pl.tapBest[k])||n>pl.tapBest[k])pl.tapBest[k]=n;pl.tapTries[k]=(pl.tapTries[k]||0)+1}}else if(b.foul)raw={name:pl.name,valid:false,reason:'繝輔Λ繧､繝ｳ繧ｰ'};else{const n=Math.round(Number(b.timeMs));raw=Number.isFinite(n)&&n>0?{name:pl.name,valid:true,score:n}:{name:pl.name,valid:false,reason:'險倬鹸縺ｪ縺�'};if(raw.valid&&!active.practice){if(!Number.isFinite(pl.reflexBest)||n<pl.reflexBest)pl.reflexBest=n;pl.reflexTries++}}active.results.set(id,raw);setState(id,'result');push();setTimeout(maybeFinish,120);return json(res,200,{ok:true})}
- if(req.method==='POST'&&p==='/api/finish-active'){if(active.type==='speed')finishSpeedRound(true);else if(active.type==='tempo')finishTempoRound();else return json(res,409,{wrongState:true});return json(res,200,{ok:true})}
- if(req.method==='POST'&&p==='/api/unique'){const b=await read(req);if(b.action==='open'){if(active.type!=='idle')return json(res,409,{busy:true});roundNo++;view={mode:'unique',duration:0};active={type:'unique-open',mode:'unique',practice:!!b.practice,answers:new Map()};emitAll('unique-open',{roundId:roundNo,practice:active.practice,generation});push();return json(res,200,{ok:true})}if(b.action==='close'&&active.type==='unique-open'){active.type='unique-closed';emitAll('unique-closed',{});push();return json(res,200,{ok:true})}if(b.action==='reveal'&&active.type==='unique-closed'){const result=revealUnique();return json(res,200,{ok:true,result})}return json(res,409,{wrongState:true})}
- if(req.method==='POST'&&p==='/api/unique-answer'){const b=await read(req);if(!valid(b)||active.type!=='unique-open')return json(res,409,{closed:true});const n=parseInt(b.number,10);if(!(n>=1&&n<=100))return json(res,400,{invalidNumber:true});active.answers.set(String(b.id),n);setState(String(b.id),'answering');push();return json(res,200,{ok:true,number:n})}
- if(req.method==='POST'&&p==='/api/tempo/start'){const b=await read(req),practiceMode=!!b.practice,index=practiceMode?-1:Number(b.index);if(active.type!=='idle')return json(res,409,{busy:true});if(!practiceMode&&index!==tempoNext)return json(res,409,{wrongRound:true});if(!tempoPlan.length){const choice=a=>a[Math.floor(Math.random()*a.length)];tempoPlan=[choice([700,800,900]),choice([1000,1100,1200]),choice([1300,1400,1500])].sort(()=>Math.random()-.5)}const tempoMs=practiceMode?[700,800,900,1000,1100,1200,1300,1400,1500][Math.floor(Math.random()*9)]:tempoPlan[index];roundNo++;view={mode:'tempo',duration:0};active={type:'tempo',mode:'tempo',practice:practiceMode,index,tempoMs,results:new Map(),label:practiceMode?'繝�Φ繝昴ご繝ｼ繝� 邱ｴ鄙�':`繝�Φ繝昴ご繝ｼ繝� 譛ｬ逡ｪ 隨ｬ${index+1}繝ｩ繧ｦ繝ｳ繝荏};for(const pl of players.values())pl.state='playing';emitAll('tempo-start',{roundId:roundNo,practice:practiceMode,index,tempoMs,label:active.label,generation});push();return json(res,200,{ok:true})}
- if(req.method==='POST'&&p==='/api/tempo/result'){const b=await read(req);if(!valid(b)||active.type!=='tempo'||Number(b.roundId)!==roundNo)return json(res,409,{closed:true});const id=String(b.id),pl=players.get(id);let x;if(!Array.isArray(b.intervals)||b.intervals.length!==9)x={name:pl.name,valid:false,reason:'繧ｿ繝��蝗樊焚荳崎ｶｳ'};else if(b.hidden)x={name:pl.name,valid:false,reason:'逕ｻ髱｢髱櫁｡ｨ遉ｺ'};else if(Number(b.transitionMs)<active.tempoMs*.5||Number(b.transitionMs)>active.tempoMs*1.5)x={name:pl.name,valid:false,reason:'隕区悽縺九ｉ邯咏ｶ壹〒縺阪∪縺帙ｓ縺ｧ縺励◆'};else if(Number(b.elapsedMs)>active.tempoMs*15)x={name:pl.name,valid:false,reason:'譎る俣蛻�ｌ'};else{const ints=b.intervals.map(Number);if(ints.some(n=>!Number.isFinite(n)||n<200))x={name:pl.name,valid:false,reason:'譎ょ綾繝��繧ｿ荳肴ｭ｣'};else{const errors=ints.map(n=>Math.abs(n-active.tempoMs));x={name:pl.name,valid:true,avg:Math.round(errors.reduce((a,c)=>a+c,0)/9*10)/10,max:Math.round(Math.max(...errors)*10)/10}}}active.results.set(id,x);if(!active.practice&&x.valid)pl.tempoRounds[active.index]=x;setState(id,'result');push();setTimeout(maybeFinish,120);return json(res,200,{ok:true,record:x})}
- if(req.method==='POST'&&p==='/api/reset'){resetScores();emitAll('reset',{});push();return json(res,200,{ok:true})}
- if(req.method==='POST'&&p==='/api/reset-all'){emitAll('kick',{});for(const r of playerStreams.values())try{r.end()}catch{}playerStreams.clear();players.clear();generation=uid();roundNo=0;view={mode:'reflex',duration:7};resetScores();push();return json(res,200,{ok:true})}
- res.writeHead(404);res.end('Not found')});
-setInterval(push,10000).unref();server.listen(PORT,'0.0.0.0',()=>console.log(`Halloween complete v5 on ${PORT}`));
+
+const clean = value =>
+  String(value || '').trim().slice(0, 20) || '名無し';
+
+function json(res, status, data) {
+  res.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store'
+  });
+
+  res.end(JSON.stringify(data));
+}
+
+function read(req) {
+  return new Promise(resolve => {
+    let body = '';
+
+    req.on('data', chunk => {
+      body += chunk;
+    });
+
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(body || '{}'));
+      } catch {
+        resolve({});
+      }
+    });
+
+    req.on('error', () => {
+      resolve({});
+    });
+  });
+}
+
+function sse(res, event, data) {
+  try {
+    res.write(
+      `event: ${event}\n` +
+      `data: ${JSON.stringify(data)}\n\n`
+    );
+  } catch {
+    // 接続切断時は何もしない
+  }
+}
+
+function emitAll(event, data) {
+  for (const res of playerStreams.values()) {
+    sse(res, event, data);
+  }
+}
+
+function emitOne(id, event, data) {
+  const res = playerStreams.get(id);
+
+  if (res) {
+    sse(res, event, data);
+  }
+}
+
+function emitHosts() {
+  const data = payload();
+
+  for (const res of hostStreams) {
+    sse(res, 'leaderboard', data);
+  }
+}
+
+function byName(name) {
+  const key = clean(name).toLowerCase();
+
+  for (const [id, player] of players) {
+    if (player.name.toLowerCase() === key) {
+      return [id, player];
+    }
+  }
+
+  return null;
+}
+
+function byClientKey(clientKey) {
+  const key = String(clientKey || '');
+
+  if (!key) {
+    return null;
+  }
+
+  for (const [id, player] of players) {
+    if (player.clientKey === key) {
+      return [id, player];
+    }
+  }
+
+  return null;
+}
+
+function valid(body) {
+  return (
+    body &&
+    body.sessionGeneration === generation &&
+    players.has(String(body.id || ''))
+  );
+}
+
+function setState(id, state, visible = true) {
+  const player = players.get(id);
+
+  if (!player) {
+    return;
+  }
+
+  player.state = state || player.state;
+  player.visible = visible !== false;
+  player.lastSeen = Date.now();
+}
+
+function rank(rows, ascending) {
+  let previousScore = null;
+  let previousRank = 0;
+
+  return rows
+    .sort((a, b) =>
+      ascending
+        ? a.score - b.score
+        : b.score - a.score
+    )
+    .map((row, index) => {
+      const currentRank =
+        previousScore !== null &&
+        row.score === previousScore
+          ? previousRank
+          : index + 1;
+
+      previousScore = row.score;
+      previousRank = currentRank;
+
+      return {
+        ...row,
+        rank: currentRank
+      };
+    });
+}
+
+function tempoOverall() {
+  const rows = [];
+
+  for (const [id, player] of players) {
+    const completedAllRounds = player.tempoRounds.every(
+      result => result && result.valid
+    );
+
+    if (!completedAllRounds) {
+      continue;
+    }
+
+    const score =
+      Math.round(
+        (
+          player.tempoRounds.reduce(
+            (sum, result) => sum + result.avg,
+            0
+          ) / 3
+        ) * 10
+      ) / 10;
+
+    rows.push({
+      id,
+      name: player.name,
+      score,
+      rounds: player.tempoRounds.map(result => result.avg),
+      tries: 3
+    });
+  }
+
+  return rank(rows, true);
+}
+
+function leaderboard() {
+  if (view.mode === 'tempo') {
+    return tempoOverall();
+  }
+
+  if (view.mode === 'unique') {
+    const rows = [...players.values()]
+      .map(player => ({
+        name: player.name,
+        score: player.uniquePoints,
+        tries: player.uniqueWins
+      }))
+      .filter(row => row.score > 0);
+
+    return rank(rows, false);
+  }
+
+  if (view.mode === 'tap') {
+    const durationKey = String(view.duration);
+
+    const rows = [...players.values()]
+      .map(player => ({
+        name: player.name,
+        score: player.tapBest[durationKey],
+        tries: player.tapTries[durationKey] || 0
+      }))
+      .filter(row => Number.isFinite(row.score));
+
+    return rank(rows, false);
+  }
+
+  const rows = [...players.values()]
+    .filter(player => Number.isFinite(player.reflexBest))
+    .map(player => ({
+      name: player.name,
+      score: player.reflexBest,
+      tries: player.reflexTries
+    }));
+
+  return rank(rows, true);
+}
+
+function booby(board) {
+  if (
+    ['unique', 'tempo'].includes(view.mode) ||
+    board.length < 2
+  ) {
+    return {
+      prize: [],
+      maker: []
+    };
+  }
+
+  const scores = [...new Set(board.map(row => row.score))];
+
+  if (scores.length < 2) {
+    return {
+      prize: [],
+      maker: board.map(row => row.name)
+    };
+  }
+
+  return {
+    prize: board
+      .filter(row => row.score === scores.at(-2))
+      .map(row => row.name),
+
+    maker: board
+      .filter(row => row.score === scores.at(-1))
+      .map(row => row.name)
+  };
+}
+
+function presence() {
+  const currentTime = Date.now();
+
+  let standby = 0;
+  let connected = 0;
+  let playing = 0;
+
+  const detail = [];
+
+  for (const [id, player] of players) {
+    const online =
+      playerStreams.has(id) &&
+      currentTime - player.lastSeen < 30000;
+
+    if (online) {
+      connected += 1;
+    }
+
+    if (
+      online &&
+      player.visible &&
+      player.state === 'standby'
+    ) {
+      standby += 1;
+      continue;
+    }
+
+    if (online && player.state !== 'standby') {
+      playing += 1;
+    }
+
+    detail.push({
+      name: player.name,
+      state: !online
+        ? '切断・未確認'
+        : !player.visible
+          ? '画面非表示'
+          : player.state
+    });
+  }
+
+  return {
+    connected,
+    standby,
+    playing,
+    notStandby: players.size - standby,
+    detail
+  };
+}
+
+function completedCount() {
+  if (active.type.startsWith('unique')) {
+    return active.answers?.size || 0;
+  }
+
+  return active.results?.size || 0;
+}
+
+function stats() {
+  return {
+    joined: players.size,
+    answered: completedCount(),
+    round: roundNo,
+
+    active: !['idle', 'revealed'].includes(active.type),
+
+    activeMode: active.mode || view.mode,
+    mode: view.mode,
+    duration: view.duration,
+    practice: Boolean(active.practice),
+    roundCompleted: completedCount(),
+
+    uniqueStatus: active.type.startsWith('unique')
+      ? active.type.replace('unique-', '')
+      : 'idle',
+
+    generation,
+
+    tempoPracticeDone,
+    tempoNext,
+
+    tempoLabel:
+      active.mode === 'tempo'
+        ? active.label
+        : null,
+
+    tempoMs:
+      active.mode === 'tempo'
+        ? active.tempoMs
+        : null,
+
+    ...presence()
+  };
+}
+
+function payload() {
+  const board = leaderboard();
+
+  return {
+    board,
+    stats: stats(),
+    booby: booby(board),
+
+    uniqueResult:
+      lastReveal?.kind === 'unique'
+        ? lastReveal.result
+        : null,
+
+    uniqueHistory,
+    tempoHistory,
+    lastReveal
+  };
+}
+
+function push() {
+  emitHosts();
+}
+
+function readyForAuto() {
+  return (
+    players.size > 0 &&
+    completedCount() >= players.size
+  );
+}
+
+function personalRanking(board, id, raw) {
+  const playerName = players.get(id)?.name;
+
+  const self = board.find(
+    row =>
+      row.id === id ||
+      row.name === playerName
+  );
+
+  return {
+    top3: board.slice(0, 3),
+    self,
+    raw,
+    durationMs: RESULT_MS
+  };
+}
+
+function returnPlayersToStandby() {
+  for (const player of players.values()) {
+    player.state = 'standby';
+  }
+
+  emitAll('standby', {});
+
+  active = {
+    type: 'idle'
+  };
+
+  push();
+}
+
+function showRanking(
+  kind,
+  board,
+  rawMap,
+  label,
+  extra = {}
+) {
+  lastReveal = {
+    kind,
+    label,
+    board,
+    at: Date.now(),
+    ...extra
+  };
+
+  for (const id of players.keys()) {
+    emitOne(id, 'ranking-show', {
+      kind,
+      label,
+      ...personalRanking(
+        board,
+        id,
+        rawMap?.get(id)
+      ),
+      ...extra
+    });
+  }
+
+  push();
+
+  setTimeout(
+    returnPlayersToStandby,
+    RESULT_MS
+  );
+}
+
+function finishSpeedRound() {
+  if (active.type !== 'speed') {
+    return;
+  }
+
+  const completedRound = active;
+
+  let board;
+
+  if (completedRound.practice) {
+    const practiceRows = [
+      ...completedRound.results.entries()
+    ]
+      .map(([id, result]) => ({
+        ...result,
+        id
+      }))
+      .filter(result => result.valid)
+      .map(result => ({
+        id: result.id,
+        name: result.name,
+        score: result.score,
+        tries: 1
+      }));
+
+    board = rank(
+      practiceRows,
+      completedRound.mode === 'reflex'
+    );
+  } else {
+    board = leaderboard();
+  }
+
+  active = {
+    type: 'revealed',
+    mode: completedRound.mode
+  };
+
+  showRanking(
+    completedRound.mode,
+    board,
+    completedRound.results,
+    completedRound.label,
+    {
+      unit:
+        completedRound.mode === 'tap'
+          ? '回'
+          : 'ms',
+
+      practice: completedRound.practice
+    }
+  );
+}
+
+function tempoBoard(resultMap) {
+  const rows = [
+    ...resultMap.entries()
+  ]
+    .map(([id, result]) => ({
+   
