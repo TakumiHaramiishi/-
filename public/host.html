@@ -1,12 +1,2322 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>技能人財養成部 ハロウィンパーティー｜ゲーム司会席</title><style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;font-family:-apple-system,"Noto Sans JP",sans-serif;background:#120b1e;color:#fff}button{font:inherit}.wrap{display:grid;grid-template-columns:420px 1fr;min-height:100vh}.side{padding:16px;overflow-y:auto;border-right:2px solid #f28a24;background:linear-gradient(#321747,#1b1029)}.main{padding:22px;overflow-y:auto;background:radial-gradient(circle at 80% 0,#301840,#120b1e 55%)}h1,h2{margin:.2em 0}.event{color:#ff9c2e;font-weight:900}.qr{display:flex;align-items:center;justify-content:center;min-height:145px;padding:8px;border-radius:14px;background:#fff;color:#12303f}.qr img{width:135px;height:135px}.url{margin:7px 0;padding:7px;border-radius:8px;background:#42245a;font-size:.75rem;word-break:break-all}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.card{padding:7px;border-radius:10px;background:#42245a;text-align:center}.card b{display:block;color:#ffb257;font-size:1.4rem}.group{margin-top:10px;padding:10px;border-radius:12px;background:#321c45}.buttons{display:flex;flex-wrap:wrap;gap:6px}.buttons button,.action{padding:10px 12px;border:2px solid #6e4d84;border-radius:10px;background:#43235c;color:#fff;font-weight:800;cursor:pointer}.buttons button.on{border-color:#ffb257;background:#ef7f1a}.action{width:100%;margin-top:8px;padding:14px;border:0}.start{background:#27ae60}.orange{background:#d07816}.purple{background:#843bad}.reset{background:#526d88}.danger{background:#8e3b3b}.action:disabled{opacity:.45}.status{margin-top:10px;padding:11px;border-radius:10px;background:#3c2550;line-height:1.45}.status.ok{background:#17633a}.status.warn{background:#8b6914}.status.playing{background:#075b87}.detail{font-size:.82rem;line-height:1.5}.hidden{display:none!important}.pager{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.pager button{padding:7px 10px;border:1px solid #80599a;border-radius:8px;background:#442558;color:#fff}.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.rank{display:grid;grid-template-columns:46px 1fr auto auto;gap:8px;align-items:center;min-height:54px;padding:8px;border-radius:9px;background:#2a183b}.rank:nth-child(even){background:#321d45}.rank b{font-size:1.25rem}.score{color:#ffd08a;font-size:1.2rem;font-weight:900}.top1{background:#f1c40f!important;color:#20142b}.top2{background:#bdc3c7!important;color:#20142b}.top3{background:#cd7f32!important;color:#20142b}.top1 .score,.top2 .score,.top3 .score{color:#20142b}.awards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.award,.panel{padding:12px;border-radius:12px;background:#2f1b41}.podium{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}.podium>div{padding:14px;border-radius:12px;background:#2f1b41;font-size:1.2rem;font-weight:900}.history{margin-top:15px;padding:14px;border:1px solid #744c90;border-radius:12px;background:#21132f}.small{color:#c7b8d2;font-size:.82rem}@media(max-width:950px){.wrap{grid-template-columns:350px 1fr}.board{grid-template-columns:1fr}}
-</style></head><body><div class="wrap"><aside class="side"><div class="event">🎃 技能人財養成部</div><h1>ハロウィンパーティー<br>ゲーム司会席 👻</h1><div id="qr" class="qr">QR生成中…</div><div id="url" class="url"></div><div class="stats"><div class="card"><b id="joined">0</b>参加</div><div class="card"><b id="standby">0</b>待機</div><div class="card"><b id="answered">0</b>完了</div><div class="card"><b id="connected">0</b>接続</div><div class="card"><b id="missing">0</b>要確認</div><div class="card"><b id="round">0</b>ラウンド</div></div><div id="status" class="status">状態確認中</div><div id="detail" class="detail"></div><div class="group"><div>🎮 ゲームを選択</div><div class="buttons"><button id="reflex" class="on">反射神経</button><button id="tap">連打</button><button id="unique">最大ユニーク</button><button id="tempo">テンポ</button></div><div id="durations" class="buttons hidden" style="margin-top:8px"><button data-d="5">5秒</button><button data-d="7" class="on">7秒</button><button data-d="10">10秒</button></div></div><div id="modeGroup" class="group"><div>モード</div><div class="buttons"><button id="official" class="on">本番</button><button id="practice">練習</button></div></div><button id="mainAction" class="action start">反射神経を開始</button><button id="force" class="action orange hidden">未完了者ありで結果確定</button><button id="reset" class="action reset">記録をリセット</button><button id="resetAll" class="action danger">全リセット</button></aside><main class="main"><h2 id="title">🏆 反射神経ランキング</h2><div id="tempoInfo" class="status hidden"></div><div id="pager" class="pager"></div><div id="board" class="board"><div class="panel">記録なし</div></div><div id="podium" class="podium hidden"></div><div id="awards" class="awards"><div class="award"><b>🎁 ブービー賞</b><div id="booby">該当なし</div></div><div class="award"><b>🫣 ブービーメーカー</b><div id="maker">該当なし</div></div></div><section id="history" class="history hidden"><h2>🧠 最大ユニーク 過去ラウンド</h2><div id="historyBody">本番結果はまだありません</div></section></main></div><script>
-'use strict';const $=id=>document.getElementById(id);let mode='reflex',duration=7,practice=false,data={},page=1;const PAGE=30;async function post(url,b={}){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify(b)}),j=await r.json();if(!r.ok)throw Error(JSON.stringify(j));return j}function esc(s){return String(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}function qr(){const url=location.origin+'/';$('url').textContent=url;const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';sc.onload=()=>{const q=window.qrcode(0,'M');q.addData(url);q.make();$('qr').innerHTML=q.createImgTag(5,5)};sc.onerror=()=>$('qr').textContent='QR読込失敗';document.head.appendChild(sc)}
-function choose(m){mode=m;page=1;select()}async function select(){['reflex','tap','unique','tempo'].forEach(x=>$(x).classList.toggle('on',x===mode));$('durations').classList.toggle('hidden',mode!=='tap');$('modeGroup').classList.toggle('hidden',mode==='tempo');$('history').classList.toggle('hidden',mode!=='unique');data=await post('/api/select-ranking',{mode,duration});render(data);buttons()}
-['reflex','tap','unique','tempo'].forEach(x=>$(x).onclick=()=>choose(x));document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{duration=Number(b.dataset.d);document.querySelectorAll('[data-d]').forEach(x=>x.classList.toggle('on',x===b));select()});$('official').onclick=()=>{practice=false;buttons()};$('practice').onclick=()=>{practice=true;buttons()};
-function buttons(){const s=data.stats||{};$('official').classList.toggle('on',!practice);$('practice').classList.toggle('on',practice);$('force').classList.toggle('hidden',!s.active||!['reflex','tap','tempo'].includes(s.activeMode));if(mode==='unique'){const u=s.uniqueStatus||'idle';$('mainAction').textContent=u==='open'?'回答を締め切る':u==='closed'?'結果を発表する':'回答受付開始'+(practice?'［練習］':'');$('mainAction').className='action '+(u==='open'?'orange':u==='closed'?'purple':'start')}else if(mode==='tempo'){if(s.activeMode==='tempo'&&s.active){$('mainAction').textContent=`${s.roundCompleted||0}/${s.joined||0}人完了`; $('mainAction').disabled=true}else if(!s.tempoPracticeDone){$('mainAction').textContent='テンポゲーム 練習を開始';$('mainAction').disabled=false}else if((s.tempoNext||0)<3){$('mainAction').textContent=`テンポゲーム 本番 第${(s.tempoNext||0)+1}ラウンドを開始`;$('mainAction').disabled=false}else{$('mainAction').textContent='テンポゲーム完了';$('mainAction').disabled=true}}else{$('mainAction').textContent=(mode==='tap'?`連打${duration}秒`:'反射神経')+'を開始'+(practice?'［練習］':'');$('mainAction').className='action start';$('mainAction').disabled=!!s.active}}
-$('mainAction').onclick=async()=>{const s=data.stats||{};try{if(mode==='unique'){const action=s.uniqueStatus==='open'?'close':s.uniqueStatus==='closed'?'reveal':'open';await post('/api/unique',{action,practice})}else if(mode==='tempo'){await post('/api/tempo/start',{practice:!s.tempoPracticeDone,index:s.tempoNext||0})}else await post('/api/start',{mode,duration,practice})}catch(e){alert('操作できませんでした')} };$('force').onclick=()=>confirm('未完了者がいても結果を確定しますか？')&&post('/api/finish-active');$('reset').onclick=()=>confirm('全ゲームの記録をリセットしますか？')&&post('/api/reset');$('resetAll').onclick=()=>confirm('参加者を含めて全リセットしますか？')&&post('/api/reset-all');
-function render(d){data=d;const s=d.stats||{};$('joined').textContent=s.joined||0;$('standby').textContent=s.standby||0;$('answered').textContent=s.roundCompleted||0;$('connected').textContent=s.connected||0;$('missing').textContent=s.notStandby||0;$('round').textContent=s.round||0;const all=(s.joined>0&&s.standby===s.joined);$('status').textContent=s.active?`▶ ${nameOf(s.activeMode)}：進行中　完了 ${s.roundCompleted||0}/${s.joined||0}`:all?'✓ 全員ゲームスタンバイ中':`⚠ ${s.notStandby||0}人が待機画面ではありません`;$('status').className='status '+(s.active?'playing':all?'ok':'warn');$('detail').innerHTML=(s.detail||[]).map(x=>`${esc(x.name)}：${esc(x.state)}`).join('<br>');$('tempoInfo').classList.toggle('hidden',s.mode!=='tempo');$('tempoInfo').textContent=s.tempoMs?`今回のテンポ（運営のみ）：${(s.tempoMs/1000).toFixed(1)}秒`:'本番は速め・標準・遅めを1回ずつ抽選';renderBoard(d);buttons()}
-function nameOf(m){return m==='tap'?`連打${duration}秒`:m==='unique'?'最大ユニーク':m==='tempo'?'テンポゲーム':'反射神経'}function renderBoard(d){const s=d.stats||{},board=d.board||[],unit=s.mode==='tap'?'回':s.mode==='unique'?'点':'ms';$('title').textContent=s.mode==='tap'?`🏆 連打${s.duration}秒ランキング`:s.mode==='unique'?'🎃 最大ユニークナンバー 結果':s.mode==='tempo'?'🎵 テンポゲーム 総合ランキング':'🏆 反射神経ランキング';const isU=s.mode==='unique';$('board').classList.toggle('hidden',isU);$('podium').classList.toggle('hidden',!isU);$('awards').classList.toggle('hidden',isU||s.mode==='tempo');if(isU){const r=d.uniqueResult||d.uniqueHistory?.at(-1);$('podium').innerHTML=[1,2,3].map(i=>{const x=r?.podium?.find(y=>y.place===i);return `<div>${['','🥇','🥈','🥉'][i]} ${i}位<br>${x?esc(x.name)+'<br>数字 '+x.number:'該当なし'}</div>`}).join('');$('historyBody').innerHTML=(d.uniqueHistory||[]).map(x=>`第${x.roundNumber}ラウンド：勝利数字 ${x.winningNumber??'なし'}　${esc(x.winners?.join('、')||'勝者なし')}`).join('<br>')||'本番結果はまだありません';return}const pages=Math.max(1,Math.ceil(board.length/PAGE));page=Math.min(page,pages);const part=board.slice((page-1)*PAGE,page*PAGE);$('pager').innerHTML=pages>1?Array.from({length:pages},(_,i)=>`<button data-p="${i+1}">${i+1}</button>`).join(''):'';document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{page=Number(b.dataset.p);renderBoard(data)});$('board').innerHTML=part.length?part.map(x=>`<div class="rank ${x.rank===1?'top1':x.rank===2?'top2':x.rank===3?'top3':''}"><b>${x.rank<=3?['','🥇','🥈','🥉'][x.rank]:x.rank}</b><span>${esc(x.name)}</span><span class="score">${x.score} ${unit}</span><small>${x.tries||0}回</small></div>`).join(''):'<div class="panel">記録なし</div>';$('booby').textContent=d.booby?.prize?.join('、')||'該当なし';$('maker').textContent=d.booby?.maker?.join('、')||'該当なし'}
-const es=new EventSource('/events/host');es.addEventListener('leaderboard',e=>render(JSON.parse(e.data)));qr();select();
-</script></body></html>
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  >
+
+  <title>
+    技能人財養成部 ハロウィンパーティー｜ゲーム司会席
+  </title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Noto Sans JP",
+        sans-serif;
+
+      background: #120b1e;
+      color: #ffffff;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .wrap {
+      display: grid;
+      grid-template-columns:
+        420px
+        minmax(0, 1fr);
+
+      min-height: 100vh;
+    }
+
+    .side {
+      padding: 16px;
+
+      overflow-y: auto;
+
+      border-right:
+        2px solid #f28a24;
+
+      background:
+        linear-gradient(
+          #321747,
+          #1b1029
+        );
+    }
+
+    .main {
+      min-width: 0;
+      padding: 22px;
+
+      overflow-y: auto;
+
+      background:
+        radial-gradient(
+          circle at 80% 0,
+          #301840,
+          #120b1e 55%
+        );
+    }
+
+    h1,
+    h2 {
+      margin: 0.2em 0;
+    }
+
+    .event {
+      color: #ff9c2e;
+      font-weight: 900;
+    }
+
+    .qr {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      min-height: 145px;
+      padding: 8px;
+
+      border-radius: 14px;
+
+      background: #ffffff;
+      color: #12303f;
+    }
+
+    .qr img {
+      width: 135px;
+      height: 135px;
+    }
+
+    .url {
+      margin: 7px 0;
+      padding: 7px;
+
+      border-radius: 8px;
+
+      background: #42245a;
+
+      font-size: 0.75rem;
+      line-height: 1.4;
+      word-break: break-all;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns:
+        repeat(
+          3,
+          minmax(0, 1fr)
+        );
+      gap: 6px;
+    }
+
+    .card {
+      padding: 7px;
+
+      border-radius: 10px;
+
+      background: #42245a;
+
+      text-align: center;
+    }
+
+    .card b {
+      display: block;
+
+      color: #ffb257;
+
+      font-size: 1.4rem;
+      font-variant-numeric:
+        tabular-nums;
+    }
+
+    .group {
+      margin-top: 10px;
+      padding: 10px;
+
+      border-radius: 12px;
+
+      background: #321c45;
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .buttons button,
+    .action {
+      padding: 10px 12px;
+
+      border:
+        2px solid #6e4d84;
+      border-radius: 10px;
+
+      background: #43235c;
+      color: #ffffff;
+
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .buttons button.on {
+      border-color: #ffb257;
+
+      background: #ef7f1a;
+    }
+
+    .action {
+      width: 100%;
+      margin-top: 8px;
+      padding: 14px;
+
+      border: 0;
+    }
+
+    .start {
+      background: #27ae60;
+    }
+
+    .orange {
+      background: #d07816;
+    }
+
+    .purple {
+      background: #843bad;
+    }
+
+    .reset {
+      background: #526d88;
+    }
+
+    .danger {
+      background: #8e3b3b;
+    }
+
+    .action:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    .status {
+      margin-top: 10px;
+      padding: 11px;
+
+      border-radius: 10px;
+
+      background: #3c2550;
+
+      line-height: 1.45;
+    }
+
+    .status.ok {
+      background: #17633a;
+    }
+
+    .status.warn {
+      background: #8b6914;
+    }
+
+    .status.playing {
+      background: #075b87;
+    }
+
+    .detail {
+      margin-top: 5px;
+
+      color: #ffd2d2;
+
+      font-size: 0.82rem;
+      line-height: 1.5;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .pager {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+
+      margin: 8px 0;
+    }
+
+    .pager button {
+      padding: 7px 10px;
+
+      border:
+        1px solid #80599a;
+      border-radius: 8px;
+
+      background: #442558;
+      color: #ffffff;
+
+      cursor: pointer;
+    }
+
+    .pager button.on {
+      border-color: #ffb257;
+
+      background: #ef7f1a;
+    }
+
+    .pager span {
+      margin-left: auto;
+
+      color: #c7b8d2;
+
+      font-size: 0.85rem;
+    }
+
+    /*
+     * ランキングは1ページ30人です。
+     *
+     * JavaScript側で、
+     * 1位、11位、21位
+     * 2位、12位、22位
+     * の順番に配置します。
+     */
+    .board {
+      display: grid;
+      grid-template-columns:
+        repeat(
+          3,
+          minmax(0, 1fr)
+        );
+      gap: 7px;
+    }
+
+    .rank {
+      display: grid;
+      grid-template-columns:
+        46px
+        minmax(0, 1fr)
+        auto
+        auto;
+      align-items: center;
+      gap: 8px;
+
+      min-height: 58px;
+      padding: 8px 10px;
+
+      border-radius: 9px;
+
+      background: #2a183b;
+    }
+
+    .rank:nth-child(even) {
+      background: #321d45;
+    }
+
+    .rank b {
+      font-size: 1.38rem;
+      text-align: center;
+    }
+
+    .rankName {
+      min-width: 0;
+
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+
+      font-size: 1.33rem;
+      font-weight: 800;
+    }
+
+    .score {
+      white-space: nowrap;
+
+      color: #ffd08a;
+
+      font-size: 1.28rem;
+      font-weight: 900;
+      font-variant-numeric:
+        tabular-nums;
+    }
+
+    .tries {
+      white-space: nowrap;
+
+      color: #c7b8d2;
+
+      font-size: 0.92rem;
+    }
+
+    .top1 {
+      background: #f1c40f !important;
+      color: #20142b;
+    }
+
+    .top2 {
+      background: #bdc3c7 !important;
+      color: #20142b;
+    }
+
+    .top3 {
+      background: #cd7f32 !important;
+      color: #20142b;
+    }
+
+    .top1 .score,
+    .top2 .score,
+    .top3 .score,
+    .top1 .tries,
+    .top2 .tries,
+    .top3 .tries {
+      color: #20142b;
+    }
+
+    .rankPlaceholder {
+      min-height: 58px;
+
+      visibility: hidden;
+
+      pointer-events: none;
+    }
+
+    .awards {
+      display: grid;
+      grid-template-columns:
+        1fr 1fr;
+      gap: 10px;
+
+      margin-top: 14px;
+    }
+
+    .award,
+    .panel {
+      padding: 12px;
+
+      border-radius: 12px;
+
+      background: #2f1b41;
+    }
+
+    .podium {
+      display: grid;
+      grid-template-columns:
+        repeat(
+          3,
+          minmax(0, 1fr)
+        );
+      gap: 10px;
+
+      margin: 12px 0;
+    }
+
+    .podium > div {
+      padding: 14px;
+
+      border-radius: 12px;
+
+      background: #2f1b41;
+
+      font-size: 1.2rem;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .history {
+      margin-top: 12px;
+      padding: 14px;
+
+      border:
+        1px solid #744c90;
+      border-radius: 12px;
+
+      background: #21132f;
+    }
+
+    .historyTabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+
+      margin: 10px 0;
+    }
+
+    .historyTabs button {
+      padding: 8px 11px;
+
+      border:
+        1px solid #8359a0;
+      border-radius: 9px;
+
+      background: #442558;
+      color: #ffffff;
+
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .historyTabs button.on {
+      border-color: #ffb257;
+
+      background: #ef7f1a;
+    }
+
+    .historySummary {
+      margin-bottom: 8px;
+      padding: 10px;
+
+      border-radius: 10px;
+
+      background: #402655;
+
+      line-height: 1.6;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+
+      margin: 8px 0;
+
+      font-size: 0.83rem;
+    }
+
+    .legend i {
+      display: inline-block;
+
+      width: 12px;
+      height: 12px;
+      margin-right: 4px;
+
+      border-radius: 2px;
+    }
+
+    .chartScroll {
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+
+    .chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+
+      min-width: 1000px;
+      height: 285px;
+      padding:
+        30px
+        12px
+        25px;
+
+      border-left:
+        1px solid #86699a;
+      border-bottom:
+        1px solid #86699a;
+
+      background: #170d22;
+    }
+
+    .barColumn {
+      position: relative;
+
+      display: flex;
+      align-items: flex-end;
+
+      width: 8px;
+      height: 100%;
+    }
+
+    .chartBar {
+      position: relative;
+
+      width: 100%;
+
+      border-radius:
+        3px 3px 0 0;
+
+      /*
+       * 重複数字は凡例と同じ紫色です。
+       */
+      background: #80549c;
+    }
+
+    .chartBar.unique {
+      background: #2fbc72;
+    }
+
+    .chartBar.winner {
+      background: #ffd447;
+
+      box-shadow:
+        0 0 10px #ffd447;
+    }
+
+    .barNumber {
+      position: absolute;
+      bottom: -19px;
+      left: 50%;
+
+      color: #bcaac8;
+
+      font-size: 8px;
+
+      transform:
+        translateX(-50%);
+    }
+
+    .barCount {
+      position: absolute;
+      top: -17px;
+      left: 50%;
+
+      color: #ffffff;
+
+      font-size: 8px;
+
+      transform:
+        translateX(-50%);
+    }
+
+    .tempoRanking {
+      margin-top: 10px;
+    }
+
+    .small {
+      color: #c7b8d2;
+      font-size: 0.82rem;
+    }
+
+    @media (
+      max-width: 950px
+    ) {
+      .wrap {
+        grid-template-columns:
+          350px
+          minmax(0, 1fr);
+      }
+
+      .board {
+        grid-template-columns:
+          1fr;
+      }
+
+      .rankPlaceholder {
+        display: none;
+      }
+
+      .podium {
+        grid-template-columns:
+          1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <aside class="side">
+      <div class="event">
+        🎃 技能人財養成部
+      </div>
+
+      <h1>
+        ハロウィンパーティー
+        <br>
+        ゲーム司会席 👻
+      </h1>
+
+      <div
+        id="qr"
+        class="qr"
+      >
+        QR生成中…
+      </div>
+
+      <div
+        id="url"
+        class="url"
+      ></div>
+
+      <div class="stats">
+        <div class="card">
+          <b id="joined">0</b>
+          参加
+        </div>
+
+        <div class="card">
+          <b id="standby">0</b>
+          待機
+        </div>
+
+        <div class="card">
+          <b id="answered">0</b>
+          完了
+        </div>
+
+        <div class="card">
+          <b id="connected">0</b>
+          接続
+        </div>
+
+        <div class="card">
+          <b id="missing">0</b>
+          要確認
+        </div>
+
+        <div class="card">
+          <b id="round">0</b>
+          ラウンド
+        </div>
+      </div>
+
+      <div
+        id="status"
+        class="status"
+      >
+        状態確認中
+      </div>
+
+      <div
+        id="detail"
+        class="detail"
+      ></div>
+
+      <div class="group">
+        <div>
+          🎮 ゲームを選択
+        </div>
+
+        <div class="buttons">
+          <button
+            type="button"
+            id="reflex"
+            class="on"
+          >
+            反射神経
+          </button>
+
+          <button
+            type="button"
+            id="tap"
+          >
+            連打
+          </button>
+
+          <button
+            type="button"
+            id="unique"
+          >
+            最大ユニーク
+          </button>
+
+          <button
+            type="button"
+            id="tempo"
+          >
+            テンポ
+          </button>
+        </div>
+
+        <div
+          id="durations"
+          class="buttons hidden"
+          style="margin-top: 8px;"
+        >
+          <button
+            type="button"
+            data-duration="5"
+          >
+            5秒
+          </button>
+
+          <button
+            type="button"
+            data-duration="7"
+            class="on"
+          >
+            7秒
+          </button>
+
+          <button
+            type="button"
+            data-duration="10"
+          >
+            10秒
+          </button>
+        </div>
+      </div>
+
+      <div
+        id="modeGroup"
+        class="group"
+      >
+        <div>
+          モード
+        </div>
+
+        <div class="buttons">
+          <button
+            type="button"
+            id="official"
+            class="on"
+          >
+            本番
+          </button>
+
+          <button
+            type="button"
+            id="practice"
+          >
+            練習
+          </button>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        id="mainAction"
+        class="action start"
+      >
+        反射神経を開始
+      </button>
+
+      <button
+        type="button"
+        id="force"
+        class="action orange hidden"
+      >
+        未完了者ありで結果確定
+      </button>
+
+      <button
+        type="button"
+        id="reset"
+        class="action reset"
+      >
+        記録をリセット
+      </button>
+
+      <button
+        type="button"
+        id="resetAll"
+        class="action danger"
+      >
+        全リセット
+      </button>
+    </aside>
+
+    <main class="main">
+      <h2 id="title">
+        🏆 反射神経ランキング
+      </h2>
+
+      <div
+        id="tempoInfo"
+        class="status hidden"
+      ></div>
+
+      <div
+        id="pager"
+        class="pager"
+      ></div>
+
+      <div
+        id="board"
+        class="board"
+      >
+        <div class="panel">
+          記録なし
+        </div>
+      </div>
+
+      <div
+        id="podium"
+        class="podium hidden"
+      ></div>
+
+      <div
+        id="awards"
+        class="awards"
+      >
+        <div class="award">
+          <b>
+            🎁 ブービー賞
+          </b>
+
+          <div id="booby">
+            該当なし
+          </div>
+        </div>
+
+        <div class="award">
+          <b>
+            🫣 ブービーメーカー
+          </b>
+
+          <div id="maker">
+            該当なし
+          </div>
+        </div>
+      </div>
+
+      <section
+        id="uniqueHistory"
+        class="history hidden"
+      >
+        <h2>
+          🧠 最大ユニーク
+          過去ラウンド分析
+        </h2>
+
+        <div
+          id="uniqueHistoryTabs"
+          class="historyTabs"
+        ></div>
+
+        <div
+          id="uniqueHistorySummary"
+          class="historySummary"
+        >
+          本番結果はまだありません
+        </div>
+
+        <div class="legend">
+          <span>
+            <i
+              style="background: #80549c;"
+            ></i>
+            重複
+          </span>
+
+          <span>
+            <i
+              style="background: #2fbc72;"
+            ></i>
+            ユニーク
+          </span>
+
+          <span>
+            <i
+              style="background: #ffd447;"
+            ></i>
+            勝利数字
+          </span>
+        </div>
+
+        <div class="chartScroll">
+          <div
+            id="uniqueChart"
+            class="chart"
+          ></div>
+        </div>
+      </section>
+
+      <section
+        id="tempoHistory"
+        class="history hidden"
+      >
+        <h2>
+          🎵 テンポゲーム
+          ラウンド別ランキング
+        </h2>
+
+        <div
+          id="tempoHistoryTabs"
+          class="historyTabs"
+        ></div>
+
+        <div
+          id="tempoHistorySummary"
+          class="historySummary"
+        >
+          本番結果はまだありません
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    'use strict';
+
+    const $ = id =>
+      document.getElementById(id);
+
+    const PAGE_SIZE = 30;
+    const ROWS_PER_COLUMN = 10;
+
+    let mode = 'reflex';
+    let duration = 7;
+    let practice = false;
+
+    let currentData = {};
+    let page = 1;
+
+    let selectedUniqueHistoryId =
+      null;
+
+    let selectedTempoView =
+      'overall';
+
+    async function post(
+      url,
+      body = {}
+    ) {
+      const response = await fetch(
+        url,
+        {
+          method: 'POST',
+
+          headers: {
+            'Content-Type':
+              'application/json'
+          },
+
+          cache: 'no-store',
+
+          body: JSON.stringify(body)
+        }
+      );
+
+      let result = {};
+
+      try {
+        result =
+          await response.json();
+      } catch {
+        result = {};
+      }
+
+      if (!response.ok) {
+        const requestError =
+          new Error(
+            JSON.stringify(result)
+          );
+
+        requestError.status =
+          response.status;
+
+        throw requestError;
+      }
+
+      return result;
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(
+          /[<>&"]/g,
+          character => ({
+            '<': '&lt;',
+            '>': '&gt;',
+            '&': '&amp;',
+            '"': '&quot;'
+          })[character]
+        );
+    }
+
+    function createQrCode() {
+      const joinUrl =
+        location.origin + '/';
+
+      $('url').textContent =
+        joinUrl;
+
+      const libraryParts = [
+        'https:',
+        '',
+        'cdn.jsdelivr.net',
+        'npm',
+        'qrcode-generator@1.4.4',
+        'qrcode.js'
+      ];
+
+      const script =
+        document.createElement(
+          'script'
+        );
+
+      script.src =
+        libraryParts.join('/');
+
+      script.onload = () => {
+        try {
+          const qr =
+            window.qrcode(
+              0,
+              'M'
+            );
+
+          qr.addData(joinUrl);
+          qr.make();
+
+          $('qr').innerHTML =
+            qr.createImgTag(
+              5,
+              5
+            );
+        } catch {
+          $('qr').textContent =
+            'QR生成失敗';
+        }
+      };
+
+      script.onerror = () => {
+        $('qr').textContent =
+          'QR読込失敗';
+      };
+
+      document.head.appendChild(
+        script
+      );
+    }
+
+    function gameName(gameMode) {
+      if (gameMode === 'tap') {
+        return (
+          '連打' +
+          duration +
+          '秒'
+        );
+      }
+
+      if (gameMode === 'unique') {
+        return '最大ユニーク';
+      }
+
+      if (gameMode === 'tempo') {
+        return 'テンポゲーム';
+      }
+
+      return '反射神経';
+    }
+
+    function choose(nextMode) {
+      mode = nextMode;
+      page = 1;
+
+      selectRanking();
+    }
+
+    async function selectRanking() {
+      [
+        'reflex',
+        'tap',
+        'unique',
+        'tempo'
+      ].forEach(gameMode => {
+        $(gameMode).classList.toggle(
+          'on',
+          gameMode === mode
+        );
+      });
+
+      $('durations').classList.toggle(
+        'hidden',
+        mode !== 'tap'
+      );
+
+      /*
+       * テンポでも本番／練習を
+       * 自由に切り替えられるため、
+       * modeGroupは非表示にしません。
+       */
+      $('modeGroup').classList.remove(
+        'hidden'
+      );
+
+      $('uniqueHistory')
+        .classList.toggle(
+          'hidden',
+          mode !== 'unique'
+        );
+
+      $('tempoHistory')
+        .classList.toggle(
+          'hidden',
+          mode !== 'tempo'
+        );
+
+      try {
+        currentData = await post(
+          '/api/select-ranking',
+          {
+            mode,
+            duration
+          }
+        );
+
+        render(currentData);
+      } catch {
+        alert(
+          'ランキングを切り替えられませんでした'
+        );
+      }
+    }
+
+    [
+      'reflex',
+      'tap',
+      'unique',
+      'tempo'
+    ].forEach(gameMode => {
+      $(gameMode).onclick = () => {
+        choose(gameMode);
+      };
+    });
+
+    document
+      .querySelectorAll(
+        '[data-duration]'
+      )
+      .forEach(button => {
+        button.onclick = () => {
+          duration = Number(
+            button.dataset.duration
+          );
+
+          page = 1;
+
+          document
+            .querySelectorAll(
+              '[data-duration]'
+            )
+            .forEach(
+              durationButton => {
+                durationButton
+                  .classList.toggle(
+                    'on',
+                    durationButton ===
+                      button
+                  );
+              }
+            );
+
+          selectRanking();
+        };
+      });
+
+    $('official').onclick = () => {
+      practice = false;
+      updateButtons();
+    };
+
+    $('practice').onclick = () => {
+      practice = true;
+      updateButtons();
+    };
+
+    function updateButtons() {
+      const stats =
+        currentData.stats || {};
+
+      $('official').classList.toggle(
+        'on',
+        !practice
+      );
+
+      $('practice').classList.toggle(
+        'on',
+        practice
+      );
+
+      const canForce =
+        stats.active &&
+        [
+          'reflex',
+          'tap',
+          'tempo'
+        ].includes(
+          stats.activeMode
+        );
+
+      $('force').classList.toggle(
+        'hidden',
+        !canForce
+      );
+
+      if (mode === 'unique') {
+        const uniqueStatus =
+          stats.uniqueStatus ||
+          'idle';
+
+        if (
+          uniqueStatus === 'open'
+        ) {
+          $('mainAction').textContent =
+            '回答を締め切る';
+
+          $('mainAction').className =
+            'action orange';
+        } else if (
+          uniqueStatus === 'closed'
+        ) {
+          $('mainAction').textContent =
+            '結果を発表する';
+
+          $('mainAction').className =
+            'action purple';
+        } else {
+          $('mainAction').textContent =
+            '回答受付開始' +
+            (
+              practice
+                ? '［練習］'
+                : ''
+            );
+
+          $('mainAction').className =
+            'action start';
+        }
+
+        $('mainAction').disabled =
+          false;
+
+        return;
+      }
+
+      if (mode === 'tempo') {
+        $('mainAction').className =
+          'action start';
+
+        if (
+          stats.activeMode ===
+            'tempo' &&
+          stats.active
+        ) {
+          $('mainAction').textContent =
+            (
+              stats.roundCompleted ||
+              0
+            ) +
+            '/' +
+            (
+              stats.joined ||
+              0
+            ) +
+            '人完了';
+
+          $('mainAction').disabled =
+            true;
+
+          return;
+        }
+
+        if (practice) {
+          $('mainAction').textContent =
+            'テンポゲームを開始［練習］';
+
+          $('mainAction').disabled =
+            false;
+
+          return;
+        }
+
+        if (
+          (
+            stats.tempoNext ||
+            0
+          ) < 3
+        ) {
+          $('mainAction').textContent =
+            'テンポゲーム 本番 第' +
+            (
+              (
+                stats.tempoNext ||
+                0
+              ) + 1
+            ) +
+            'ラウンドを開始';
+
+          $('mainAction').disabled =
+            false;
+
+          return;
+        }
+
+        $('mainAction').textContent =
+          'テンポゲーム本番完了';
+
+        $('mainAction').disabled =
+          true;
+
+        return;
+      }
+
+      $('mainAction').textContent =
+        (
+          mode === 'tap'
+            ? '連打' +
+              duration +
+              '秒'
+            : '反射神経'
+        ) +
+        'を開始' +
+        (
+          practice
+            ? '［練習］'
+            : ''
+        );
+
+      $('mainAction').className =
+        'action start';
+
+      $('mainAction').disabled =
+        Boolean(stats.active);
+    }
+
+    $('mainAction').onclick =
+      async () => {
+        const stats =
+          currentData.stats || {};
+
+        try {
+          if (mode === 'unique') {
+            const action =
+              stats.uniqueStatus ===
+                'open'
+                ? 'close'
+                : stats.uniqueStatus ===
+                    'closed'
+                  ? 'reveal'
+                  : 'open';
+
+            await post(
+              '/api/unique',
+              {
+                action,
+                practice
+              }
+            );
+
+            return;
+          }
+
+          if (mode === 'tempo') {
+            await post(
+              '/api/tempo/start',
+              {
+                practice,
+
+                index:
+                  stats.tempoNext ||
+                  0
+              }
+            );
+
+            return;
+          }
+
+          await post(
+            '/api/start',
+            {
+              mode,
+              duration,
+              practice
+            }
+          );
+        } catch {
+          alert(
+            '操作できませんでした'
+          );
+        }
+      };
+
+    $('force').onclick = async () => {
+      const confirmed =
+        confirm(
+          '未完了者がいても結果を確定しますか？'
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        await post(
+          '/api/finish-active'
+        );
+      } catch {
+        alert(
+          '結果を確定できませんでした'
+        );
+      }
+    };
+
+    $('reset').onclick = async () => {
+      const confirmed =
+        confirm(
+          '全ゲームの記録をリセットしますか？'
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        await post('/api/reset');
+      } catch {
+        alert(
+          '記録をリセットできませんでした'
+        );
+      }
+    };
+
+    $('resetAll').onclick =
+      async () => {
+        const confirmed =
+          confirm(
+            '参加者を含めて全リセットしますか？'
+          );
+
+        if (!confirmed) {
+          return;
+        }
+
+        try {
+          await post(
+            '/api/reset-all'
+          );
+        } catch {
+          alert(
+            '全リセットできませんでした'
+          );
+        }
+      };
+
+    function render(data) {
+      currentData = data;
+
+      const stats =
+        data.stats || {};
+
+      $('joined').textContent =
+        stats.joined || 0;
+
+      $('standby').textContent =
+        stats.standby || 0;
+
+      $('answered').textContent =
+        stats.roundCompleted || 0;
+
+      $('connected').textContent =
+        stats.connected || 0;
+
+      $('round').textContent =
+        stats.round || 0;
+
+      /*
+       * ゲーム進行に影響しない
+       * answering / result / playing
+       * などは要確認一覧へ出しません。
+       */
+      const issues =
+        (
+          stats.detail || []
+        ).filter(entry =>
+          [
+            '切断・未確認',
+            '画面非表示'
+          ].includes(entry.state)
+        );
+
+      $('missing').textContent =
+        issues.length;
+
+      $('detail').innerHTML =
+        issues
+          .map(
+            entry =>
+              escapeHtml(
+                entry.name
+              ) +
+              '：' +
+              escapeHtml(
+                entry.state
+              )
+          )
+          .join('<br>');
+
+      const allStandby =
+        stats.joined > 0 &&
+        stats.standby ===
+          stats.joined;
+
+      if (stats.active) {
+        $('status').textContent =
+          '▶ ' +
+          gameName(
+            stats.activeMode
+          ) +
+          '：進行中　完了 ' +
+          (
+            stats.roundCompleted ||
+            0
+          ) +
+          '/' +
+          (
+            stats.joined ||
+            0
+          );
+
+        $('status').className =
+          'status playing';
+      } else if (allStandby) {
+        $('status').textContent =
+          '✓ 全員ゲームスタンバイ中';
+
+        $('status').className =
+          'status ok';
+      } else {
+        $('status').textContent =
+          issues.length
+            ? '⚠ ' +
+              issues.length +
+              '人を要確認'
+            : '待機状態へ移行中';
+
+        $('status').className =
+          issues.length
+            ? 'status warn'
+            : 'status';
+      }
+
+      $('tempoInfo').classList.toggle(
+        'hidden',
+        stats.mode !== 'tempo'
+      );
+
+      if (stats.mode === 'tempo') {
+        $('tempoInfo').textContent =
+          stats.tempoMs
+            ? '今回のテンポ（運営のみ）：' +
+              (
+                stats.tempoMs /
+                1000
+              ).toFixed(1) +
+              '秒'
+            : '本番は速め・標準・遅めを1回ずつ抽選';
+      }
+
+      renderBoard(data);
+      updateButtons();
+    }
+
+    function formatRank(rankNumber) {
+      if (rankNumber === 1) {
+        return '🥇';
+      }
+
+      if (rankNumber === 2) {
+        return '🥈';
+      }
+
+      if (rankNumber === 3) {
+        return '🥉';
+      }
+
+      return rankNumber;
+    }
+
+    function rankClass(rankNumber) {
+      if (rankNumber === 1) {
+        return 'top1';
+      }
+
+      if (rankNumber === 2) {
+        return 'top2';
+      }
+
+      if (rankNumber === 3) {
+        return 'top3';
+      }
+
+      return '';
+    }
+
+    function rankingCard(
+      record,
+      unit
+    ) {
+      return `
+        <div
+          class="rank ${rankClass(
+            record.rank
+          )}"
+          title="${escapeHtml(
+            record.name
+          )}"
+        >
+          <b>
+            ${formatRank(
+              record.rank
+            )}
+          </b>
+
+          <span class="rankName">
+            ${escapeHtml(
+              record.name
+            )}
+          </span>
+
+          <span class="score">
+            ${record.score} ${unit}
+          </span>
+
+          <span class="tries">
+            ${record.tries || 0}回
+          </span>
+        </div>
+      `;
+    }
+
+    function reorderPageRecords(
+      records
+    ) {
+      const ordered = [];
+
+      for (
+        let row = 0;
+        row < ROWS_PER_COLUMN;
+        row += 1
+      ) {
+        for (
+          let column = 0;
+          column < 3;
+          column += 1
+        ) {
+          const index =
+            row +
+            column *
+              ROWS_PER_COLUMN;
+
+          ordered.push(
+            records[index] ||
+            null
+          );
+        }
+      }
+
+      return ordered;
+    }
+
+    function renderStandardBoard(
+      board,
+      unit
+    ) {
+      const pageCount =
+        Math.max(
+          1,
+          Math.ceil(
+            board.length /
+            PAGE_SIZE
+          )
+        );
+
+      page = Math.max(
+        1,
+        Math.min(
+          page,
+          pageCount
+        )
+      );
+
+      const startIndex =
+        (
+          page - 1
+        ) *
+        PAGE_SIZE;
+
+      const endIndex =
+        Math.min(
+          startIndex +
+            PAGE_SIZE,
+          board.length
+        );
+
+      const pageRecords =
+        board.slice(
+          startIndex,
+          endIndex
+        );
+
+      const displayRecords =
+        reorderPageRecords(
+          pageRecords
+        );
+
+      if (pageCount > 1) {
+        $('pager').innerHTML =
+          Array.from(
+            {
+              length: pageCount
+            },
+            (_, index) => {
+              const pageNumber =
+                index + 1;
+
+              return `
+                <button
+                  type="button"
+                  class="${
+                    pageNumber ===
+                    page
+                      ? 'on'
+                      : ''
+                  }"
+                  data-page="${pageNumber}"
+                >
+                  ${pageNumber}
+                </button>
+              `;
+            }
+          ).join('') +
+          `
+            <span>
+              ${
+                startIndex + 1
+              }～${endIndex}番目 /
+              ${board.length}人
+            </span>
+          `;
+
+        document
+          .querySelectorAll(
+            '[data-page]'
+          )
+          .forEach(button => {
+            button.onclick = () => {
+              page = Number(
+                button.dataset.page
+              );
+
+              renderBoard(
+                currentData
+              );
+            };
+          });
+      } else {
+        $('pager').innerHTML = '';
+      }
+
+      if (!board.length) {
+        $('board').innerHTML =
+          `
+            <div class="panel">
+              記録なし
+            </div>
+          `;
+
+        return;
+      }
+
+      $('board').innerHTML =
+        displayRecords
+          .map(record =>
+            record
+              ? rankingCard(
+                  record,
+                  unit
+                )
+              : `
+                <div
+                  class="rankPlaceholder"
+                ></div>
+              `
+          )
+          .join('');
+    }
+
+    function renderUniquePodium(
+      history
+    ) {
+      const latestResult =
+        currentData.uniqueResult ||
+        history.at(-1);
+
+      $('podium').innerHTML =
+        [1, 2, 3]
+          .map(place => {
+            const entry =
+              latestResult?.podium
+                ?.find(
+                  item =>
+                    item.place ===
+                    place
+                );
+
+            return `
+              <div>
+                ${
+                  [
+                    '',
+                    '🥇',
+                    '🥈',
+                    '🥉'
+                  ][place]
+                }
+                ${place}位
+                <br>
+
+                ${
+                  entry
+                    ? escapeHtml(
+                        entry.name
+                      ) +
+                      '<br>数字 ' +
+                      entry.number
+                    : '該当なし'
+                }
+              </div>
+            `;
+          })
+          .join('');
+    }
+
+    function renderUniqueHistory(
+      history
+    ) {
+      if (!history.length) {
+        selectedUniqueHistoryId =
+          null;
+
+        $('uniqueHistoryTabs')
+          .innerHTML = '';
+
+        $('uniqueHistorySummary')
+          .textContent =
+            '本番結果はまだありません';
+
+        $('uniqueChart')
+          .innerHTML = '';
+
+        return;
+      }
+
+      const selectedExists =
+        selectedUniqueHistoryId &&
+        history.some(
+          entry =>
+            entry.historyId ===
+            selectedUniqueHistoryId
+        );
+
+      if (!selectedExists) {
+        selectedUniqueHistoryId =
+          history.at(-1)
+            .historyId;
+      }
+
+      $('uniqueHistoryTabs')
+        .innerHTML =
+          history
+            .map(entry => `
+              <button
+                type="button"
+                class="${
+                  entry.historyId ===
+                  selectedUniqueHistoryId
+                    ? 'on'
+                    : ''
+                }"
+                data-unique-history="${
+                  entry.historyId
+                }"
+              >
+                第${
+                  entry.roundNumber
+                }ラウンド
+              </button>
+            `)
+            .join('');
+
+      document
+        .querySelectorAll(
+          '[data-unique-history]'
+        )
+        .forEach(button => {
+          button.onclick = () => {
+            selectedUniqueHistoryId =
+              button.dataset
+                .uniqueHistory;
+
+            renderUniqueHistory(
+              history
+            );
+          };
+        });
+
+      const selected =
+        history.find(
+          entry =>
+            entry.historyId ===
+            selectedUniqueHistoryId
+        );
+
+      const podiumText =
+        (
+          selected.podium || []
+        )
+          .map(
+            entry =>
+              entry.place +
+              '位：' +
+              escapeHtml(
+                entry.name
+              ) +
+              '（' +
+              entry.number +
+              '）'
+          )
+          .join('　');
+
+      $('uniqueHistorySummary')
+        .innerHTML =
+          `
+            第${selected.roundNumber}ラウンド
+           　回答 ${selected.answerCount}人
+           　勝利数字 ${
+              selected.winningNumber ??
+              'なし'
+            }
+            <br>
+            ${
+              podiumText ||
+              'ユニーク数字なし'
+            }
+          `;
+
+      const distributionMap =
+        new Map(
+          (
+            selected.distribution ||
+            []
+          ).map(entry => [
+            entry.number,
+            entry
+          ])
+        );
+
+      const maxCount =
+        Math.max(
+          1,
+          ...(
+            selected.distribution ||
+            []
+          ).map(entry => entry.count)
+        );
+
+      $('uniqueChart').innerHTML =
+        Array.from(
+          {
+            length: 100
+          },
+          (_, index) => {
+            const number =
+              index + 1;
+
+            const entry =
+              distributionMap.get(
+                number
+              );
+
+            const count =
+              entry?.count || 0;
+
+            const height = count
+              ? Math.max(
+                  5,
+                  Math.round(
+                    count /
+                    maxCount *
+                    220
+                  )
+                )
+              : 0;
+
+            const barClass =
+              entry?.winner
+                ? 'winner'
+                : entry?.unique
+                  ? 'unique'
+                  : '';
+
+            return `
+              <div class="barColumn">
+                <div
+                  class="chartBar ${barClass}"
+                  style="height: ${height}px;"
+                >
+                  ${
+                    count
+                      ? `
+                        <span
+                          class="barCount"
+                        >
+                          ${count}
+                        </span>
+                      `
+                      : ''
+                  }
+                </div>
+
+                <span class="barNumber">
+                  ${number}
+                </span>
+              </div>
+            `;
+          }
+        ).join('');
+    }
+
+    function renderTempoHistory(
+      history,
+      overallBoard
+    ) {
+      const availableRounds =
+        history
+          .filter(Boolean)
+          .map(entry => ({
+            key:
+              String(entry.index),
+
+            label:
+              '第' +
+              (
+                entry.index + 1
+              ) +
+              'ラウンド',
+
+            tempoMs:
+              entry.tempoMs,
+
+            board:
+              entry.board || []
+          }));
+
+      const views = [
+        ...availableRounds,
+        {
+          key: 'overall',
+          label: '総合',
+          tempoMs: null,
+          board:
+            overallBoard || []
+        }
+      ];
+
+      const selectedExists =
+        views.some(
+          entry =>
+            entry.key ===
+            selectedTempoView
+        );
+
+      if (!selectedExists) {
+        selectedTempoView =
+          availableRounds[0]?.key ||
+          'overall';
+      }
+
+      $('tempoHistoryTabs')
+        .innerHTML =
+          views
+            .map(entry => `
+              <button
+                type="button"
+                class="${
+                  entry.key ===
+                  selectedTempoView
+                    ? 'on'
+                    : ''
+                }"
+                data-tempo-view="${
+                  entry.key
+                }"
+              >
+                ${entry.label}
+              </button>
+            `)
+            .join('');
+
+      document
+        .querySelectorAll(
+          '[data-tempo-view]'
+        )
+        .forEach(button => {
+          button.onclick = () => {
+            selectedTempoView =
+              button.dataset
+                .tempoView;
+
+            renderTempoHistory(
+              history,
+              overallBoard
+            );
+          };
+        });
+
+      const selected =
+        views.find(
+          entry =>
+            entry.key ===
+            selectedTempoView
+        ) ||
+        views.at(-1);
+
+      $('tempoHistorySummary')
+        .textContent =
+          selected.tempoMs
+            ? selected.label +
+              '　見本テンポ ' +
+              (
+                selected.tempoMs /
+                1000
+              ).toFixed(1) +
+              '秒'
+            : '本番3ラウンドすべての平均による総合ランキング';
+
+      $('title').textContent =
+        '🎵 テンポゲーム ' +
+        selected.label +
+        'ランキング';
+
+      page = 1;
+
+      renderStandardBoard(
+        selected.board,
+        'ms'
+      );
+    }
+
+    function renderBoard(data) {
+      const stats =
+        data.stats || {};
+
+      const board =
+        data.board || [];
+
+      const isUnique =
+        stats.mode === 'unique';
+
+      const isTempo =
+        stats.mode === 'tempo';
+
+      $('board').classList.toggle(
+        'hidden',
+        isUnique
+      );
+
+      $('podium').classList.toggle(
+        'hidden',
+        !isUnique
+      );
+
+      $('awards').classList.toggle(
+        'hidden',
+        isUnique || isTempo
+      );
+
+      $('uniqueHistory')
+        .classList.toggle(
+          'hidden',
+          !isUnique
+        );
+
+      $('tempoHistory')
+        .classList.toggle(
+          'hidden',
+          !isTempo
+        );
+
+      if (isUnique) {
+        $('title').textContent =
+          '🎃 最大ユニークナンバー 結果';
+
+        $('pager').innerHTML = '';
+
+        renderUniquePodium(
+          data.uniqueHistory || []
+        );
+
+        renderUniqueHistory(
+          data.uniqueHistory || []
+        );
+
+        return;
+      }
+
+      if (isTempo) {
+        renderTempoHistory(
+          data.tempoHistory || [],
+          board
+        );
+
+        return;
+      }
+
+      const unit =
+        stats.mode === 'tap'
+          ? '回'
+          : 'ms';
+
+      if (stats.mode === 'tap') {
+        $('title').textContent =
+          '🏆 連打' +
+          stats.duration +
+          '秒ランキング';
+      } else {
+        $('title').textContent =
+          '🏆 反射神経ランキング';
+      }
+
+      renderStandardBoard(
+        board,
+        unit
+      );
+
+      $('booby').textContent =
+        data.booby?.prize
+          ?.join('、') ||
+        '該当なし';
+
+      $('maker').textContent =
+        data.booby?.maker
+          ?.join('、') ||
+        '該当なし';
+    }
+
+    const eventSource =
+      new EventSource(
+        '/events/host'
+      );
+
+    eventSource.addEventListener(
+      'leaderboard',
+      event => {
+        render(
+          JSON.parse(event.data)
+        );
+      }
+    );
+
+    createQrCode();
+    selectRanking();
+  </script>
+</body>
+</html>
