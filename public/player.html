@@ -26,26 +26,38 @@
       margin: 0;
       overflow: hidden;
       overscroll-behavior: none;
+
       font-family:
         -apple-system,
         BlinkMacSystemFont,
+        "Hiragino Kaku Gothic ProN",
         "Noto Sans JP",
         sans-serif;
+
       background: #140d21;
     }
 
     #screen {
       position: fixed;
       inset: 0;
+
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 28px;
+
+      padding:
+        max(28px, env(safe-area-inset-top))
+        max(24px, env(safe-area-inset-right))
+        max(28px, env(safe-area-inset-bottom))
+        max(24px, env(safe-area-inset-left));
+
       overflow: hidden;
-      text-align: center;
+
       background: #ffffff;
       color: #17212b;
+
+      text-align: center;
     }
 
     #screen.wait {
@@ -56,6 +68,7 @@
           #1a1028 65%,
           #0d0715
         );
+
       color: #ffffff;
     }
 
@@ -77,6 +90,7 @@
     #screen.tap {
       background: #6f2da8;
       color: #ffffff;
+
       touch-action: none;
       overscroll-behavior: none;
     }
@@ -93,6 +107,7 @@
           #44205e,
           #20102e
         );
+
       color: #ffffff;
     }
 
@@ -104,7 +119,9 @@
     #screen.tempo {
       background: #160b20;
       color: #ffffff;
+
       touch-action: none;
+      overscroll-behavior: none;
     }
 
     #screen.flash {
@@ -113,19 +130,25 @@
 
     h1 {
       margin: 0.2em;
-      font-size: clamp(
-        1.7rem,
-        7vw,
-        2.8rem
-      );
+
+      font-size:
+        clamp(
+          1.7rem,
+          7vw,
+          2.8rem
+        );
+
+      line-height: 1.25;
     }
 
     p {
-      font-size: clamp(
-        1rem,
-        4vw,
-        1.25rem
-      );
+      font-size:
+        clamp(
+          1rem,
+          4vw,
+          1.25rem
+        );
+
       line-height: 1.55;
     }
 
@@ -144,45 +167,59 @@
     }
 
     .countNumber {
-      font-size: clamp(
-        8rem,
-        42vw,
-        16rem
-      );
+      font-size:
+        clamp(
+          8rem,
+          42vw,
+          16rem
+        );
+
       font-weight: 950;
       line-height: 0.95;
+      font-variant-numeric: tabular-nums;
     }
 
     .record {
-      font-size: clamp(
-        3.6rem,
-        18vw,
-        7rem
-      );
+      font-size:
+        clamp(
+          3.6rem,
+          18vw,
+          7rem
+        );
+
       font-weight: 900;
+      font-variant-numeric: tabular-nums;
     }
 
     .practice {
       margin-bottom: 12px;
       padding: 7px 14px;
+
       border-radius: 999px;
+
       background: #f39c12;
       color: #ffffff;
+
       font-weight: 800;
     }
 
     .waitingDots {
       display: flex;
       gap: 14px;
+
       margin: 22px;
     }
 
     .waitingDots i {
       width: 18px;
       height: 18px;
+
       border-radius: 50%;
+
       background: #ff8c26;
-      animation: bounce 1.2s infinite;
+
+      animation:
+        bounce 1.2s infinite;
     }
 
     .waitingDots i:nth-child(2) {
@@ -211,27 +248,40 @@
       display: flex;
       align-items: center;
       gap: 8px;
+
       color: #8ff0b4;
+
       font-weight: 800;
     }
 
     .live i {
       width: 11px;
       height: 11px;
+
       border-radius: 50%;
+
       background: #36d477;
+
+      box-shadow:
+        0 0 12px #36d477;
     }
 
     input {
-      width: min(
-        230px,
-        78vw
-      );
+      width:
+        min(
+          230px,
+          78vw
+        );
+
       padding: 12px;
-      border: 3px solid #ffb158;
+
+      border:
+        3px solid #ffb158;
       border-radius: 14px;
+
       font-size: 2rem;
       text-align: center;
+
       -webkit-user-select: text;
       user-select: text;
     }
@@ -239,17 +289,28 @@
     button {
       margin: 8px;
       padding: 14px 22px;
+
       border: 0;
       border-radius: 13px;
+
       background: #ef7f1a;
       color: #ffffff;
+
       font-size: 1.15rem;
       font-weight: 800;
+
       cursor: pointer;
+
+      touch-action: manipulation;
+    }
+
+    button:active {
+      transform: scale(0.97);
     }
 
     button:disabled {
       opacity: 0.55;
+      transform: none;
     }
 
     .adjust {
@@ -257,22 +318,27 @@
       grid-template-columns:
         repeat(4, 1fr);
       gap: 6px;
-      width: min(
-        390px,
-        96vw
-      );
+
+      width:
+        min(
+          390px,
+          96vw
+        );
     }
 
     .adjust button {
+      min-width: 0;
       margin: 0;
       padding: 12px 4px;
     }
 
     .answerButton {
-      width: min(
-        360px,
-        90vw
-      );
+      width:
+        min(
+          360px,
+          90vw
+        );
+
       background: #21a366;
     }
 
@@ -282,14 +348,20 @@
 
     .answerPanel {
       display: none;
-      width: min(
-        390px,
-        92vw
-      );
+
+      width:
+        min(
+          390px,
+          92vw
+        );
+
       margin-top: 14px;
       padding: 15px;
-      border: 2px solid #ffffffaa;
+
+      border:
+        2px solid #ffffffaa;
       border-radius: 16px;
+
       background: #ffffff2d;
     }
 
@@ -298,55 +370,95 @@
     }
 
     .bar {
-      width: min(
-        420px,
-        85vw
-      );
+      width:
+        min(
+          420px,
+          85vw
+        );
+
       height: 18px;
+
       overflow: hidden;
+
       border-radius: 10px;
+
       background: #ffffff55;
     }
 
     .bar div {
       height: 100%;
+
       background: #ffffff;
     }
 
     .badge {
       position: fixed;
       z-index: 12;
-      top: 10px;
+
+      top:
+        max(
+          10px,
+          env(safe-area-inset-top)
+        );
+
       right: 10px;
       left: 10px;
+
       color: #d7c4e8;
+
       font-size: 0.85rem;
       text-align: center;
+
       pointer-events: none;
     }
 
     .error {
       position: fixed;
       z-index: 20;
+
       right: 0;
       bottom: 0;
       left: 0;
+
       display: none;
-      padding: 12px;
+
+      padding:
+        12px
+        max(
+          12px,
+          env(safe-area-inset-right)
+        )
+        max(
+          12px,
+          env(safe-area-inset-bottom)
+        )
+        max(
+          12px,
+          env(safe-area-inset-left)
+        );
+
       background: #c0392b;
       color: #ffffff;
+
+      text-align: center;
     }
 
     .ranking {
-      width: min(
-        94vw,
-        540px
-      );
+      width:
+        min(
+          94vw,
+          540px
+        );
+
       max-height: 90vh;
       padding: 20px;
+
       overflow-y: auto;
-      border: 2px solid #f28a24;
+
+      border:
+        2px solid #f28a24;
       border-radius: 18px;
+
       background: #2b1838;
       color: #ffffff;
     }
@@ -354,21 +466,29 @@
     .rankingList {
       display: grid;
       gap: 7px;
+
       margin: 12px 0;
     }
 
     .rankingList div {
       padding: 10px;
+
       border-radius: 10px;
+
       background: #43255a;
+
       font-weight: 800;
     }
 
     .myRank {
       padding: 14px;
-      border: 2px solid #f28a24;
+
+      border:
+        2px solid #f28a24;
       border-radius: 12px;
+
       background: #21132f;
+
       font-size: 1.3rem;
       font-weight: 900;
     }
@@ -376,10 +496,15 @@
     .resultBar {
       width: 100%;
       height: 8px;
+
       margin-top: 14px;
+
       border-radius: 6px;
+
       background: #f28a24;
-      animation: shrink 5s linear forwards;
+
+      animation:
+        shrink 5s linear forwards;
     }
 
     @keyframes shrink {
@@ -390,30 +515,41 @@
 
     .tempoTarget {
       position: relative;
+
       width: 230px;
       height: 230px;
+
       margin: 22px;
     }
 
     .tempoRing {
       position: absolute;
       inset: 0;
-      border: 7px solid #ffb35c;
+
+      border:
+        7px solid #ffb35c;
       border-radius: 50%;
+
       box-shadow:
         0 0 22px #f28a2455;
     }
 
     .tempoDot {
       position: absolute;
+
       top: 50%;
       left: 50%;
+
       width: 24px;
       height: 24px;
+
       border-radius: 50%;
+
       background: #f28a24;
+
       box-shadow:
         0 0 25px #f28a24;
+
       transform:
         translate(-50%, -50%);
     }
@@ -438,8 +574,10 @@
 
     .tempoCue {
       min-height: 2.5rem;
+
       font-size: 2rem;
       font-weight: 950;
+
       opacity: 0;
     }
 
@@ -468,7 +606,9 @@
     .tempoFeedback {
       min-height: 2.3rem;
       margin-top: 6px;
+
       color: #ffcf8c;
+
       font-size: 1.7rem;
       font-weight: 950;
       font-variant-numeric:
@@ -490,13 +630,19 @@
     .ripple {
       position: fixed;
       z-index: 5;
+
       width: 70px;
       height: 70px;
-      border: 4px solid #ffffff;
+
+      border:
+        4px solid #ffffff;
       border-radius: 50%;
+
       pointer-events: none;
+
       transform:
         translate(-50%, -50%);
+
       animation:
         rippleAnimation
         0.4s ease-out forwards;
@@ -535,7 +681,7 @@
       'battle.session.v5';
 
     const CLIENT_KEY =
-      'battle.client.v1';
+      'battle.client.v2';
 
     const screen =
       document.getElementById(
@@ -554,6 +700,7 @@
 
     let me = null;
     let eventSource = null;
+
     let state = 'standby';
     let roundId = 0;
     let phase = 'idle';
@@ -562,6 +709,7 @@
     let intervalTimer = null;
 
     let tapCount = 0;
+
     let lastInput = 0;
     let pointerHandler = null;
 
@@ -588,14 +736,18 @@
         )
       );
 
+    /* =====================================================
+       端末識別キー
+       ===================================================== */
+
     function getClientKey() {
-      let key =
+      let clientKey =
         localStorage.getItem(
           CLIENT_KEY
         );
 
-      if (!key) {
-        key =
+      if (!clientKey) {
+        clientKey =
           crypto.randomUUID?.() ||
           (
             Date.now() +
@@ -607,12 +759,16 @@
 
         localStorage.setItem(
           CLIENT_KEY,
-          key
+          clientKey
         );
       }
 
-      return key;
+      return clientKey;
     }
+
+    /* =====================================================
+       共通処理
+       ===================================================== */
 
     function escapeHtml(value) {
       return String(value || '')
@@ -628,6 +784,10 @@
     }
 
     function saveSession() {
+      if (!me) {
+        return;
+      }
+
       localStorage.setItem(
         SESSION_KEY,
         JSON.stringify(me)
@@ -647,6 +807,10 @@
     }
 
     function clearSession() {
+      /*
+       * 参加セッションだけを削除します。
+       * 端末識別キーは残します。
+       */
       localStorage.removeItem(
         SESSION_KEY
       );
@@ -658,31 +822,33 @@
       url,
       body
     ) {
-      const response = await fetch(
-        url,
-        {
-          method: 'POST',
+      const response =
+        await fetch(
+          url,
+          {
+            method: 'POST',
 
-          headers: {
-            'Content-Type':
-              'application/json'
-          },
+            headers: {
+              'Content-Type':
+                'application/json'
+            },
 
-          cache: 'no-store',
+            cache: 'no-store',
 
-          body: JSON.stringify(
-            body || {}
-          )
-        }
-      );
+            body:
+              JSON.stringify(
+                body || {}
+              )
+          }
+        );
 
-      let data = {};
+      let responseData = {};
 
       try {
-        data =
+        responseData =
           await response.json();
       } catch {
-        data = {};
+        responseData = {};
       }
 
       if (!response.ok) {
@@ -696,12 +862,12 @@
           response.status;
 
         requestError.data =
-          data;
+          responseData;
 
         throw requestError;
       }
 
-      return data;
+      return responseData;
     }
 
     function showError(message) {
@@ -727,7 +893,8 @@
       screen.className =
         className;
 
-      screen.innerHTML = html;
+      screen.innerHTML =
+        html;
 
       state =
         nextState || state;
@@ -759,21 +926,18 @@
         if (
           requestError.status === 409
         ) {
-          invalidateSession();
+          /*
+           * サーバー再起動直後などは、
+           * 保存済みの名前と端末キーで再入場を試します。
+           */
+          await restoreSession();
         }
       }
     }
 
-    function invalidateSession() {
-      closeEventSource();
-      clearSession();
-
-      badge.textContent = '';
-
-      joinView(
-        '参加情報がリセットされました。名前を入力して参加し直してください。'
-      );
-    }
+    /* =====================================================
+       入場・再入場
+       ===================================================== */
 
     function joinView(note = '') {
       setView(
@@ -805,16 +969,42 @@
             パーティーに参加
           </button>
 
-          <p>
-            ${escapeHtml(note)}
-          </p>
+          ${
+            note
+              ? `
+                <p>
+                  ${escapeHtml(note)}
+                </p>
+              `
+              : ''
+          }
         `,
         'join'
       );
 
-      document
-        .getElementById('join')
-        .onclick = join;
+      const joinButton =
+        document.getElementById(
+          'join'
+        );
+
+      const nameInput =
+        document.getElementById(
+          'name'
+        );
+
+      joinButton.onclick =
+        join;
+
+      nameInput.addEventListener(
+        'keydown',
+        event => {
+          if (
+            event.key === 'Enter'
+          ) {
+            join();
+          }
+        }
+      );
     }
 
     async function join() {
@@ -835,27 +1025,36 @@
       }
 
       try {
-        const data = await post(
-          '/api/join',
-          {
-            name,
-            clientKey:
-              getClientKey()
-          }
-        );
+        const responseData =
+          await post(
+            '/api/join',
+            {
+              name,
+
+              clientKey:
+                getClientKey()
+            }
+          );
 
         me = {
-          id: data.id,
-          name: data.name,
+          id:
+            responseData.id,
+
+          name:
+            responseData.name,
 
           sessionGeneration:
-            data.sessionGeneration
+            responseData
+              .sessionGeneration,
+
+          clientKey:
+            getClientKey()
         };
 
         saveSession();
 
         badge.textContent =
-          data.name +
+          me.name +
           ' として参加中';
 
         connect();
@@ -867,43 +1066,98 @@
       }
     }
 
-    async function boot() {
-      getClientKey();
-
-      const saved =
-        loadSession();
-
-      if (!saved) {
-        joinView();
-        return;
+    async function restoreSession() {
+      if (!me) {
+        return false;
       }
 
       try {
-        const data = await post(
-          '/api/rejoin',
-          saved
-        );
+        const responseData =
+          await post(
+            '/api/rejoin',
+            {
+              id:
+                me.id,
+
+              name:
+                me.name,
+
+              sessionGeneration:
+                me.sessionGeneration,
+
+              clientKey:
+                me.clientKey ||
+                getClientKey()
+            }
+          );
 
         me = {
-          id: data.id,
-          name: data.name,
+          id:
+            responseData.id,
+
+          name:
+            responseData.name,
 
           sessionGeneration:
-            data.sessionGeneration
+            responseData
+              .sessionGeneration,
+
+          clientKey:
+            getClientKey()
         };
 
         saveSession();
 
         badge.textContent =
-          data.name +
+          me.name +
           ' として参加中';
 
         connect();
-        standby();
+
+        return true;
       } catch {
-        invalidateSession();
+        return false;
       }
     }
+
+    async function boot() {
+      getClientKey();
+
+      const savedSession =
+        loadSession();
+
+      if (!savedSession) {
+        joinView();
+        return;
+      }
+
+      me = {
+        ...savedSession,
+
+        clientKey:
+          savedSession.clientKey ||
+          getClientKey()
+      };
+
+      const restored =
+        await restoreSession();
+
+      if (restored) {
+        standby();
+        return;
+      }
+
+      clearSession();
+      badge.textContent = '';
+
+      joinView(
+        '保存済みの参加情報を復元できませんでした。同じ名前を入力すると以前の参加者として再入場できます。'
+      );
+    }
+
+    /* =====================================================
+       SSE接続
+       ===================================================== */
 
     function closeEventSource() {
       if (eventSource) {
@@ -916,22 +1170,63 @@
     function connect() {
       closeEventSource();
 
+      if (!me) {
+        return;
+      }
+
       eventSource =
         new EventSource(
           '/events/player' +
           '?id=' +
-          encodeURIComponent(me.id) +
+          encodeURIComponent(
+            me.id
+          ) +
           '&generation=' +
           encodeURIComponent(
             me.sessionGeneration
           )
         );
 
+      eventSource.onopen = () => {
+        sendState();
+      };
+
+      eventSource.onerror = () => {
+        /*
+         * EventSourceには自動再接続があります。
+         * ページが表示中で接続が閉じている場合だけ、
+         * セッション復元を試します。
+         */
+        if (
+          !document.hidden &&
+          eventSource &&
+          eventSource.readyState ===
+            EventSource.CLOSED
+        ) {
+          window.setTimeout(
+            async () => {
+              const restored =
+                await restoreSession();
+
+              if (
+                restored &&
+                state === 'standby'
+              ) {
+                standby();
+              }
+            },
+            1000
+          );
+        }
+      };
+
       eventSource.addEventListener(
         'reflex-start',
         event => {
           startReflex(
-            JSON.parse(event.data)
+            JSON.parse(
+              event.data
+            )
           );
         }
       );
@@ -940,7 +1235,9 @@
         'tap-start',
         event => {
           startTap(
-            JSON.parse(event.data)
+            JSON.parse(
+              event.data
+            )
           );
         }
       );
@@ -949,7 +1246,9 @@
         'unique-open',
         event => {
           openUnique(
-            JSON.parse(event.data)
+            JSON.parse(
+              event.data
+            )
           );
         }
       );
@@ -977,7 +1276,9 @@
         'unique-result',
         event => {
           uniqueResult(
-            JSON.parse(event.data)
+            JSON.parse(
+              event.data
+            )
           );
         }
       );
@@ -986,7 +1287,9 @@
         'tempo-start',
         event => {
           startTempo(
-            JSON.parse(event.data)
+            JSON.parse(
+              event.data
+            )
           );
         }
       );
@@ -995,7 +1298,9 @@
         'ranking-show',
         event => {
           showRanking(
-            JSON.parse(event.data),
+            JSON.parse(
+              event.data
+            ),
             true
           );
         }
@@ -1013,13 +1318,28 @@
 
       eventSource.addEventListener(
         'kick',
-        invalidateSession
+        () => {
+          closeEventSource();
+          clearSession();
+
+          badge.textContent = '';
+
+          joinView(
+            '参加者情報が全リセットされました。名前を入力して参加し直してください。'
+          );
+        }
       );
     }
 
+    /* =====================================================
+       スタンバイ画面
+       ===================================================== */
+
     function standby() {
       clearTimeout(timer);
-      clearInterval(intervalTimer);
+      clearInterval(
+        intervalTimer
+      );
 
       phase = 'idle';
 
@@ -1073,6 +1393,10 @@
             'lastResult'
           )
           .onclick = () => {
+            /*
+             * 直前結果の再確認は、
+             * ホスト側ではstandbyとして扱います。
+             */
             showRanking(
               lastResult,
               false
@@ -1081,29 +1405,38 @@
       }
     }
 
-    const practiceTag = practice =>
-      practice
-        ? `
-          <div class="practice">
-            練習モード
-          </div>
-        `
-        : '';
+    const practiceTag =
+      practice =>
+        practice
+          ? `
+            <div class="practice">
+              練習モード
+            </div>
+          `
+          : '';
+
+    /* =====================================================
+       カウントダウン
+       ===================================================== */
 
     function countdown(
       practice,
       done,
       label
     ) {
-      let number = 3;
+      let count = 3;
 
       setView(
         'count',
         `
-          ${practiceTag(practice)}
+          ${practiceTag(
+            practice
+          )}
 
           <h1>
-            ${escapeHtml(label)}
+            ${escapeHtml(
+              label
+            )}
           </h1>
 
           <div
@@ -1118,18 +1451,20 @@
 
       intervalTimer =
         setInterval(() => {
-          number -= 1;
+          count -= 1;
 
-          if (number > 0) {
+          if (count > 0) {
             const countdownElement =
               document.getElementById(
                 'countdown'
               );
 
-            if (countdownElement) {
+            if (
+              countdownElement
+            ) {
               countdownElement
                 .textContent =
-                  number;
+                  count;
             }
 
             return;
@@ -1143,8 +1478,13 @@
         }, 1000);
     }
 
+    /* =====================================================
+       反射神経
+       ===================================================== */
+
     function startReflex(data) {
-      roundId = data.roundId;
+      roundId =
+        data.roundId;
 
       countdown(
         data.practice,
@@ -1171,8 +1511,8 @@
 
           bind(reflexHit);
 
-          timer = setTimeout(
-            () => {
+          timer =
+            setTimeout(() => {
               phase = 'go';
 
               window.greenAt =
@@ -1208,7 +1548,9 @@
     }
 
     function reflexHit() {
-      if (phase === 'ready') {
+      if (
+        phase === 'ready'
+      ) {
         clearTimeout(timer);
 
         phase = 'done';
@@ -1238,16 +1580,23 @@
             roundId,
             foul: true
           }
-        );
+        ).catch(() => {
+          showError(
+            '結果を送信できませんでした'
+          );
+        });
 
         return;
       }
 
-      if (phase === 'go') {
-        const timeMs = Math.round(
-          now() -
-          window.greenAt
-        );
+      if (
+        phase === 'go'
+      ) {
+        const timeMs =
+          Math.round(
+            now() -
+            window.greenAt
+          );
 
         phase = 'done';
 
@@ -1280,12 +1629,21 @@
             roundId,
             timeMs
           }
-        );
+        ).catch(() => {
+          showError(
+            '結果を送信できませんでした'
+          );
+        });
       }
     }
 
+    /* =====================================================
+       連打
+       ===================================================== */
+
     function startTap(data) {
-      roundId = data.roundId;
+      roundId =
+        data.roundId;
 
       countdown(
         data.practice,
@@ -1293,9 +1651,11 @@
           tapCount = 0;
 
           const total =
-            data.duration * 1000;
+            data.duration *
+            1000;
 
-          const startedAt = now();
+          const startedAt =
+            now();
 
           setView(
             'tap',
@@ -1335,22 +1695,26 @@
                 'tapCount'
               );
 
-            if (countElement) {
-              countElement.textContent =
-                tapCount;
+            if (
+              countElement
+            ) {
+              countElement
+                .textContent =
+                  tapCount;
             }
           });
 
           intervalTimer =
             setInterval(() => {
-              const left = Math.max(
-                0,
-                total -
-                (
-                  now() -
-                  startedAt
-                )
-              );
+              const elapsed =
+                now() -
+                startedAt;
+
+              const remaining =
+                Math.max(
+                  0,
+                  total - elapsed
+                );
 
               const remainingElement =
                 document.getElementById(
@@ -1364,7 +1728,8 @@
                   .textContent =
                     '残り ' +
                     (
-                      left / 1000
+                      remaining /
+                      1000
                     ).toFixed(1) +
                     ' 秒';
               }
@@ -1377,7 +1742,7 @@
               if (timeBar) {
                 timeBar.style.width =
                   (
-                    left /
+                    remaining /
                     total *
                     100
                   ) +
@@ -1385,8 +1750,8 @@
               }
             }, 100);
 
-          timer = setTimeout(
-            () => {
+          timer =
+            setTimeout(() => {
               clearInterval(
                 intervalTimer
               );
@@ -1422,17 +1787,24 @@
                   roundId,
                   taps: tapCount
                 }
-              );
-            },
-            total
-          );
+              ).catch(() => {
+                showError(
+                  '結果を送信できませんでした'
+                );
+              });
+            }, total);
         },
         '連打ゲーム開始まで'
       );
     }
 
+    /* =====================================================
+       最大ユニークナンバー
+       ===================================================== */
+
     function openUnique(data) {
-      roundId = data.roundId;
+      roundId =
+        data.roundId;
 
       setView(
         'unique',
@@ -1539,7 +1911,8 @@
         .getElementById(
           'answerButton'
         )
-        .onclick = submitUnique;
+        .onclick =
+          submitUnique;
     }
 
     async function submitUnique() {
@@ -1553,10 +1926,11 @@
           'answerButton'
         );
 
-      const number = parseInt(
-        numberInput.value,
-        10
-      );
+      const number =
+        parseInt(
+          numberInput.value,
+          10
+        );
 
       if (
         number < 1 ||
@@ -1569,7 +1943,9 @@
         return;
       }
 
-      answerButton.disabled = true;
+      answerButton.disabled =
+        true;
+
       answerButton.textContent =
         '送信中…';
 
@@ -1590,20 +1966,24 @@
           .getElementById(
             'savedNumber'
           )
-          .textContent = number;
+          .textContent =
+            number;
 
         document
           .getElementById(
             'answerPanel'
           )
-          .classList.add('show');
+          .classList.add(
+            'show'
+          );
 
         answerButton.textContent =
           '✓ 決定済み（変更可）';
 
-        answerButton.classList.add(
-          'saved'
-        );
+        answerButton
+          .classList.add(
+            'saved'
+          );
 
         navigator.vibrate?.(80);
       } catch {
@@ -1619,13 +1999,18 @@
       }
     }
 
-    function uniqueResult(result) {
-      const boxes =
+    function uniqueResult(
+      result
+    ) {
+      const podiumHtml =
         (
           result.podium || []
         )
           .map(
-            (entry, index) => `
+            (
+              entry,
+              index
+            ) => `
               <div>
                 ${
                   [
@@ -1667,6 +2052,7 @@
 
       lastResult = {
         kind: 'unique',
+
         label:
           '最大ユニークナンバー 結果',
 
@@ -1674,8 +2060,11 @@
           (
             result.podium || []
           ).map(entry => ({
-            name: entry.name,
-            score: entry.number
+            name:
+              entry.name,
+
+            score:
+              entry.number
           })),
 
         selfText:
@@ -1694,7 +2083,7 @@
 
             <div class="rankingList">
               ${
-                boxes ||
+                podiumHtml ||
                 '<div>ユニーク数字なし</div>'
               }
             </div>
@@ -1711,12 +2100,19 @@
 
       setTimeout(
         standby,
-        result.durationMs || 5000
+        result.durationMs ||
+        5000
       );
     }
 
+    /* =====================================================
+       テンポゲーム
+       ===================================================== */
+
     async function startTempo(data) {
-      roundId = data.roundId;
+      roundId =
+        data.roundId;
+
       tempoData = data;
       tempoTimes = [];
       tempoHidden = false;
@@ -1774,9 +2170,14 @@
 
           tempoDot.style.setProperty(
             '--beat',
-            data.tempoMs + 'ms'
+            data.tempoMs +
+            'ms'
           );
 
+          /*
+           * 見本中のタップは採点しません。
+           * 波紋だけ表示します。
+           */
           bind(event => {
             createRipple(event);
           });
@@ -1792,6 +2193,10 @@
             );
           }
 
+          /*
+           * 見本5回終了後は、
+           * 中央の●を消します。
+           */
           const dot =
             document.getElementById(
               'tempoDot'
@@ -1808,19 +2213,31 @@
 
           phase = 'transition';
 
-          document
-            .getElementById(
+          const tempoCountElement =
+            document.getElementById(
               'tempoCount'
-            )
-            .textContent =
-              'そのまま続けて！';
+            );
 
-          document
-            .getElementById(
+          const tempoMessageElement =
+            document.getElementById(
               'tempoMessage'
-            )
-            .textContent =
-              '同じテンポで10回タップ';
+            );
+
+          if (
+            tempoCountElement
+          ) {
+            tempoCountElement
+              .textContent =
+                'そのまま続けて！';
+          }
+
+          if (
+            tempoMessageElement
+          ) {
+            tempoMessageElement
+              .textContent =
+                '同じテンポで10回タップ';
+          }
 
           const feedback =
             document.getElementById(
@@ -1838,7 +2255,8 @@
 
           tempoAccept =
             tempoStart +
-            data.tempoMs * 0.45;
+            data.tempoMs *
+            0.45;
 
           bind(tempoTap);
 
@@ -1847,14 +2265,16 @@
               phase ===
               'transition'
             ) {
-              phase = 'measure';
+              phase =
+                'measure';
             }
           }, data.tempoMs * 0.45);
 
-          timer = setTimeout(
-            tempoTimeout,
-            data.tempoMs * 15
-          );
+          timer =
+            setTimeout(
+              tempoTimeout,
+              data.tempoMs * 15
+            );
         },
         'テンポゲーム開始まで'
       );
@@ -1871,7 +2291,9 @@
 
       if (countElement) {
         countElement.textContent =
-          `見本 ${index} / 5`;
+          '見本 ' +
+          index +
+          ' / 5';
       }
 
       const dot =
@@ -1884,15 +2306,22 @@
           'tempoCue'
         );
 
-      if (!dot || !cue) {
+      if (
+        !dot ||
+        !cue
+      ) {
         return;
       }
 
-      dot.classList.remove('grow');
+      dot.classList.remove(
+        'grow'
+      );
 
       void dot.offsetWidth;
 
-      dot.classList.add('grow');
+      dot.classList.add(
+        'grow'
+      );
 
       await sleep(tempoMs);
 
@@ -1906,7 +2335,9 @@
 
       void cue.offsetWidth;
 
-      cue.classList.add('show');
+      cue.classList.add(
+        'show'
+      );
 
       setTimeout(() => {
         screen.classList.remove(
@@ -1946,7 +2377,9 @@
     function updateTempoFeedback(
       differenceMs
     ) {
-      if (!tempoData?.practice) {
+      if (
+        !tempoData?.practice
+      ) {
         return;
       }
 
@@ -1960,19 +2393,18 @@
       }
 
       const differenceSeconds =
-        differenceMs / 1000;
+        differenceMs /
+        1000;
 
-      const display =
+      feedback.textContent =
         (
           differenceSeconds >= 0
             ? '+'
             : ''
         ) +
-        differenceSeconds.toFixed(2) +
+        differenceSeconds
+          .toFixed(2) +
         '秒';
-
-      feedback.textContent =
-        display;
 
       feedback.classList.remove(
         'good',
@@ -1981,7 +2413,9 @@
       );
 
       if (
-        Math.abs(differenceMs) <= 50
+        Math.abs(
+          differenceMs
+        ) <= 50
       ) {
         feedback.classList.add(
           'good'
@@ -2002,14 +2436,16 @@
     function tempoTap(event) {
       createRipple(event);
 
-      const currentTime = now();
+      const currentTime =
+        now();
 
       if (
         ![
           'transition',
           'measure'
         ].includes(phase) ||
-        currentTime < tempoAccept
+        currentTime <
+          tempoAccept
       ) {
         return;
       }
@@ -2017,6 +2453,10 @@
       const previousTime =
         tempoTimes.at(-1);
 
+      /*
+       * 200ms未満の連続入力は、
+       * 誤二重タップとして無視します。
+       */
       if (
         previousTime &&
         currentTime -
@@ -2039,9 +2479,14 @@
 
       if (countElement) {
         countElement.textContent =
-          `${tempoTimes.length} / 10`;
+          tempoTimes.length +
+          ' / 10';
       }
 
+      /*
+       * 練習中だけ、
+       * 2回目以降のタップ誤差を表示します。
+       */
       if (
         previousTime &&
         tempoData?.practice
@@ -2060,7 +2505,8 @@
       }
 
       if (
-        tempoTimes.length === 10
+        tempoTimes.length ===
+        10
       ) {
         finishTempo();
       }
@@ -2076,8 +2522,11 @@
         tempoTimes
           .slice(1)
           .map(
-            (time, index) =>
-              time -
+            (
+              tapTime,
+              index
+            ) =>
+              tapTime -
               tempoTimes[index]
           );
 
@@ -2101,7 +2550,8 @@
               tempoTimes.at(-1) -
               tempoTimes[0],
 
-            hidden: tempoHidden
+            hidden:
+              tempoHidden
           }
         );
 
@@ -2159,16 +2609,21 @@
               me.sessionGeneration,
 
             roundId,
+
             intervals: [],
 
-            transitionMs: 999999,
-            elapsedMs: 999999,
+            transitionMs:
+              999999,
 
-            hidden: tempoHidden
+            elapsedMs:
+              999999,
+
+            hidden:
+              tempoHidden
           }
         );
       } catch {
-        // 締切後の場合は表示のみ
+        // 結果締切済みの場合は表示のみ
       }
 
       setView(
@@ -2186,11 +2641,64 @@
       );
     }
 
+    /* =====================================================
+       順位表示
+       ===================================================== */
+
+    function resultTitleHtml(
+      result
+    ) {
+      if (
+        result.kind ===
+          'tempo-round'
+      ) {
+        const matched =
+          String(
+            result.label || ''
+          ).match(
+            /第\s*(\d+)\s*ラウンド/
+          );
+
+        const roundNumber =
+          matched
+            ? matched[1]
+            : '';
+
+        return (
+          'テンポゲーム' +
+          '<br>' +
+          (
+            roundNumber
+              ? '第' +
+                roundNumber +
+                'ラウンド'
+              : 'ラウンド結果'
+          )
+        );
+      }
+
+      if (
+        result.kind ===
+          'tempo-overall'
+      ) {
+        return (
+          'テンポゲーム' +
+          '<br>' +
+          '総合結果'
+        );
+      }
+
+      return escapeHtml(
+        result.label
+      );
+    }
+
     function showRanking(
       result,
       automatic
     ) {
-      lastResult = result;
+      lastResult =
+        result;
 
       const unit =
         result.unit || '';
@@ -2200,7 +2708,10 @@
           result.top3 || []
         )
           .map(
-            (entry, index) => `
+            (
+              entry,
+              index
+            ) => `
               <div>
                 ${
                   [
@@ -2231,7 +2742,8 @@
           result.self.score +
           unit;
       } else if (
-        result.raw?.valid === false
+        result.raw?.valid ===
+        false
       ) {
         personalHtml =
           '無効記録' +
@@ -2266,13 +2778,22 @@
           '</small>';
       }
 
+      /*
+       * 自動表示中はresult、
+       * 「直前の結果を確認」で開いた場合はstandbyです。
+       */
+      const resultState =
+        automatic
+          ? 'result'
+          : 'standby';
+
       setView(
         'result',
         `
           <div class="ranking">
             <h1>
-              ${escapeHtml(
-                result.label
+              ${resultTitleHtml(
+                result
               )}
             </h1>
 
@@ -2297,43 +2818,52 @@
             }
           </div>
         `,
-        'result'
+        resultState
       );
 
       if (automatic) {
         setTimeout(
           standby,
           result.durationMs ||
-            5000
+          5000
         );
       } else {
         document
-          .getElementById('back')
-          .onclick = standby;
+          .getElementById(
+            'back'
+          )
+          .onclick =
+            standby;
       }
     }
+
+    /* =====================================================
+       タップ入力
+       ===================================================== */
 
     function bind(handler) {
       unbind();
 
-      pointerHandler = event => {
-        event.preventDefault();
+      pointerHandler =
+        event => {
+          event.preventDefault();
 
-        const currentTime = now();
+          const currentTime =
+            now();
 
-        if (
-          currentTime -
-            lastInput <
-          25
-        ) {
-          return;
-        }
+          if (
+            currentTime -
+              lastInput <
+            25
+          ) {
+            return;
+          }
 
-        lastInput =
-          currentTime;
+          lastInput =
+            currentTime;
 
-        handler(event);
-      };
+          handler(event);
+        };
 
       screen.addEventListener(
         'pointerdown',
@@ -2354,6 +2884,10 @@
 
       pointerHandler = null;
     }
+
+    /* =====================================================
+       連打時のズーム防止
+       ===================================================== */
 
     document.addEventListener(
       'touchstart',
@@ -2462,6 +2996,10 @@
       }
     );
 
+    /* =====================================================
+       ブラウザー復帰・接続復旧
+       ===================================================== */
+
     document.addEventListener(
       'visibilitychange',
       () => {
@@ -2473,16 +3011,71 @@
             'measure'
           ].includes(phase)
         ) {
-          tempoHidden = true;
+          tempoHidden =
+            true;
+        }
+
+        if (
+          !document.hidden &&
+          me
+        ) {
+          if (
+            !eventSource ||
+            eventSource.readyState ===
+              EventSource.CLOSED
+          ) {
+            restoreSession()
+              .then(restored => {
+                if (restored) {
+                  connect();
+                }
+              });
+          }
         }
 
         sendState();
       }
     );
 
-    setInterval(
-      sendState,
-      10000
+    window.addEventListener(
+      'pageshow',
+      async () => {
+        if (!me) {
+          return;
+        }
+
+        if (
+          !eventSource ||
+          eventSource.readyState ===
+            EventSource.CLOSED
+        ) {
+          const restored =
+            await restoreSession();
+
+          if (restored) {
+            connect();
+          }
+        }
+
+        sendState();
+      }
+    );
+
+    window.addEventListener(
+      'online',
+      async () => {
+        if (!me) {
+          return;
+        }
+
+        const restored =
+          await restoreSession();
+
+        if (restored) {
+          connect();
+          sendState();
+        }
+      }
     );
 
     document.addEventListener(
@@ -2499,6 +3092,11 @@
           event.preventDefault();
         }
       }
+    );
+
+    setInterval(
+      sendState,
+      10000
     );
 
     boot();
