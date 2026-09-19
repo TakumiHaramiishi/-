@@ -285,6 +285,91 @@
       -webkit-user-select: text;
       user-select: text;
     }
+    .nameForm {
+  width:
+    min(
+      430px,
+      94vw
+    );
+
+  margin-top: 8px;
+}
+
+.nameFields {
+  display: grid;
+  grid-template-columns:
+    1fr 1fr;
+  gap: 10px;
+
+  width: 100%;
+}
+
+.nameField {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+}
+
+.nameField label {
+  color: #eadcf5;
+
+  font-size: 0.9rem;
+  font-weight: 800;
+
+  text-align: left;
+}
+
+.nameField input {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 8px;
+
+  font-size:
+    clamp(
+      1.35rem,
+      6vw,
+      1.8rem
+    );
+}
+
+.nameNotice {
+  margin:
+    12px 0 4px;
+
+  padding: 10px;
+
+  border-radius: 10px;
+
+  background: #ffffff16;
+
+  color: #eadcf5;
+
+  font-size: 0.88rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.nameJoinButton {
+  width: 100%;
+  margin:
+    10px 0 0;
+}
+
+@media (
+  max-width: 390px
+) {
+  .nameFields {
+    gap: 6px;
+  }
+
+  .nameField input {
+    padding:
+      11px 5px;
+
+    font-size: 1.3rem;
+  }
+}
 
     button {
       margin: 8px;
@@ -939,133 +1024,254 @@
        入場・再入場
        ===================================================== */
 
-    function joinView(note = '') {
-      setView(
-        'wait',
-        `
-          <div class="pumpkins">
-            🎃 👻 🎃
+   function joinView(note = '') {
+  setView(
+    'wait',
+    `
+      <div class="pumpkins">
+        🎃 👻 🎃
+      </div>
+
+      <div class="event">
+        技能人財養成部
+      </div>
+
+      <h1>
+        ハロウィンパーティー
+      </h1>
+
+      <p>
+        本名を入力してください
+      </p>
+
+      <div class="nameForm">
+        <div class="nameFields">
+          <div class="nameField">
+            <label for="familyName">
+              姓
+            </label>
+
+            <input
+              id="familyName"
+              type="text"
+              maxlength="20"
+              placeholder="伝想"
+              autocomplete="family-name"
+              autocapitalize="none"
+              autocorrect="off"
+              enterkeyhint="next"
+            >
           </div>
 
-          <div class="event">
-            技能人財養成部
+          <div class="nameField">
+            <label for="givenName">
+              名
+            </label>
+
+            <input
+              id="givenName"
+              type="text"
+              maxlength="20"
+              placeholder="太郎"
+              autocomplete="given-name"
+              autocapitalize="none"
+              autocorrect="off"
+              enterkeyhint="done"
+            >
           </div>
+        </div>
 
-          <h1>
-            ハロウィンパーティー
-          </h1>
+        <div class="nameNotice">
+          再入場時も同じ本名を入力してください。
+          姓と名の間のスペースは自動的に統一されます。
+        </div>
 
-          <p>
-            ニックネームを入力
-          </p>
+        <button
+          id="join"
+          class="nameJoinButton"
+        >
+          パーティーに参加
+        </button>
+      </div>
 
-          <input
-            id="name"
-            maxlength="20"
-            autocomplete="off"
-          >
-
-          <button id="join">
-            パーティーに参加
-          </button>
-
-          ${
-            note
-              ? `
-                <p>
-                  ${escapeHtml(note)}
-                </p>
-              `
-              : ''
-          }
-        `,
-        'join'
-      );
-
-      const joinButton =
-        document.getElementById(
-          'join'
-        );
-
-      const nameInput =
-        document.getElementById(
-          'name'
-        );
-
-      joinButton.onclick =
-        join;
-
-      nameInput.addEventListener(
-        'keydown',
-        event => {
-          if (
-            event.key === 'Enter'
-          ) {
-            join();
-          }
-        }
-      );
-    }
-
-    async function join() {
-      const nameInput =
-        document.getElementById(
-          'name'
-        );
-
-      const name =
-        nameInput.value.trim();
-
-      if (!name) {
-        showError(
-          '名前を入力してください'
-        );
-
-        return;
+      ${
+        note
+          ? `
+            <p>
+              ${escapeHtml(note)}
+            </p>
+          `
+          : ''
       }
+    `,
+    'join'
+  );
 
-      try {
-        const responseData =
-          await post(
-            '/api/join',
-            {
-              name,
+  const joinButton =
+    document.getElementById(
+      'join'
+    );
 
-              clientKey:
-                getClientKey()
-            }
-          );
+  const familyNameInput =
+    document.getElementById(
+      'familyName'
+    );
 
-        me = {
-          id:
-            responseData.id,
+  const givenNameInput =
+    document.getElementById(
+      'givenName'
+    );
 
+  joinButton.onclick =
+    join;
+
+  familyNameInput.addEventListener(
+    'keydown',
+    event => {
+      if (
+        event.key === 'Enter'
+      ) {
+        event.preventDefault();
+
+        givenNameInput.focus();
+      }
+    }
+  );
+
+  givenNameInput.addEventListener(
+    'keydown',
+    event => {
+      if (
+        event.key === 'Enter'
+      ) {
+        event.preventDefault();
+
+        join();
+      }
+    }
+  );
+
+  window.setTimeout(() => {
+    familyNameInput.focus();
+  }, 100);
+}
+    async function join() {
+  const familyNameInput =
+    document.getElementById(
+      'familyName'
+    );
+
+  const givenNameInput =
+    document.getElementById(
+      'givenName'
+    );
+
+  const familyName =
+    String(
+      familyNameInput?.value ||
+      ''
+    )
+      .normalize('NFKC')
+      .replace(
+        /[\s\u3000]+/g,
+        ''
+      )
+      .trim();
+
+  const givenName =
+    String(
+      givenNameInput?.value ||
+      ''
+    )
+      .normalize('NFKC')
+      .replace(
+        /[\s\u3000]+/g,
+        ''
+      )
+      .trim();
+
+  if (!familyName) {
+    showError(
+      '姓を入力してください'
+    );
+
+    familyNameInput?.focus();
+
+    return;
+  }
+
+  if (!givenName) {
+    showError(
+      '名を入力してください'
+    );
+
+    givenNameInput?.focus();
+
+    return;
+  }
+
+  const fullName =
+    familyName +
+    ' ' +
+    givenName;
+
+  const joinButton =
+    document.getElementById(
+      'join'
+    );
+
+  joinButton.disabled = true;
+  joinButton.textContent =
+    '参加処理中…';
+
+  try {
+    const responseData =
+      await post(
+        '/api/join',
+        {
           name:
-            responseData.name,
-
-          sessionGeneration:
-            responseData
-              .sessionGeneration,
+            fullName,
 
           clientKey:
             getClientKey()
-        };
+        }
+      );
 
-        saveSession();
+    me = {
+      id:
+        responseData.id,
 
-        badge.textContent =
-          me.name +
-          ' として参加中';
+      name:
+        responseData.name,
 
-        connect();
-        standby();
-      } catch {
-        showError(
-          '参加できませんでした'
-        );
-      }
-    }
+      sessionGeneration:
+        responseData
+          .sessionGeneration,
 
+      clientKey:
+        getClientKey()
+    };
+
+    saveSession();
+
+    badge.textContent =
+      me.name +
+      ' として参加中';
+
+    connect();
+    standby();
+  } catch {
+    showError(
+      '参加できませんでした'
+    );
+
+    joinButton.disabled =
+      false;
+
+    joinButton.textContent =
+      'パーティーに参加';
+  }
+}
     async function restoreSession() {
       if (!me) {
         return false;
