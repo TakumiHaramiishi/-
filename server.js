@@ -5,14 +5,25 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const PORT = process.env.PORT || 3000;
+const PORT =
+  process.env.PORT || 3000;
+
 const RESULT_MS = Math.max(
   20,
-  Number(process.env.RESULT_MS || 5000)
+  Number(
+    process.env.RESULT_MS || 5000
+  )
 );
-const PUBLIC = path.join(__dirname, 'public');
 
-const uid = () => crypto.randomBytes(12).toString('hex');
+const PUBLIC = path.join(
+  __dirname,
+  'public'
+);
+
+const uid = () =>
+  crypto
+    .randomBytes(12)
+    .toString('hex');
 
 const players = new Map();
 const playerStreams = new Map();
@@ -37,46 +48,94 @@ let tempoPracticeDone = false;
 let tempoNext = 0;
 let lastReveal = null;
 
-function newPlayer(name, clientKey = '') {
+/* =========================================================
+   参加者データ
+   ========================================================= */
+
+function newPlayer(
+  name,
+  clientKey = ''
+) {
   return {
-    clientKey: String(clientKey || ''),
+    clientKey:
+      String(clientKey || ''),
+
     name,
+
     reflexBest: null,
     reflexTries: 0,
+
     tapBest: {},
     tapTries: {},
+
     uniquePoints: 0,
     uniqueWins: 0,
-    tempoRounds: [null, null, null],
+
+    tempoRounds: [
+      null,
+      null,
+      null
+    ],
+
     state: 'standby',
     visible: true,
     lastSeen: Date.now()
   };
 }
 
-const clean = value =>
-  String(value || '').trim().slice(0, 20) || '名無し';
+function clean(value) {
+  return (
+    String(value || '')
+      .trim()
+      .slice(0, 20) ||
+    '名無し'
+  );
+}
 
-function json(res, status, data) {
+/* =========================================================
+   HTTP共通処理
+   ========================================================= */
+
+function json(
+  res,
+  status,
+  data
+) {
   res.writeHead(status, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Cache-Control': 'no-store'
+    'Content-Type':
+      'application/json; charset=utf-8',
+
+    'Cache-Control':
+      'no-store'
   });
 
-  res.end(JSON.stringify(data));
+  res.end(
+    JSON.stringify(data)
+  );
 }
 
 function read(req) {
   return new Promise(resolve => {
-    let body = '';
+    let requestBody = '';
 
     req.on('data', chunk => {
-      body += chunk;
+      requestBody += chunk;
+
+      if (
+        requestBody.length >
+        1000000
+      ) {
+        req.destroy();
+      }
     });
 
     req.on('end', () => {
       try {
-        resolve(JSON.parse(body || '{}'));
+        resolve(
+          JSON.parse(
+            requestBody || '{}'
+          )
+        );
       } catch {
         resolve({});
       }
@@ -88,61 +147,125 @@ function read(req) {
   });
 }
 
-function sse(res, event, data) {
+/* =========================================================
+   SSE共通処理
+   ========================================================= */
+
+function sse(
+  res,
+  event,
+  data
+) {
   try {
     res.write(
       `event: ${event}\n` +
       `data: ${JSON.stringify(data)}\n\n`
     );
   } catch {
-    // 接続切断時は何もしない
+    // 接続切断済みの場合は何もしない
   }
 }
 
-function emitAll(event, data) {
-  for (const res of playerStreams.values()) {
-    sse(res, event, data);
+function emitAll(
+  event,
+  data
+) {
+  for (
+    const res of
+      playerStreams.values()
+  ) {
+    sse(
+      res,
+      event,
+      data
+    );
   }
 }
 
-function emitOne(id, event, data) {
-  const res = playerStreams.get(id);
+function emitOne(
+  playerId,
+  event,
+  data
+) {
+  const res =
+    playerStreams.get(playerId);
 
   if (res) {
-    sse(res, event, data);
+    sse(
+      res,
+      event,
+      data
+    );
   }
 }
 
 function emitHosts() {
   const data = payload();
 
-  for (const res of hostStreams) {
-    sse(res, 'leaderboard', data);
+  for (
+    const res of
+      hostStreams
+  ) {
+    sse(
+      res,
+      'leaderboard',
+      data
+    );
   }
 }
 
-function byName(name) {
-  const key = clean(name).toLowerCase();
+/* =========================================================
+   参加者検索とセッション確認
+   ========================================================= */
 
-  for (const [id, player] of players) {
-    if (player.name.toLowerCase() === key) {
-      return [id, player];
+function byName(name) {
+  const searchName =
+    clean(name).toLowerCase();
+
+  for (
+    const [
+      playerId,
+      player
+    ] of players
+  ) {
+    if (
+      player.name.toLowerCase() ===
+      searchName
+    ) {
+      return [
+        playerId,
+        player
+      ];
     }
   }
 
   return null;
 }
 
-function byClientKey(clientKey) {
-  const key = String(clientKey || '');
+function byClientKey(
+  clientKey
+) {
+  const searchKey =
+    String(clientKey || '');
 
-  if (!key) {
+  if (!searchKey) {
     return null;
   }
 
-  for (const [id, player] of players) {
-    if (player.clientKey === key) {
-      return [id, player];
+  for (
+    const [
+      playerId,
+      player
+    ] of players
+  ) {
+    if (
+      player.clientKey ===
+      searchKey
+    ) {
+      return [
+        playerId,
+        player
+      ];
     }
   }
 
@@ -152,33 +275,55 @@ function byClientKey(clientKey) {
 function valid(body) {
   return (
     body &&
-    body.sessionGeneration === generation &&
-    players.has(String(body.id || ''))
+    body.sessionGeneration ===
+      generation &&
+    players.has(
+      String(body.id || '')
+    )
   );
 }
 
-function setState(id, state, visible = true) {
-  const player = players.get(id);
+function setState(
+  playerId,
+  nextState,
+  visible = true
+) {
+  const player =
+    players.get(playerId);
 
   if (!player) {
     return;
   }
 
-  player.state = state || player.state;
-  player.visible = visible !== false;
-  player.lastSeen = Date.now();
+  player.state =
+    nextState || player.state;
+
+  player.visible =
+    visible !== false;
+
+  player.lastSeen =
+    Date.now();
 }
 
-function rank(rows, ascending) {
+/* =========================================================
+   ランキング計算
+   ========================================================= */
+
+function rank(
+  rows,
+  ascending
+) {
   let previousScore = null;
   let previousRank = 0;
 
   return rows
-    .sort((a, b) =>
-      ascending
-        ? a.score - b.score
-        : b.score - a.score
-    )
+    .sort((a, b) => {
+      if (ascending) {
+        return a.score - b.score;
+      }
+
+      return b.score - a.score;
+    })
     .map((row, index) => {
       const currentRank =
         previousScore !== null &&
@@ -199,35 +344,56 @@ function rank(rows, ascending) {
 function tempoOverall() {
   const rows = [];
 
-  for (const [id, player] of players) {
-    const completedAllRounds = player.tempoRounds.every(
-      result => result && result.valid
-    );
+  for (
+    const [
+      playerId,
+      player
+    ] of players
+  ) {
+    const completedAllRounds =
+      player.tempoRounds.every(
+        result =>
+          result &&
+          result.valid
+      );
 
     if (!completedAllRounds) {
       continue;
     }
 
+    const total =
+      player.tempoRounds.reduce(
+        (
+          sum,
+          result
+        ) =>
+          sum + result.avg,
+        0
+      );
+
     const score =
       Math.round(
-        (
-          player.tempoRounds.reduce(
-            (sum, result) => sum + result.avg,
-            0
-          ) / 3
-        ) * 10
+        total / 3 * 10
       ) / 10;
 
     rows.push({
-      id,
+      id: playerId,
       name: player.name,
       score,
-      rounds: player.tempoRounds.map(result => result.avg),
+
+      rounds:
+        player.tempoRounds.map(
+          result => result.avg
+        ),
+
       tries: 3
     });
   }
 
-  return rank(rows, true);
+  return rank(
+    rows,
+    true
+  );
 }
 
 function leaderboard() {
@@ -236,45 +402,83 @@ function leaderboard() {
   }
 
   if (view.mode === 'unique') {
-    const rows = [...players.values()]
-      .map(player => ({
-        name: player.name,
-        score: player.uniquePoints,
-        tries: player.uniqueWins
-      }))
-      .filter(row => row.score > 0);
+    const rows =
+      [...players.values()]
+        .map(player => ({
+          name: player.name,
+          score:
+            player.uniquePoints,
+          tries:
+            player.uniqueWins
+        }))
+        .filter(
+          row => row.score > 0
+        );
 
-    return rank(rows, false);
+    return rank(
+      rows,
+      false
+    );
   }
 
   if (view.mode === 'tap') {
-    const durationKey = String(view.duration);
+    const durationKey =
+      String(view.duration);
 
-    const rows = [...players.values()]
-      .map(player => ({
-        name: player.name,
-        score: player.tapBest[durationKey],
-        tries: player.tapTries[durationKey] || 0
-      }))
-      .filter(row => Number.isFinite(row.score));
+    const rows =
+      [...players.values()]
+        .map(player => ({
+          name: player.name,
 
-    return rank(rows, false);
+          score:
+            player.tapBest[
+              durationKey
+            ],
+
+          tries:
+            player.tapTries[
+              durationKey
+            ] || 0
+        }))
+        .filter(row =>
+          Number.isFinite(
+            row.score
+          )
+        );
+
+    return rank(
+      rows,
+      false
+    );
   }
 
-  const rows = [...players.values()]
-    .filter(player => Number.isFinite(player.reflexBest))
-    .map(player => ({
-      name: player.name,
-      score: player.reflexBest,
-      tries: player.reflexTries
-    }));
+  const reflexRows =
+    [...players.values()]
+      .filter(player =>
+        Number.isFinite(
+          player.reflexBest
+        )
+      )
+      .map(player => ({
+        name: player.name,
+        score:
+          player.reflexBest,
+        tries:
+          player.reflexTries
+      }));
 
-  return rank(rows, true);
+  return rank(
+    reflexRows,
+    true
+  );
 }
 
 function booby(board) {
   if (
-    ['unique', 'tempo'].includes(view.mode) ||
+    [
+      'unique',
+      'tempo'
+    ].includes(view.mode) ||
     board.length < 2
   ) {
     return {
@@ -283,28 +487,66 @@ function booby(board) {
     };
   }
 
-  const scores = [...new Set(board.map(row => row.score))];
+  const scoreGroups =
+    [
+      ...new Set(
+        board.map(
+          row => row.score
+        )
+      )
+    ];
 
-  if (scores.length < 2) {
+  if (
+    scoreGroups.length < 2
+  ) {
     return {
       prize: [],
-      maker: board.map(row => row.name)
+
+      maker:
+        board.map(
+          row => row.name
+        )
     };
   }
 
-  return {
-    prize: board
-      .filter(row => row.score === scores.at(-2))
-      .map(row => row.name),
+  const makerScore =
+    scoreGroups.at(-1);
 
-    maker: board
-      .filter(row => row.score === scores.at(-1))
-      .map(row => row.name)
+  const prizeScore =
+    scoreGroups.at(-2);
+
+  return {
+    prize:
+      board
+        .filter(
+          row =>
+            row.score ===
+            prizeScore
+        )
+        .map(
+          row => row.name
+        ),
+
+    maker:
+      board
+        .filter(
+          row =>
+            row.score ===
+            makerScore
+        )
+        .map(
+          row => row.name
+        )
   };
 }
 
+/* =========================================================
+   接続・待機状態
+   ========================================================= */
+
 function presence() {
-  const currentTime = Date.now();
+  const currentTime =
+    Date.now();
 
   let standby = 0;
   let connected = 0;
@@ -312,35 +554,55 @@ function presence() {
 
   const detail = [];
 
-  for (const [id, player] of players) {
+  for (
+    const [
+      playerId,
+      player
+    ] of players
+  ) {
     const online =
-      playerStreams.has(id) &&
-      currentTime - player.lastSeen < 30000;
+      playerStreams.has(
+        playerId
+      ) &&
+      currentTime -
+        player.lastSeen <
+        30000;
 
     if (online) {
       connected += 1;
     }
 
+    /*
+     * 「直前の結果を確認」を開いている場合、
+     * player.html側からstandbyとして通知されます。
+     */
     if (
       online &&
       player.visible &&
-      player.state === 'standby'
+      player.state ===
+        'standby'
     ) {
       standby += 1;
       continue;
     }
 
-    if (online && player.state !== 'standby') {
+    if (
+      online &&
+      player.state !==
+        'standby'
+    ) {
       playing += 1;
     }
 
     detail.push({
       name: player.name,
-      state: !online
-        ? '切断・未確認'
-        : !player.visible
-          ? '画面非表示'
-          : player.state
+
+      state:
+        !online
+          ? '切断・未確認'
+          : !player.visible
+            ? '画面非表示'
+            : player.state
     });
   }
 
@@ -348,36 +610,78 @@ function presence() {
     connected,
     standby,
     playing,
-    notStandby: players.size - standby,
+
+    notStandby:
+      players.size -
+      standby,
+
     detail
   };
 }
 
+/* =========================================================
+   ホストへ送る状態
+   ========================================================= */
+
 function completedCount() {
-  if (active.type.startsWith('unique')) {
-    return active.answers?.size || 0;
+  if (
+    active.type.startsWith(
+      'unique'
+    )
+  ) {
+    return (
+      active.answers?.size ||
+      0
+    );
   }
 
-  return active.results?.size || 0;
+  return (
+    active.results?.size ||
+    0
+  );
 }
 
 function stats() {
   return {
     joined: players.size,
-    answered: completedCount(),
+    answered:
+      completedCount(),
+
     round: roundNo,
 
-    active: !['idle', 'revealed'].includes(active.type),
+    active:
+      ![
+        'idle',
+        'revealed'
+      ].includes(
+        active.type
+      ),
 
-    activeMode: active.mode || view.mode,
+    activeMode:
+      active.mode ||
+      view.mode,
+
     mode: view.mode,
-    duration: view.duration,
-    practice: Boolean(active.practice),
-    roundCompleted: completedCount(),
+    duration:
+      view.duration,
 
-    uniqueStatus: active.type.startsWith('unique')
-      ? active.type.replace('unique-', '')
-      : 'idle',
+    practice:
+      Boolean(
+        active.practice
+      ),
+
+    roundCompleted:
+      completedCount(),
+
+    uniqueStatus:
+      active.type.startsWith(
+        'unique'
+      )
+        ? active.type.replace(
+            'unique-',
+            ''
+          )
+        : 'idle',
 
     generation,
 
@@ -399,15 +703,21 @@ function stats() {
 }
 
 function payload() {
-  const board = leaderboard();
+  const board =
+    leaderboard();
 
   return {
     board,
-    stats: stats(),
-    booby: booby(board),
+
+    stats:
+      stats(),
+
+    booby:
+      booby(board),
 
     uniqueResult:
-      lastReveal?.kind === 'unique'
+      lastReveal?.kind ===
+        'unique'
         ? lastReveal.result
         : null,
 
@@ -421,36 +731,63 @@ function push() {
   emitHosts();
 }
 
+/* =========================================================
+   結果表示共通処理
+   ========================================================= */
+
 function readyForAuto() {
   return (
     players.size > 0 &&
-    completedCount() >= players.size
+    completedCount() >=
+      players.size
   );
 }
 
-function personalRanking(board, id, raw) {
-  const playerName = players.get(id)?.name;
+function personalRanking(
+  board,
+  playerId,
+  rawResult
+) {
+  const playerName =
+    players.get(
+      playerId
+    )?.name;
 
-  const self = board.find(
-    row =>
-      row.id === id ||
-      row.name === playerName
-  );
+  const self =
+    board.find(
+      row =>
+        row.id ===
+          playerId ||
+        row.name ===
+          playerName
+    );
 
   return {
-    top3: board.slice(0, 3),
+    top3:
+      board.slice(0, 3),
+
     self,
-    raw,
-    durationMs: RESULT_MS
+    raw:
+      rawResult,
+
+    durationMs:
+      RESULT_MS
   };
 }
 
 function returnPlayersToStandby() {
-  for (const player of players.values()) {
-    player.state = 'standby';
+  for (
+    const player of
+      players.values()
+  ) {
+    player.state =
+      'standby';
   }
 
-  emitAll('standby', {});
+  emitAll(
+    'standby',
+    {}
+  );
 
   active = {
     type: 'idle'
@@ -474,17 +811,26 @@ function showRanking(
     ...extra
   };
 
-  for (const id of players.keys()) {
-    emitOne(id, 'ranking-show', {
-      kind,
-      label,
-      ...personalRanking(
-        board,
-        id,
-        rawMap?.get(id)
-      ),
-      ...extra
-    });
+  for (
+    const playerId of
+      players.keys()
+  ) {
+    emitOne(
+      playerId,
+      'ranking-show',
+      {
+        kind,
+        label,
+
+        ...personalRanking(
+          board,
+          playerId,
+          rawMap?.get(playerId)
+        ),
+
+        ...extra
+      }
+    );
   }
 
   push();
@@ -495,42 +841,67 @@ function showRanking(
   );
 }
 
+/* =========================================================
+   反射神経・連打
+   ========================================================= */
+
 function finishSpeedRound() {
-  if (active.type !== 'speed') {
+  if (
+    active.type !== 'speed'
+  ) {
     return;
   }
 
-  const completedRound = active;
+  const completedRound =
+    active;
 
   let board;
 
-  if (completedRound.practice) {
-    const practiceRows = [
-      ...completedRound.results.entries()
-    ]
-      .map(([id, result]) => ({
-        ...result,
-        id
-      }))
-      .filter(result => result.valid)
-      .map(result => ({
-        id: result.id,
-        name: result.name,
-        score: result.score,
-        tries: 1
-      }));
+  if (
+    completedRound.practice
+  ) {
+    const practiceRows =
+      [
+        ...completedRound
+          .results.entries()
+      ]
+        .map(
+          (
+            [
+              playerId,
+              result
+            ]
+          ) => ({
+            ...result,
+            id: playerId
+          })
+        )
+        .filter(
+          result =>
+            result.valid
+        )
+        .map(result => ({
+          id: result.id,
+          name: result.name,
+          score: result.score,
+          tries: 1
+        }));
 
     board = rank(
       practiceRows,
-      completedRound.mode === 'reflex'
+
+      completedRound.mode ===
+        'reflex'
     );
   } else {
-    board = leaderboard();
+    board =
+      leaderboard();
   }
 
   active = {
     type: 'revealed',
-    mode: completedRound.mode
+    mode:
+      completedRound.mode
   };
 
   showRanking(
@@ -540,53 +911,95 @@ function finishSpeedRound() {
     completedRound.label,
     {
       unit:
-        completedRound.mode === 'tap'
+        completedRound.mode ===
+          'tap'
           ? '回'
           : 'ms',
 
-      practice: completedRound.practice
+      practice:
+        completedRound.practice
     }
   );
 }
 
-function tempoBoard(resultMap) {
-  const rows = [
-    ...resultMap.entries()
-  ]
-    .map(([id, result]) => ({
-      id,
-      name: result.name,
-      score: result.avg,
-      tries: 1,
-      raw: result
-    }))
-    .filter(row => row.raw.valid);
+/* =========================================================
+   テンポゲーム
+   ========================================================= */
 
-  return rank(rows, true);
+function tempoBoard(resultMap) {
+  const rows =
+    [
+      ...resultMap.entries()
+    ]
+      .map(
+        (
+          [
+            playerId,
+            result
+          ]
+        ) => ({
+          id: playerId,
+          name: result.name,
+          score: result.avg,
+          tries: 1,
+          raw: result
+        })
+      )
+      .filter(
+        row =>
+          row.raw.valid
+      );
+
+  return rank(
+    rows,
+    true
+  );
 }
 
 function finishTempoRound() {
-  if (active.type !== 'tempo') {
+  if (
+    active.type !== 'tempo'
+  ) {
     return;
   }
 
-  const completedRound = active;
-  const board = tempoBoard(completedRound.results);
+  const completedRound =
+    active;
 
-  if (completedRound.practice) {
+  const board =
+    tempoBoard(
+      completedRound.results
+    );
+
+  if (
+    completedRound.practice
+  ) {
     tempoPracticeDone = true;
   } else {
     tempoNext = Math.max(
       tempoNext,
-      completedRound.index + 1
+
+      completedRound.index +
+        1
     );
 
-    tempoHistory[completedRound.index] = {
-      index: completedRound.index,
-      label: completedRound.label,
-      tempoMs: completedRound.tempoMs,
+    tempoHistory[
+      completedRound.index
+    ] = {
+      index:
+        completedRound.index,
+
+      label:
+        completedRound.label,
+
+      tempoMs:
+        completedRound.tempoMs,
+
       board,
-      completed: completedRound.results.size
+
+      completed:
+        completedRound
+          .results.size
     };
   }
 
@@ -597,27 +1010,47 @@ function finishTempoRound() {
 
   lastReveal = {
     kind: 'tempo-round',
-    label: completedRound.label,
+    label:
+      completedRound.label,
     board,
     at: Date.now(),
-    tempoMs: completedRound.tempoMs
+
+    tempoMs:
+      completedRound.tempoMs
   };
 
-  for (const id of players.keys()) {
-    emitOne(id, 'ranking-show', {
-      kind: 'tempo-round',
-      label: completedRound.label,
-      unit: 'ms',
+  for (
+    const playerId of
+      players.keys()
+  ) {
+    emitOne(
+      playerId,
+      'ranking-show',
+      {
+        kind:
+          'tempo-round',
 
-      ...personalRanking(
-        board,
-        id,
-        completedRound.results.get(id)
-      ),
+        label:
+          completedRound.label,
 
-      tempoMs: completedRound.tempoMs,
-      durationMs: RESULT_MS
-    });
+        unit: 'ms',
+
+        ...personalRanking(
+          board,
+          playerId,
+          completedRound
+            .results.get(
+              playerId
+            )
+        ),
+
+        tempoMs:
+          completedRound.tempoMs,
+
+        durationMs:
+          RESULT_MS
+      }
+    );
   }
 
   push();
@@ -631,42 +1064,65 @@ function finishTempoRound() {
     ) {
       setTimeout(
         showTempoOverall,
-        Math.min(600, RESULT_MS + 20)
+        Math.min(
+          600,
+          RESULT_MS + 20
+        )
       );
     }
   }, RESULT_MS);
 }
 
 function showTempoOverall() {
-  const board = tempoOverall();
+  const board =
+    tempoOverall();
 
   lastReveal = {
     kind: 'tempo-overall',
-    label: 'テンポゲーム 総合結果',
+
+    label:
+      'テンポゲーム 総合結果',
+
     board,
     at: Date.now()
   };
 
-  for (const id of players.keys()) {
-    emitOne(id, 'ranking-show', {
-      kind: 'tempo-overall',
-      label: 'テンポゲーム 総合結果',
-      unit: 'ms',
+  for (
+    const playerId of
+      players.keys()
+  ) {
+    emitOne(
+      playerId,
+      'ranking-show',
+      {
+        kind:
+          'tempo-overall',
 
-      ...personalRanking(
-        board,
-        id,
-        null
-      ),
+        label:
+          'テンポゲーム 総合結果',
 
-      durationMs: RESULT_MS
-    });
+        unit: 'ms',
+
+        ...personalRanking(
+          board,
+          playerId,
+          null
+        ),
+
+        durationMs:
+          RESULT_MS
+      }
+    );
   }
 
   push();
 
   setTimeout(() => {
-    emitAll('standby', {});
+    emitAll(
+      'standby',
+      {}
+    );
+
     push();
   }, RESULT_MS);
 }
@@ -676,70 +1132,120 @@ function maybeFinish() {
     return;
   }
 
-  if (active.type === 'speed') {
+  if (
+    active.type === 'speed'
+  ) {
     finishSpeedRound();
-  } else if (active.type === 'tempo') {
+  } else if (
+    active.type === 'tempo'
+  ) {
     finishTempoRound();
   }
 }
 
-function evaluateUnique() {
-  const counts = new Map();
+/* =========================================================
+   最大ユニークナンバー
+   ========================================================= */
 
-  for (const number of active.answers.values()) {
+function evaluateUnique() {
+  const counts =
+    new Map();
+
+  for (
+    const number of
+      active.answers.values()
+  ) {
     counts.set(
       number,
-      (counts.get(number) || 0) + 1
+      (
+        counts.get(number) ||
+        0
+      ) + 1
     );
   }
 
-  const uniqueNumbers = [...counts]
-    .filter(([, count]) => count === 1)
-    .map(([number]) => number)
-    .sort((a, b) => b - a);
+  const uniqueNumbers =
+    [...counts]
+      .filter(
+        (
+          [
+            ,
+            count
+          ]
+        ) =>
+          count === 1
+      )
+      .map(
+        ([number]) =>
+          number
+      )
+      .sort(
+        (a, b) =>
+          b - a
+      );
 
-  const podium = uniqueNumbers
-    .slice(0, 3)
-    .map((number, index) => {
-      let id = '';
-      let name = '';
+  const podium =
+    uniqueNumbers
+      .slice(0, 3)
+      .map(
+        (
+          number,
+          index
+        ) => {
+          let playerId = '';
+          let playerName = '';
 
-      for (
-        const [
-          playerId,
-          answer
-        ] of active.answers
-      ) {
-        if (answer === number) {
-          id = playerId;
-          name =
-            players.get(playerId)?.name || '';
-          break;
+          for (
+            const [
+              answerPlayerId,
+              answerNumber
+            ] of
+              active.answers
+          ) {
+            if (
+              answerNumber ===
+              number
+            ) {
+              playerId =
+                answerPlayerId;
+
+              playerName =
+                players.get(
+                  answerPlayerId
+                )?.name || '';
+
+              break;
+            }
+          }
+
+          return {
+            place: index + 1,
+            number,
+            id: playerId,
+            name: playerName
+          };
         }
-      }
-
-      return {
-        place: index + 1,
-        number,
-        id,
-        name
-      };
-    });
+      );
 
   const winningNumber =
-    uniqueNumbers[0] ?? null;
+    uniqueNumbers[0] ??
+    null;
 
-  const winners = podium[0]
-    ? [podium[0].name]
-    : [];
+  const winners =
+    podium[0]
+      ? [
+          podium[0].name
+        ]
+      : [];
 
   if (
     !active.practice &&
     podium[0]
   ) {
-    const winner = players.get(
-      podium[0].id
-    );
+    const winner =
+      players.get(
+        podium[0].id
+      );
 
     if (winner) {
       winner.uniquePoints += 1;
@@ -750,39 +1256,68 @@ function evaluateUnique() {
   const result = {
     historyId: uid(),
     roundId: roundNo,
-    roundNumber: uniqueHistory.length + 1,
+
+    roundNumber:
+      uniqueHistory.length +
+      1,
+
     winningNumber,
     winners,
     podium,
-    answerCount: active.answers.size,
 
-    distribution: [...counts]
-      .sort((a, b) => a[0] - b[0])
-      .map(([number, count]) => ({
-        number,
-        count,
-        unique: count === 1,
-        winner:
-          number === winningNumber
-      })),
+    answerCount:
+      active.answers.size,
 
-    practice: active.practice
+    distribution:
+      [...counts]
+        .sort(
+          (a, b) =>
+            a[0] - b[0]
+        )
+        .map(
+          (
+            [
+              number,
+              count
+            ]
+          ) => ({
+            number,
+            count,
+            unique:
+              count === 1,
+
+            winner:
+              number ===
+              winningNumber
+          })
+        ),
+
+    practice:
+      active.practice
   };
 
   if (!active.practice) {
-    uniqueHistory.push(result);
+    uniqueHistory.push(
+      result
+    );
   }
 
   return result;
 }
 
 function revealUnique() {
-  if (active.type !== 'unique-closed') {
+  if (
+    active.type !==
+    'unique-closed'
+  ) {
     return null;
   }
 
-  const answers = active.answers;
-  const result = evaluateUnique();
+  const answers =
+    active.answers;
+
+  const result =
+    evaluateUnique();
 
   active = {
     type: 'revealed',
@@ -791,33 +1326,55 @@ function revealUnique() {
 
   lastReveal = {
     kind: 'unique',
+
     label:
       '最大ユニークナンバー 結果',
+
     result,
     at: Date.now()
   };
 
-  for (const id of players.keys()) {
-    const ownNumber = answers.get(id);
+  for (
+    const playerId of
+      players.keys()
+  ) {
+    const ownNumber =
+      answers.get(playerId);
 
-    const ownCount = ownNumber
-      ? [...answers.values()].filter(
-          number => number === ownNumber
-        ).length
-      : 0;
+    const ownCount =
+      ownNumber
+        ? [
+            ...answers.values()
+          ].filter(
+            number =>
+              number ===
+              ownNumber
+          ).length
+        : 0;
 
     const ownPlace =
       result.podium.find(
-        entry => entry.id === id
+        entry =>
+          entry.id ===
+          playerId
       )?.place || null;
 
-    emitOne(id, 'unique-result', {
-      ...result,
-      ownNumber: ownNumber || null,
-      ownCount,
-      ownPlace,
-      durationMs: RESULT_MS
-    });
+    emitOne(
+      playerId,
+      'unique-result',
+      {
+        ...result,
+
+        ownNumber:
+          ownNumber || null,
+
+        ownCount,
+        ownPlace,
+
+        durationMs:
+          RESULT_MS
+      }
+    );
   }
 
   push();
@@ -830,25 +1387,47 @@ function revealUnique() {
   return result;
 }
 
+/* =========================================================
+   リセット
+   ========================================================= */
+
 function resetScores() {
-  for (const player of players.values()) {
-    player.reflexBest = null;
-    player.reflexTries = 0;
+  for (
+    const player of
+      players.values()
+  ) {
+    player.reflexBest =
+      null;
+
+    player.reflexTries =
+      0;
+
     player.tapBest = {};
     player.tapTries = {};
-    player.uniquePoints = 0;
-    player.uniqueWins = 0;
+
+    player.uniquePoints =
+      0;
+
+    player.uniqueWins =
+      0;
+
     player.tempoRounds = [
       null,
       null,
       null
     ];
+
+    player.state =
+      'standby';
   }
 
   uniqueHistory = [];
   tempoHistory = [];
   tempoPlan = [];
-  tempoPracticeDone = false;
+
+  tempoPracticeDone =
+    false;
+
   tempoNext = 0;
   lastReveal = null;
 
@@ -857,1034 +1436,1624 @@ function resetScores() {
   };
 }
 
-function serve(res, file) {
-  fs.readFile(file, (error, data) => {
-    if (error) {
-      res.writeHead(404);
-      res.end('Not found');
-      return;
+/* =========================================================
+   静的HTML配信
+   ========================================================= */
+
+function serve(
+  res,
+  file
+) {
+  fs.readFile(
+    file,
+    (
+      error,
+      fileData
+    ) => {
+      if (error) {
+        res.writeHead(404);
+        res.end('Not found');
+        return;
+      }
+
+      res.writeHead(200, {
+        'Content-Type':
+          'text/html; charset=utf-8',
+
+        'Cache-Control':
+          'no-store'
+      });
+
+      res.end(fileData);
     }
-
-    res.writeHead(200, {
-      'Content-Type':
-        'text/html; charset=utf-8',
-
-      'Cache-Control': 'no-store'
-    });
-
-    res.end(data);
-  });
+  );
 }
 
-const server = http.createServer(
-  async (req, res) => {
-    const url = new URL(
-      req.url,
-      `http://${req.headers.host || 'localhost'}`
-    );
+/* =========================================================
+   HTTPサーバー
+   ========================================================= */
 
-    const pathname = url.pathname;
-
-    if (pathname === '/healthz') {
-      return json(res, 200, {
-        ok: true
-      });
-    }
-
-    if (
-      pathname === '/' ||
-      pathname === '/player' ||
-      pathname === '/player.html'
-    ) {
-      return serve(
-        res,
-        path.join(
-          PUBLIC,
-          'player.html'
-        )
-      );
-    }
-
-    if (
-      pathname === '/host' ||
-      pathname === '/host.html'
-    ) {
-      return serve(
-        res,
-        path.join(
-          PUBLIC,
-          'host.html'
-        )
-      );
-    }
-
-    if (pathname === '/events/player') {
-      const id =
-        url.searchParams.get('id');
-
-      const sessionGeneration =
-        url.searchParams.get(
-          'generation'
+const server =
+  http.createServer(
+    async (
+      req,
+      res
+    ) => {
+      const requestUrl =
+        new URL(
+          req.url,
+          `http://${req.headers.host || 'localhost'}`
         );
 
-      if (
-        sessionGeneration !== generation
-      ) {
-        return json(res, 409, {
-          staleSession: true
-        });
-      }
+      const pathname =
+        requestUrl.pathname;
 
-      if (!players.has(id)) {
-        return json(res, 404, {
-          playerMissing: true
-        });
-      }
-
-      res.writeHead(200, {
-        'Content-Type':
-          'text/event-stream',
-
-        'Cache-Control': 'no-store',
-        Connection: 'keep-alive',
-        'X-Accel-Buffering': 'no'
-      });
-
-      res.write('\n');
-
-      const oldStream =
-        playerStreams.get(id);
+      /* -------------------------------
+         Health Check
+         ------------------------------- */
 
       if (
-        oldStream &&
-        oldStream !== res
+        pathname === '/healthz'
       ) {
-        try {
-          oldStream.end();
-        } catch {
-          // 何もしない
-        }
+        return json(
+          res,
+          200,
+          {
+            ok: true
+          }
+        );
       }
 
-      playerStreams.set(id, res);
-      setState(id, 'standby', true);
+      /* -------------------------------
+         HTML
+         ------------------------------- */
 
-      sse(res, 'hello', {
-        generation
-      });
+      if (
+        pathname === '/' ||
+        pathname === '/player' ||
+        pathname ===
+          '/player.html'
+      ) {
+        return serve(
+          res,
+          path.join(
+            PUBLIC,
+            'player.html'
+          )
+        );
+      }
 
-      push();
+      if (
+        pathname === '/host' ||
+        pathname ===
+          '/host.html'
+      ) {
+        return serve(
+          res,
+          path.join(
+            PUBLIC,
+            'host.html'
+          )
+        );
+      }
 
-      req.on('close', () => {
+      /* -------------------------------
+         プレイヤー用SSE
+         ------------------------------- */
+
+      if (
+        pathname ===
+          '/events/player'
+      ) {
+        const playerId =
+          requestUrl
+            .searchParams
+            .get('id');
+
+        const sessionGeneration =
+          requestUrl
+            .searchParams
+            .get(
+              'generation'
+            );
+
         if (
-          playerStreams.get(id) === res
+          sessionGeneration !==
+          generation
         ) {
-          playerStreams.delete(id);
+          return json(
+            res,
+            409,
+            {
+              staleSession: true
+            }
+          );
         }
+
+        if (
+          !players.has(
+            playerId
+          )
+        ) {
+          return json(
+            res,
+            404,
+            {
+              playerMissing: true
+            }
+          );
+        }
+
+        res.writeHead(200, {
+          'Content-Type':
+            'text/event-stream',
+
+          'Cache-Control':
+            'no-store',
+
+          Connection:
+            'keep-alive',
+
+          'X-Accel-Buffering':
+            'no'
+        });
+
+        res.write('\n');
+
+        const previousStream =
+          playerStreams.get(
+            playerId
+          );
+
+        if (
+          previousStream &&
+          previousStream !== res
+        ) {
+          try {
+            previousStream.end();
+          } catch {
+            // 何もしない
+          }
+        }
+
+        playerStreams.set(
+          playerId,
+          res
+        );
+
+        setState(
+          playerId,
+          'standby',
+          true
+        );
+
+        sse(
+          res,
+          'hello',
+          {
+            generation
+          }
+        );
 
         push();
-      });
 
-      return;
-    }
+        req.on(
+          'close',
+          () => {
+            if (
+              playerStreams.get(
+                playerId
+              ) === res
+            ) {
+              playerStreams.delete(
+                playerId
+              );
+            }
 
-    if (pathname === '/events/host') {
-      res.writeHead(200, {
-        'Content-Type':
-          'text/event-stream',
+            push();
+          }
+        );
 
-        'Cache-Control': 'no-store',
-        Connection: 'keep-alive',
-        'X-Accel-Buffering': 'no'
-      });
+        return;
+      }
 
-      res.write('\n');
+      /* -------------------------------
+         ホスト用SSE
+         ------------------------------- */
 
-      hostStreams.add(res);
+      if (
+        pathname ===
+          '/events/host'
+      ) {
+        res.writeHead(200, {
+          'Content-Type':
+            'text/event-stream',
 
-      sse(
-        res,
-        'leaderboard',
-        payload()
-      );
+          'Cache-Control':
+            'no-store',
 
-      req.on('close', () => {
-        hostStreams.delete(res);
-      });
+          Connection:
+            'keep-alive',
 
-      return;
-    }
+          'X-Accel-Buffering':
+            'no'
+        });
 
-    if (
-      req.method === 'POST' &&
-      pathname === '/api/join'
-    ) {
-      const body = await read(req);
+        res.write('\n');
 
-      const name = clean(body.name);
-      const clientKey = String(
-        body.clientKey || ''
-      );
+        hostStreams.add(res);
 
-      const existing =
-        byClientKey(clientKey) ||
-        byName(name);
+        sse(
+          res,
+          'leaderboard',
+          payload()
+        );
 
-      if (existing) {
-        const [
-          id,
-          player
-        ] = existing;
+        req.on(
+          'close',
+          () => {
+            hostStreams.delete(res);
+          }
+        );
 
+        return;
+      }
+
+      /* -------------------------------
+         新規参加
+         ------------------------------- */
+
+      if (
+        req.method === 'POST' &&
+        pathname === '/api/join'
+      ) {
+        const body =
+          await read(req);
+
+        const name =
+          clean(body.name);
+
+        const clientKey =
+          String(
+            body.clientKey || ''
+          );
+
+        const existing =
+          byClientKey(
+            clientKey
+          ) ||
+          byName(name);
+
+        if (existing) {
+          const [
+            existingId,
+            existingPlayer
+          ] = existing;
+
+          if (clientKey) {
+            existingPlayer.clientKey =
+              clientKey;
+          }
+
+          setState(
+            existingId,
+            'standby',
+            true
+          );
+
+          push();
+
+          return json(
+            res,
+            200,
+            {
+              id: existingId,
+
+              name:
+                existingPlayer.name,
+
+              sessionGeneration:
+                generation,
+
+              restored: true
+            }
+          );
+        }
+
+        const newId = uid();
+
+        players.set(
+          newId,
+          newPlayer(
+            name,
+            clientKey
+          )
+        );
+
+        push();
+
+        return json(
+          res,
+          200,
+          {
+            id: newId,
+            name,
+
+            sessionGeneration:
+              generation,
+
+            restored: false
+          }
+        );
+      }
+
+      /* -------------------------------
+         再入場
+         ------------------------------- */
+
+      if (
+        req.method === 'POST' &&
+        pathname ===
+          '/api/rejoin'
+      ) {
+        const body =
+          await read(req);
+
+        const requestedId =
+          String(
+            body.id || ''
+          );
+
+        const clientKey =
+          String(
+            body.clientKey ||
+            ''
+          );
+
+        const requestedName =
+          String(
+            body.name || ''
+          ).trim();
+
+        /*
+         * 1. 保存していた参加者IDが
+         *    現在のセッションで有効
+         */
         if (
-          clientKey &&
-          !player.clientKey
+          body.sessionGeneration ===
+            generation &&
+          players.has(
+            requestedId
+          )
         ) {
-          player.clientKey =
-            clientKey;
+          const player =
+            players.get(
+              requestedId
+            );
+
+          if (clientKey) {
+            player.clientKey =
+              clientKey;
+          }
+
+          setState(
+            requestedId,
+            'standby',
+            true
+          );
+
+          push();
+
+          return json(
+            res,
+            200,
+            {
+              id: requestedId,
+              name: player.name,
+
+              sessionGeneration:
+                generation,
+
+              restored: true
+            }
+          );
+        }
+
+        /*
+         * 2. 端末キーまたは同じ名前から
+         *    既存参加者を復元
+         */
+        const existing =
+          byClientKey(
+            clientKey
+          ) ||
+          (
+            requestedName
+              ? byName(
+                  requestedName
+                )
+              : null
+          );
+
+        if (existing) {
+          const [
+            existingId,
+            existingPlayer
+          ] = existing;
+
+          if (clientKey) {
+            existingPlayer.clientKey =
+              clientKey;
+          }
+
+          setState(
+            existingId,
+            'standby',
+            true
+          );
+
+          push();
+
+          return json(
+            res,
+            200,
+            {
+              id: existingId,
+
+              name:
+                existingPlayer.name,
+
+              sessionGeneration:
+                generation,
+
+              restored: true
+            }
+          );
+        }
+
+        /*
+         * 3. Render再起動などで
+         *    参加者一覧が消えた場合は、
+         *    保存済みの名前で再作成
+         */
+        if (requestedName) {
+          const recreatedId =
+            uid();
+
+          players.set(
+            recreatedId,
+            newPlayer(
+              clean(
+                requestedName
+              ),
+              clientKey
+            )
+          );
+
+          setState(
+            recreatedId,
+            'standby',
+            true
+          );
+
+          push();
+
+          return json(
+            res,
+            200,
+            {
+              id: recreatedId,
+
+              name:
+                clean(
+                  requestedName
+                ),
+
+              sessionGeneration:
+                generation,
+
+              restored: true,
+              recreated: true
+            }
+          );
+        }
+
+        return json(
+          res,
+          404,
+          {
+            playerMissing: true,
+
+            sessionGeneration:
+              generation
+          }
+        );
+      }
+
+      /* -------------------------------
+         参加者状態通知
+         ------------------------------- */
+
+      if (
+        req.method === 'POST' &&
+        pathname ===
+          '/api/state'
+      ) {
+        const body =
+          await read(req);
+
+        if (!valid(body)) {
+          return json(
+            res,
+            409,
+            {
+              staleSession: true
+            }
+          );
         }
 
         setState(
-          id,
-          'standby',
+          String(body.id),
+          body.state,
+          body.visible
+        );
+
+        push();
+
+        return json(
+          res,
+          200,
+          {
+            ok: true
+          }
+        );
+      }
+
+      /* -------------------------------
+         ランキング表示切替
+         ------------------------------- */
+
+      if (
+        req.method === 'POST' &&
+        pathname ===
+          '/api/select-ranking'
+      ) {
+        const body =
+          await read(req);
+
+        view.mode = [
+          'reflex',
+          'tap',
+          'unique',
+          'tempo'
+        ].includes(body.mode)
+          ? body.mode
+          : 'reflex';
+
+        view.duration = [
+          5,
+          7,
+          10
+        ].includes(
+          Number(body.duration)
+        )
+          ? Number(
+              body.duration
+            )
+          : 7;
+
+        push();
+
+        return json(
+          res,
+          200,
+          payload()
+        );
+      }
+
+      /* -------------------------------
+         反射神経・連打開始
+         ------------------------------- */
+
+      if (
+        req.method === 'POST' &&
+        pathname === '/api/start'
+      ) {
+        if (
+          active.type !== 'idle'
+        ) {
+          return json(
+            res,
+            409,
+            {
+              busy: true
+            }
+          );
+        }
+
+        const body =
+          await read(req);
+
+        const mode =
+          body.mode === 'tap'
+            ? 'tap'
+            : 'reflex';
+
+        const duration = [
+          5,
+          7,
+          10
+        ].includes(
+          Number(body.duration)
+        )
+          ? Number(
+              body.duration
+            )
+          : 7;
+
+        roundNo += 1;
+
+        view = {
+          mode,
+          duration
+        };
+
+        active = {
+          type: 'speed',
+          mode,
+          duration,
+
+          practice:
+            Boolean(
+              body.practice
+            ),
+
+          results:
+            new Map(),
+
+          label:
+            (
+              mode === 'tap'
+                ? `連打${duration}秒`
+                : '反射神経'
+            ) +
+            (
+              body.practice
+                ? '［練習］'
+                : ''
+            )
+        };
+
+        for (
+          const player of
+            players.values()
+        ) {
+          player.state =
+            'playing';
+        }
+
+        emitAll(
+          mode === 'tap'
+            ? 'tap-start'
+            : 'reflex-start',
+          {
+            roundId:
+              roundNo,
+
+            duration,
+
+            practice:
+              active.practice,
+
+            countdown: 3,
+            generation
+          }
+        );
+
+        push();
+
+        return json(
+          res,
+          200,
+          {
+            ok: true
+          }
+        );
+      }
+
+      /* -------------------------------
+         反射神経・連打結果
+         ------------------------------- */
+
+      if (
+        req.method === 'POST' &&
+        pathname === '/api/result'
+      ) {
+        const body =
+          await read(req);
+
+        if (
+          !valid(body) ||
+          active.type !==
+            'speed'
+        ) {
+          return json(
+            res,
+            409,
+            {
+              closed: true
+            }
+          );
+        }
+
+        const playerId =
+          String(body.id);
+
+        const player =
+          players.get(
+            playerId
+          );
+
+        let result;
+
+        if (
+          active.mode === 'tap'
+        ) {
+          const taps =
+            Math.max(
+              0,
+              Math.round(
+                Number(
+                  body.taps
+                ) || 0
+              )
+            );
+
+          result = {
+            name:
+              player.name,
+
+            valid: true,
+            score: taps
+          };
+
+          if (
+            !active.practice
+          ) {
+            const durationKey =
+              String(
+                active.duration
+              );
+
+            if (
+              !Number.isFinite(
+                player.tapBest[
+                  durationKey
+                ]
+              ) ||
+              taps >
+                player.tapBest[
+                  durationKey
+                ]
+            ) {
+              player.tapBest[
+                durationKey
+              ] = taps;
+            }
+
+            player.tapTries[
+              durationKey
+            ] =
+              (
+                player.tapTries[
+                  durationKey
+                ] || 0
+              ) + 1;
+          }
+        } else if (
+          body.foul
+        ) {
+          result = {
+            name:
+              player.name,
+
+            valid: false,
+
+            reason:
+              'フライング'
+          };
+        } else {
+          const timeMs =
+            Math.round(
+              Number(
+                body.timeMs
+              )
+            );
+
+          result =
+            Number.isFinite(
+              timeMs
+            ) &&
+            timeMs > 0
+              ? {
+                  name:
+                    player.name,
+
+                  valid: true,
+
+                  score:
+                    timeMs
+                }
+              : {
+                  name:
+                    player.name,
+
+                  valid: false,
+
+                  reason:
+                    '記録なし'
+                };
+
+          if (
+            result.valid &&
+            !active.practice
+          ) {
+            if (
+              !Number.isFinite(
+                player.reflexBest
+              ) ||
+              timeMs <
+                player.reflexBest
+            ) {
+              player.reflexBest =
+                timeMs;
+            }
+
+            player.reflexTries +=
+              1;
+          }
+        }
+
+        active.results.set(
+          playerId,
+          result
+        );
+
+        setState(
+          playerId,
+          'result',
           true
         );
 
         push();
 
-        return json(res, 200, {
-          id,
-          name: player.name,
-          sessionGeneration:
-            generation,
-          restored: true
-        });
-      }
-
-      const id = uid();
-
-      players.set(
-        id,
-        newPlayer(
-          name,
-          clientKey
-        )
-      );
-
-      push();
-
-      return json(res, 200, {
-        id,
-        name,
-        sessionGeneration:
-          generation,
-        restored: false
-      });
-    }
-
-    if (
-      req.method === 'POST' &&
-      pathname === '/api/rejoin'
-    ) {
-      const body = await read(req);
-
-      const id = String(
-        body.id || ''
-      );
-
-      if (
-        body.sessionGeneration !==
-        generation
-      ) {
-        return json(res, 409, {
-          staleSession: true
-        });
-      }
-
-      if (!players.has(id)) {
-        return json(res, 404, {
-          playerMissing: true
-        });
-      }
-
-      setState(
-        id,
-        'standby',
-        true
-      );
-
-      return json(res, 200, {
-        id,
-        name:
-          players.get(id).name,
-
-        sessionGeneration:
-          generation
-      });
-    }
-
-    if (
-      req.method === 'POST' &&
-      pathname === '/api/state'
-    ) {
-      const body = await read(req);
-
-      if (!valid(body)) {
-        return json(res, 409, {
-          staleSession: true
-        });
-      }
-
-      setState(
-        String(body.id),
-        body.state,
-        body.visible
-      );
-
-      push();
-
-      return json(res, 200, {
-        ok: true
-      });
-    }
-
-    if (
-      req.method === 'POST' &&
-      pathname ===
-        '/api/select-ranking'
-    ) {
-      const body = await read(req);
-
-      view.mode = [
-        'reflex',
-        'tap',
-        'unique',
-        'tempo'
-      ].includes(body.mode)
-        ? body.mode
-        : 'reflex';
-
-      view.duration = [
-        5,
-        7,
-        10
-      ].includes(Number(body.duration))
-        ? Number(body.duration)
-        : 7;
-
-      push();
-
-      return json(
-        res,
-        200,
-        payload()
-      );
-    }
-
-    if (
-      req.method === 'POST' &&
-      pathname === '/api/start'
-    ) {
-      if (active.type !== 'idle') {
-        return json(res, 409, {
-          busy: true
-        });
-      }
-
-      const body = await read(req);
-
-      const mode =
-        body.mode === 'tap'
-          ? 'tap'
-          : 'reflex';
-
-      const duration = [
-        5,
-        7,
-        10
-      ].includes(Number(body.duration))
-        ? Number(body.duration)
-        : 7;
-
-      roundNo += 1;
-
-      view = {
-        mode,
-        duration
-      };
-
-      active = {
-        type: 'speed',
-        mode,
-        duration,
-        practice:
-          Boolean(body.practice),
-
-        results: new Map(),
-
-        label:
-          (
-            mode === 'tap'
-              ? `連打${duration}秒`
-              : '反射神経'
-          ) +
-          (
-            body.practice
-              ? '［練習］'
-              : ''
-          )
-      };
-
-      for (
-        const player of players.values()
-      ) {
-        player.state = 'playing';
-      }
-
-      emitAll(
-        mode === 'tap'
-          ? 'tap-start'
-          : 'reflex-start',
-        {
-          roundId: roundNo,
-          duration,
-          practice:
-            active.practice,
-
-          countdown: 3,
-          generation
-        }
-      );
-
-      push();
-
-      return json(res, 200, {
-        ok: true
-      });
-    }
-
-    if (
-      req.method === 'POST' &&
-      pathname === '/api/result'
-    ) {
-      const body = await read(req);
-
-      if (
-        !valid(body) ||
-        active.type !== 'speed'
-      ) {
-        return json(res, 409, {
-          closed: true
-        });
-      }
-
-      const id = String(body.id);
-      const player =
-        players.get(id);
-
-      let result;
-
-      if (active.mode === 'tap') {
-        const taps = Math.max(
-          0,
-          Math.round(
-            Number(body.taps) || 0
-          )
+        setTimeout(
+          maybeFinish,
+          120
         );
 
-        result = {
-          name: player.name,
-          valid: true,
-          score: taps
-        };
-
-        if (!active.practice) {
-          const durationKey =
-            String(active.duration);
-
-          if (
-            !Number.isFinite(
-              player.tapBest[
-                durationKey
-              ]
-            ) ||
-            taps >
-              player.tapBest[
-                durationKey
-              ]
-          ) {
-            player.tapBest[
-              durationKey
-            ] = taps;
+        return json(
+          res,
+          200,
+          {
+            ok: true
           }
-
-          player.tapTries[
-            durationKey
-          ] =
-            (
-              player.tapTries[
-                durationKey
-              ] || 0
-            ) + 1;
-        }
-      } else if (body.foul) {
-        result = {
-          name: player.name,
-          valid: false,
-          reason: 'フライング'
-        };
-      } else {
-        const timeMs = Math.round(
-          Number(body.timeMs)
         );
+      }
 
-        result =
-          Number.isFinite(timeMs) &&
-          timeMs > 0
-            ? {
-                name: player.name,
-                valid: true,
-                score: timeMs
-              }
-            : {
-                name: player.name,
-                valid: false,
-                reason: '記録なし'
-              };
+      /* -------------------------------
+         未完了者ありで結果確定
+         ------------------------------- */
+
+      if (
+        req.method === 'POST' &&
+        pathname ===
+          '/api/finish-active'
+      ) {
+        if (
+          active.type === 'speed'
+        ) {
+          finishSpeedRound();
+        } else if (
+          active.type === 'tempo'
+        ) {
+          finishTempoRound();
+        } else {
+          return json(
+            res,
+            409,
+            {
+              wrongState: true
+            }
+          );
+        }
+
+        return json(
+          res,
+          200,
+          {
+            ok: true
+          }
+        );
+      }
+
+      /* -------------------------------
+         最大ユニーク操作
+         ------------------------------- */
+
+      if (
+        req.method === 'POST' &&
+        pathname === '/api/unique'
+      ) {
+        const body =
+          await read(req);
 
         if (
-          result.valid &&
-          !active.practice
+          body.action === 'open'
         ) {
           if (
-            !Number.isFinite(
-              player.reflexBest
-            ) ||
-            timeMs <
-              player.reflexBest
+            active.type !== 'idle'
           ) {
-            player.reflexBest =
-              timeMs;
+            return json(
+              res,
+              409,
+              {
+                busy: true
+              }
+            );
           }
 
-          player.reflexTries += 1;
+          roundNo += 1;
+
+          view = {
+            mode: 'unique',
+            duration: 0
+          };
+
+          active = {
+            type:
+              'unique-open',
+
+            mode: 'unique',
+
+            practice:
+              Boolean(
+                body.practice
+              ),
+
+            answers:
+              new Map()
+          };
+
+          emitAll(
+            'unique-open',
+            {
+              roundId:
+                roundNo,
+
+              practice:
+                active.practice,
+
+              generation
+            }
+          );
+
+          push();
+
+          return json(
+            res,
+            200,
+            {
+              ok: true
+            }
+          );
         }
+
+        if (
+          body.action ===
+            'close' &&
+          active.type ===
+            'unique-open'
+        ) {
+          active.type =
+            'unique-closed';
+
+          emitAll(
+            'unique-closed',
+            {}
+          );
+
+          push();
+
+          return json(
+            res,
+            200,
+            {
+              ok: true
+            }
+          );
+        }
+
+        if (
+          body.action ===
+            'reveal' &&
+          active.type ===
+            'unique-closed'
+        ) {
+          const result =
+            revealUnique();
+
+          return json(
+            res,
+            200,
+            {
+              ok: true,
+              result
+            }
+          );
+        }
+
+        return json(
+          res,
+          409,
+          {
+            wrongState: true
+          }
+        );
       }
 
-      active.results.set(
-        id,
-        result
-      );
+      /* -------------------------------
+         最大ユニーク回答
+         ------------------------------- */
 
-      setState(
-        id,
-        'result',
-        true
-      );
-
-      push();
-
-      setTimeout(
-        maybeFinish,
-        120
-      );
-
-      return json(res, 200, {
-        ok: true
-      });
-    }
-
-    if (
-      req.method === 'POST' &&
-      pathname ===
-        '/api/finish-active'
-    ) {
-      if (active.type === 'speed') {
-        finishSpeedRound();
-      } else if (
-        active.type === 'tempo'
+      if (
+        req.method === 'POST' &&
+        pathname ===
+          '/api/unique-answer'
       ) {
-        finishTempoRound();
-      } else {
-        return json(res, 409, {
-          wrongState: true
-        });
+        const body =
+          await read(req);
+
+        if (
+          !valid(body) ||
+          active.type !==
+            'unique-open'
+        ) {
+          return json(
+            res,
+            409,
+            {
+              closed: true
+            }
+          );
+        }
+
+        const number =
+          parseInt(
+            body.number,
+            10
+          );
+
+        if (
+          number < 1 ||
+          number > 100
+        ) {
+          return json(
+            res,
+            400,
+            {
+              invalidNumber:
+                true
+            }
+          );
+        }
+
+        active.answers.set(
+          String(body.id),
+          number
+        );
+
+        setState(
+          String(body.id),
+          'answering',
+          true
+        );
+
+        push();
+
+        return json(
+          res,
+          200,
+          {
+            ok: true,
+            number
+          }
+        );
       }
 
-      return json(res, 200, {
-        ok: true
-      });
-    }
+      /* -------------------------------
+         テンポゲーム開始
+         ------------------------------- */
 
-    if (
-      req.method === 'POST' &&
-      pathname === '/api/unique'
-    ) {
-      const body = await read(req);
+      if (
+        req.method === 'POST' &&
+        pathname ===
+          '/api/tempo/start'
+      ) {
+        const body =
+          await read(req);
 
-      if (body.action === 'open') {
-        if (active.type !== 'idle') {
-          return json(res, 409, {
-            busy: true
-          });
+        const practiceMode =
+          Boolean(
+            body.practice
+          );
+
+        const index =
+          practiceMode
+            ? -1
+            : Number(
+                body.index
+              );
+
+        if (
+          active.type !== 'idle'
+        ) {
+          return json(
+            res,
+            409,
+            {
+              busy: true
+            }
+          );
         }
+
+        if (
+          !practiceMode &&
+          index !== tempoNext
+        ) {
+          return json(
+            res,
+            409,
+            {
+              wrongRound: true
+            }
+          );
+        }
+
+        if (!tempoPlan.length) {
+          const choice =
+            values =>
+              values[
+                Math.floor(
+                  Math.random() *
+                    values.length
+                )
+              ];
+
+          tempoPlan = [
+            choice([
+              700,
+              800,
+              900
+            ]),
+
+            choice([
+              1000,
+              1100,
+              1200
+            ]),
+
+            choice([
+              1300,
+              1400,
+              1500
+            ])
+          ].sort(
+            () =>
+              Math.random() -
+              0.5
+          );
+        }
+
+        const tempoMs =
+          practiceMode
+            ? [
+                700,
+                800,
+                900,
+                1000,
+                1100,
+                1200,
+                1300,
+                1400,
+                1500
+              ][
+                Math.floor(
+                  Math.random() *
+                    9
+                )
+              ]
+            : tempoPlan[index];
 
         roundNo += 1;
 
         view = {
-          mode: 'unique',
+          mode: 'tempo',
           duration: 0
         };
 
         active = {
-          type: 'unique-open',
-          mode: 'unique',
-          practice:
-            Boolean(body.practice),
+          type: 'tempo',
+          mode: 'tempo',
 
-          answers: new Map()
+          practice:
+            practiceMode,
+
+          index,
+          tempoMs,
+
+          results:
+            new Map(),
+
+          label:
+            practiceMode
+              ? 'テンポゲーム 練習'
+              : (
+                  'テンポゲーム ' +
+                  '本番 第' +
+                  (
+                    index + 1
+                  ) +
+                  'ラウンド'
+                )
         };
 
-        emitAll('unique-open', {
-          roundId: roundNo,
-          practice:
-            active.practice,
+        for (
+          const player of
+            players.values()
+        ) {
+          player.state =
+            'playing';
+        }
 
-          generation
-        });
+        emitAll(
+          'tempo-start',
+          {
+            roundId:
+              roundNo,
+
+            practice:
+              practiceMode,
+
+            index,
+            tempoMs,
+
+            label:
+              active.label,
+
+            generation
+          }
+        );
 
         push();
 
-        return json(res, 200, {
-          ok: true
-        });
+        return json(
+          res,
+          200,
+          {
+            ok: true
+          }
+        );
       }
 
+      /* -------------------------------
+         テンポゲーム結果
+         ------------------------------- */
+
       if (
-        body.action === 'close' &&
-        active.type ===
-          'unique-open'
+        req.method === 'POST' &&
+        pathname ===
+          '/api/tempo/result'
       ) {
-        active.type =
-          'unique-closed';
+        const body =
+          await read(req);
+
+        if (
+          !valid(body) ||
+          active.type !==
+            'tempo' ||
+          Number(
+            body.roundId
+          ) !== roundNo
+        ) {
+          return json(
+            res,
+            409,
+            {
+              closed: true
+            }
+          );
+        }
+
+        const playerId =
+          String(body.id);
+
+        const player =
+          players.get(
+            playerId
+          );
+
+        let result;
+
+        if (
+          !Array.isArray(
+            body.intervals
+          ) ||
+          body.intervals.length !==
+            9
+        ) {
+          result = {
+            name:
+              player.name,
+
+            valid: false,
+
+            reason:
+              'タップ回数不足'
+          };
+        } else if (
+          body.hidden
+        ) {
+          result = {
+            name:
+              player.name,
+
+            valid: false,
+
+            reason:
+              '画面非表示'
+          };
+        } else if (
+          Number(
+            body.transitionMs
+          ) <
+            active.tempoMs *
+              0.5 ||
+          Number(
+            body.transitionMs
+          ) >
+            active.tempoMs *
+              1.5
+        ) {
+          result = {
+            name:
+              player.name,
+
+            valid: false,
+
+            reason:
+              '見本から継続できませんでした'
+          };
+        } else if (
+          Number(
+            body.elapsedMs
+          ) >
+            active.tempoMs *
+              15
+        ) {
+          result = {
+            name:
+              player.name,
+
+            valid: false,
+
+            reason:
+              '時間切れ'
+          };
+        } else {
+          const intervals =
+            body.intervals.map(
+              Number
+            );
+
+          const invalidInterval =
+            intervals.some(
+              interval =>
+                !Number.isFinite(
+                  interval
+                ) ||
+                interval < 200
+            );
+
+          if (invalidInterval) {
+            result = {
+              name:
+                player.name,
+
+              valid: false,
+
+              reason:
+                '時刻データ不正'
+            };
+          } else {
+            const errors =
+              intervals.map(
+                interval =>
+                  Math.abs(
+                    interval -
+                    active.tempoMs
+                  )
+              );
+
+            const averageError =
+              errors.reduce(
+                (
+                  total,
+                  errorValue
+                ) =>
+                  total +
+                  errorValue,
+                0
+              ) / 9;
+
+            result = {
+              name:
+                player.name,
+
+              valid: true,
+
+              avg:
+                Math.round(
+                  averageError *
+                  10
+                ) / 10,
+
+              max:
+                Math.round(
+                  Math.max(
+                    ...errors
+                  ) *
+                  10
+                ) / 10
+            };
+          }
+        }
+
+        active.results.set(
+          playerId,
+          result
+        );
+
+        if (
+          !active.practice &&
+          result.valid
+        ) {
+          player.tempoRounds[
+            active.index
+          ] = result;
+        }
+
+        setState(
+          playerId,
+          'result',
+          true
+        );
+
+        push();
+
+        setTimeout(
+          maybeFinish,
+          120
+        );
+
+        return json(
+          res,
+          200,
+          {
+            ok: true,
+            record: result
+          }
+        );
+      }
+
+      /* -------------------------------
+         記録リセット
+         ------------------------------- */
+
+      if (
+        req.method === 'POST' &&
+        pathname === '/api/reset'
+      ) {
+        resetScores();
 
         emitAll(
-          'unique-closed',
+          'reset',
           {}
         );
 
         push();
 
-        return json(res, 200, {
-          ok: true
-        });
-      }
-
-      if (
-        body.action === 'reveal' &&
-        active.type ===
-          'unique-closed'
-      ) {
-        const result =
-          revealUnique();
-
-        return json(res, 200, {
-          ok: true,
-          result
-        });
-      }
-
-      return json(res, 409, {
-        wrongState: true
-      });
-    }
-
-    if (
-      req.method === 'POST' &&
-      pathname ===
-        '/api/unique-answer'
-    ) {
-      const body = await read(req);
-
-      if (
-        !valid(body) ||
-        active.type !==
-          'unique-open'
-      ) {
-        return json(res, 409, {
-          closed: true
-        });
-      }
-
-      const number = parseInt(
-        body.number,
-        10
-      );
-
-      if (
-        number < 1 ||
-        number > 100
-      ) {
-        return json(res, 400, {
-          invalidNumber: true
-        });
-      }
-
-      active.answers.set(
-        String(body.id),
-        number
-      );
-
-      setState(
-        String(body.id),
-        'answering',
-        true
-      );
-
-      push();
-
-      return json(res, 200, {
-        ok: true,
-        number
-      });
-    }
-
-    if (
-      req.method === 'POST' &&
-      pathname ===
-        '/api/tempo/start'
-    ) {
-      const body = await read(req);
-
-      const practiceMode =
-        Boolean(body.practice);
-
-      const index = practiceMode
-        ? -1
-        : Number(body.index);
-
-      if (active.type !== 'idle') {
-        return json(res, 409, {
-          busy: true
-        });
-      }
-
-      if (
-        !practiceMode &&
-        index !== tempoNext
-      ) {
-        return json(res, 409, {
-          wrongRound: true
-        });
-      }
-
-      if (!tempoPlan.length) {
-        const choice = values =>
-          values[
-            Math.floor(
-              Math.random() *
-                values.length
-            )
-          ];
-
-        tempoPlan = [
-          choice([700, 800, 900]),
-
-          choice([
-            1000,
-            1100,
-            1200
-          ]),
-
-          choice([
-            1300,
-            1400,
-            1500
-          ])
-        ].sort(
-          () => Math.random() - 0.5
+        return json(
+          res,
+          200,
+          {
+            ok: true
+          }
         );
       }
 
-      const tempoMs = practiceMode
-        ? [
-            700,
-            800,
-            900,
-            1000,
-            1100,
-            1200,
-            1300,
-            1400,
-            1500
-          ][
-            Math.floor(
-              Math.random() * 9
-            )
-          ]
-        : tempoPlan[index];
-
-      roundNo += 1;
-
-      view = {
-        mode: 'tempo',
-        duration: 0
-      };
-
-      active = {
-        type: 'tempo',
-        mode: 'tempo',
-        practice: practiceMode,
-        index,
-        tempoMs,
-        results: new Map(),
-
-        label: practiceMode
-          ? 'テンポゲーム 練習'
-          : `テンポゲーム 本番 第${index + 1}ラウンド`
-      };
-
-      for (
-        const player of players.values()
-      ) {
-        player.state = 'playing';
-      }
-
-      emitAll('tempo-start', {
-        roundId: roundNo,
-        practice: practiceMode,
-        index,
-        tempoMs,
-        label: active.label,
-        generation
-      });
-
-      push();
-
-      return json(res, 200, {
-        ok: true
-      });
-    }
-
-    if (
-      req.method === 'POST' &&
-      pathname ===
-        '/api/tempo/result'
-    ) {
-      const body = await read(req);
+      /* -------------------------------
+         全リセット
+         ------------------------------- */
 
       if (
-        !valid(body) ||
-        active.type !== 'tempo' ||
-        Number(body.roundId) !==
-          roundNo
+        req.method === 'POST' &&
+        pathname ===
+          '/api/reset-all'
       ) {
-        return json(res, 409, {
-          closed: true
-        });
-      }
+        emitAll(
+          'kick',
+          {}
+        );
 
-      const id = String(body.id);
-      const player =
-        players.get(id);
-
-      let result;
-
-      if (
-        !Array.isArray(
-          body.intervals
-        ) ||
-        body.intervals.length !== 9
-      ) {
-        result = {
-          name: player.name,
-          valid: false,
-          reason: 'タップ回数不足'
-        };
-      } else if (body.hidden) {
-        result = {
-          name: player.name,
-          valid: false,
-          reason: '画面非表示'
-        };
-      } else if (
-        Number(body.transitionMs) <
-          active.tempoMs * 0.5 ||
-        Number(body.transitionMs) >
-          active.tempoMs * 1.5
-      ) {
-        result = {
-          name: player.name,
-          valid: false,
-          reason:
-            '見本から継続できませんでした'
-        };
-      } else if (
-        Number(body.elapsedMs) >
-        active.tempoMs * 15
-      ) {
-        result = {
-          name: player.name,
-          valid: false,
-          reason: '時間切れ'
-        };
-      } else {
-        const intervals =
-          body.intervals.map(Number);
-
-        const invalidInterval =
-          intervals.some(
-            interval =>
-              !Number.isFinite(
-                interval
-              ) ||
-              interval < 200
-          );
-
-        if (invalidInterval) {
-          result = {
-            name: player.name,
-            valid: false,
-            reason:
-              '時刻データ不正'
-          };
-        } else {
-          const errors = intervals.map(
-            interval =>
-              Math.abs(
-                interval -
-                active.tempoMs
-              )
-          );
-
-          result = {
-            name: player.name,
-            valid: true,
-
-            avg:
-              Math.round(
-                (
-                  errors.reduce(
-                    (
-                      sum,
-                      errorValue
-                    ) =>
-                      sum +
-                      errorValue,
-                    0
-                  ) / 9
-                ) * 10
-              ) / 10,
-
-            max:
-              Math.round(
-                Math.max(
-                  ...errors
-                ) * 10
-              ) / 10
-          };
+        for (
+          const stream of
+            playerStreams.values()
+        ) {
+          try {
+            stream.end();
+          } catch {
+            // 何もしない
+          }
         }
+
+        playerStreams.clear();
+        players.clear();
+
+        generation = uid();
+        roundNo = 0;
+
+        view = {
+          mode: 'reflex',
+          duration: 7
+        };
+
+        resetScores();
+        push();
+
+        return json(
+          res,
+          200,
+          {
+            ok: true
+          }
+        );
       }
 
-      active.results.set(
-        id,
-        result
-      );
-
-      if (
-        !active.practice &&
-        result.valid
-      ) {
-        player.tempoRounds[
-          active.index
-        ] = result;
-      }
-
-      setState(
-        id,
-        'result',
-        true
-      );
-
-      push();
-
-      setTimeout(
-        maybeFinish,
-        120
-      );
-
-      return json(res, 200, {
-        ok: true,
-        record: result
-      });
+      res.writeHead(404);
+      res.end('Not found');
     }
+  );
 
-    if (
-      req.method === 'POST' &&
-      pathname === '/api/reset'
-    ) {
-      resetScores();
-      emitAll('reset', {});
-      push();
-
-      return json(res, 200, {
-        ok: true
-      });
-    }
-
-    if (
-      req.method === 'POST' &&
-      pathname ===
-        '/api/reset-all'
-    ) {
-      emitAll('kick', {});
-
-      for (
-        const stream of
-          playerStreams.values()
-      ) {
-        try {
-          stream.end();
-        } catch {
-          // 何もしない
-        }
-      }
-
-      playerStreams.clear();
-      players.clear();
-
-      generation = uid();
-      roundNo = 0;
-
-      view = {
-        mode: 'reflex',
-        duration: 7
-      };
-
-      resetScores();
-      push();
-
-      return json(res, 200, {
-        ok: true
-      });
-    }
-
-    res.writeHead(404);
-    res.end('Not found');
-  }
-);
+/* =========================================================
+   定期更新
+   ========================================================= */
 
 setInterval(
   push,
   10000
 ).unref();
 
+/* =========================================================
+   起動
+   ========================================================= */
+
 server.listen(
   PORT,
   '0.0.0.0',
   () => {
     console.log(
-      `Halloween complete v5.1 on ${PORT}`
+      `Halloween complete v5.2 on ${PORT}`
     );
   }
 );
