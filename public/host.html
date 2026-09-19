@@ -241,6 +241,62 @@
       line-height: 1.4;
     }
 
+    .issueList *
+  display: grid;
+  gap: 5px;
+}
+
+.*ssueRow {
+  display: grid;
+  grid-*emplate-columns:
+    minmax(0, 1fr*
+    auto;
+  align-items: center;
+* gap: 7px;
+
+  padding: 6px 7px;
+
+ *border:
+    1px solid #75495b;
+  b*rder-radius: 8px;
+
+  background: #*21b2d;
+}
+
+.issueText {
+  min-width* 0;
+
+  overflow: hidden;
+  text-ov*rflow: ellipsis;
+  white-space: no*rap;
+
+  color: #ffd2d2;
+}
+
+.remove*layerButton {
+  padding: 5px 9px;
+*  border:
+    1px solid #ff9b9b;
+ *border-radius: 7px;
+
+  background:*#973b3b;
+  color: #ffffff;
+
+  font*size: 0.72rem;
+  font-weight: 900;*
+  white-space: nowrap;
+  cursor: *ointer;
+}
+
+.removePlayerButton:hov*r {
+  background: #bd4545;
+}
+
+.rem*vePlayerButton:disabled {
+  opacit*: 0.5;
+  cursor: default;
+}
+
     /* =====================================================
        操作グループ
        ===================================================== */
@@ -1343,6 +1399,44 @@
         );
     }
 
+    async function removeDisconnec*edPlayer(
+  playerId,
+  playerName*) {
+  const confirmed = confirm(
+ *  '「' +
+    playerName +
+    '」の参加*録を削除しますか？\n\n' +
+    'この操作を行うと、参加人*とランキング対象から削除されます。'
+  );
+
+  if (!co*firmed) {
+    return;
+  }
+
+  try {*    await post(
+      '/api/remove*player',
+      {
+        id: playe*Id
+      }
+    );
+  } catch (error* {
+    if (
+      error.status ===*409
+    ) {
+      alert(
+        '*の参加者は現在接続中のため削除できません。'
+      );
+
+ *    return;
+    }
+
+    alert(
+    * '参加登録を削除できませんでした。'
+    );
+  }
+}
+`*
+
     /* =====================================================
        QRコード
        ===================================================== */
@@ -1865,19 +1959,78 @@
       $('missing').textContent =
         issues.length;
 
-      $('detail').innerHTML =
-        issues
-          .map(
-            entry =>
-              escapeHtml(
-                entry.name
-              ) +
-              '：' +
-              escapeHtml(
-                entry.state
-              )
-          )
-          .join('<br>');
+      $('detail').innerHTM* =
+  issues.length
+    ? `
+      <*iv class="issueList">
+        ${is*ues
+          .map(entry => {
+    *       const canRemove =
+         *    entry.state ===
+              * '切断・未確認' &&
+              entry.i*;
+
+            return `
+          *   <div class="issueRow">
+        *       <span class="issueText">
+  *               ${escapeHtml(
+     *              entry.name
+         *        )}：
+                  ${es*apeHtml(
+                    entry*state
+                  )}
+       *        </span>
+
+                $*
+                  canRemove
+     *              ? `
+                *     <button
+                     *  type="button"
+                  *     class="removePlayerButton"
+  *                     data-remove-p*ayer="${escapeHtml(
+              *           entry.id
+              *         )}"
+                     *  data-remove-name="${escapeHtml(
+*                         entry.nam*
+                        )}"
+     *                >
+                *       登録削除
+                      */button>
+                    `
+   *                : ''
+             *  }
+              </div>
+         *  `;
+          })
+          .join(*')}
+      </div>
+    `
+    : '';
+`*
+
+            d*cument
+  .querySelectorAll(
+    '[*ata-remove-player]'
+  )
+  .forEach*button => {
+    button.onclick = a*ync () => {
+      const playerId =*        button.dataset
+          .*emovePlayer;
+
+      const playerNa*e =
+        button.dataset
+       *  .removeName || '';
+
+      button*disabled = true;
+      button.text*ontent =
+        '削除中…';
+
+      aw*it removeDisconnectedPlayer(
+     *  playerId,
+        playerName
+   *  );
+    };
+  });
 
       if (stats.active) {
         $('status').textContent =
