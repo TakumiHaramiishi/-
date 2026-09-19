@@ -9,7 +9,7 @@
   >
 
   <title>
-    技能人財養成部 ハロウィンパーティー｜ゲーム司会席
+    技能人財養成部 ハロウィンパーティー｜司会画面
   </title>
 
   <style>
@@ -26,6 +26,7 @@
       font-family:
         -apple-system,
         BlinkMacSystemFont,
+        "Hiragino Kaku Gothic ProN",
         "Noto Sans JP",
         sans-serif;
 
@@ -37,17 +38,21 @@
       font: inherit;
     }
 
+    .hidden {
+      display: none !important;
+    }
+
     .wrap {
       display: grid;
       grid-template-columns:
-        420px
+        350px
         minmax(0, 1fr);
 
       min-height: 100vh;
     }
 
     .side {
-      padding: 16px;
+      padding: 9px 11px;
 
       overflow-y: auto;
 
@@ -56,6 +61,7 @@
 
       background:
         linear-gradient(
+          180deg,
           #321747,
           #1b1029
         );
@@ -63,7 +69,7 @@
 
     .main {
       min-width: 0;
-      padding: 22px;
+      padding: 14px 18px;
 
       overflow-y: auto;
 
@@ -80,9 +86,15 @@
       margin: 0.2em 0;
     }
 
-    .event {
+    .hostTitle {
+      margin: 0 0 7px;
+
       color: #ff9c2e;
-      font-weight: 900;
+
+      font-size: 1.28rem;
+      line-height: 1.2;
+      text-align: center;
+      white-space: nowrap;
     }
 
     .qr {
@@ -90,50 +102,40 @@
       align-items: center;
       justify-content: center;
 
-      min-height: 145px;
-      padding: 8px;
+      min-height: 108px;
+      padding: 4px;
 
-      border-radius: 14px;
+      border-radius: 11px;
 
       background: #ffffff;
       color: #12303f;
     }
 
     .qr img {
-      width: 135px;
-      height: 135px;
-    }
-
-    .url {
-      margin: 7px 0;
-      padding: 7px;
-
-      border-radius: 8px;
-
-      background: #42245a;
-
-      font-size: 0.75rem;
-      line-height: 1.4;
-      word-break: break-all;
+      width: 102px;
+      height: 102px;
     }
 
     .stats {
       display: grid;
       grid-template-columns:
         repeat(
-          3,
+          4,
           minmax(0, 1fr)
         );
-      gap: 6px;
+      gap: 4px;
+
+      margin-top: 6px;
     }
 
     .card {
-      padding: 7px;
+      padding: 5px 2px;
 
-      border-radius: 10px;
+      border-radius: 8px;
 
       background: #42245a;
 
+      font-size: 0.7rem;
       text-align: center;
     }
 
@@ -142,38 +144,81 @@
 
       color: #ffb257;
 
-      font-size: 1.4rem;
+      font-size: 1.22rem;
+      line-height: 1.1;
       font-variant-numeric:
         tabular-nums;
     }
 
-    .group {
-      margin-top: 10px;
-      padding: 10px;
+    .status {
+      margin-top: 6px;
+      padding: 8px 9px;
 
-      border-radius: 12px;
+      border-radius: 9px;
+
+      background: #3c2550;
+
+      font-size: 0.86rem;
+      line-height: 1.35;
+    }
+
+    .status.ok {
+      background: #17633a;
+    }
+
+    .status.warn {
+      background: #8b6914;
+    }
+
+    .status.playing {
+      background: #075b87;
+    }
+
+    .detail {
+      margin-top: 4px;
+
+      color: #ffd2d2;
+
+      font-size: 0.76rem;
+      line-height: 1.4;
+    }
+
+    .group {
+      margin-top: 6px;
+      padding: 7px;
+
+      border-radius: 10px;
 
       background: #321c45;
+    }
+
+    .groupTitle {
+      margin-bottom: 5px;
+
+      font-size: 0.82rem;
+      font-weight: 800;
     }
 
     .buttons {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 4px;
     }
 
     .buttons button,
     .action {
-      padding: 10px 12px;
+      padding: 8px 8px;
 
       border:
         2px solid #6e4d84;
-      border-radius: 10px;
+      border-radius: 9px;
 
       background: #43235c;
       color: #ffffff;
 
+      font-size: 0.88rem;
       font-weight: 800;
+
       cursor: pointer;
     }
 
@@ -183,12 +228,63 @@
       background: #ef7f1a;
     }
 
+    .gameButtons {
+      display: grid;
+      grid-template-columns:
+        repeat(
+          4,
+          minmax(0, 1fr)
+        );
+      gap: 4px;
+    }
+
+    .gameButtons button {
+      min-width: 0;
+      padding: 8px 2px;
+
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .durationButtons {
+      display: grid;
+      grid-template-columns:
+        repeat(
+          3,
+          minmax(0, 1fr)
+        );
+      gap: 4px;
+
+      margin-top: 5px;
+    }
+
+    .durationButtons button {
+      min-width: 0;
+      padding: 7px 2px;
+    }
+
+    .modeButtons {
+      display: grid;
+      grid-template-columns:
+        1fr 1fr;
+      gap: 4px;
+    }
+
+    .modeButtons button {
+      min-width: 0;
+    }
+
     .action {
       width: 100%;
-      margin-top: 8px;
-      padding: 14px;
+      margin-top: 6px;
+      padding: 10px 7px;
 
       border: 0;
+    }
+
+    .action:disabled {
+      opacity: 0.45;
+      cursor: default;
     }
 
     .start {
@@ -211,58 +307,29 @@
       background: #8e3b3b;
     }
 
-    .action:disabled {
-      opacity: 0.45;
-      cursor: default;
+    .resetRow {
+      display: grid;
+      grid-template-columns:
+        1fr 1fr;
+      gap: 5px;
     }
 
-    .status {
-      margin-top: 10px;
-      padding: 11px;
-
-      border-radius: 10px;
-
-      background: #3c2550;
-
-      line-height: 1.45;
-    }
-
-    .status.ok {
-      background: #17633a;
-    }
-
-    .status.warn {
-      background: #8b6914;
-    }
-
-    .status.playing {
-      background: #075b87;
-    }
-
-    .detail {
-      margin-top: 5px;
-
-      color: #ffd2d2;
-
-      font-size: 0.82rem;
-      line-height: 1.5;
-    }
-
-    .hidden {
-      display: none !important;
+    .resetRow .action {
+      width: 100%;
+      font-size: 0.8rem;
     }
 
     .pager {
       display: flex;
       align-items: center;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 5px;
 
-      margin: 8px 0;
+      margin: 7px 0;
     }
 
     .pager button {
-      padding: 7px 10px;
+      padding: 6px 9px;
 
       border:
         1px solid #80599a;
@@ -285,17 +352,9 @@
 
       color: #c7b8d2;
 
-      font-size: 0.85rem;
+      font-size: 0.82rem;
     }
 
-    /*
-     * ランキングは1ページ30人です。
-     *
-     * JavaScript側で、
-     * 1位、11位、21位
-     * 2位、12位、22位
-     * の順番に配置します。
-     */
     .board {
       display: grid;
       grid-template-columns:
@@ -316,8 +375,8 @@
       align-items: center;
       gap: 8px;
 
-      min-height: 58px;
-      padding: 8px 10px;
+      min-height: 56px;
+      padding: 7px 9px;
 
       border-radius: 9px;
 
@@ -329,7 +388,7 @@
     }
 
     .rank b {
-      font-size: 1.38rem;
+      font-size: 1.34rem;
       text-align: center;
     }
 
@@ -340,7 +399,7 @@
       text-overflow: ellipsis;
       white-space: nowrap;
 
-      font-size: 1.33rem;
+      font-size: 1.29rem;
       font-weight: 800;
     }
 
@@ -349,7 +408,7 @@
 
       color: #ffd08a;
 
-      font-size: 1.28rem;
+      font-size: 1.23rem;
       font-weight: 900;
       font-variant-numeric:
         tabular-nums;
@@ -360,7 +419,7 @@
 
       color: #c7b8d2;
 
-      font-size: 0.92rem;
+      font-size: 0.86rem;
     }
 
     .top1 {
@@ -388,29 +447,29 @@
     }
 
     .rankPlaceholder {
-      min-height: 58px;
+      min-height: 56px;
 
       visibility: hidden;
 
       pointer-events: none;
     }
 
+    .panel,
+    .award {
+      padding: 11px;
+
+      border-radius: 11px;
+
+      background: #2f1b41;
+    }
+
     .awards {
       display: grid;
       grid-template-columns:
         1fr 1fr;
-      gap: 10px;
+      gap: 9px;
 
-      margin-top: 14px;
-    }
-
-    .award,
-    .panel {
-      padding: 12px;
-
-      border-radius: 12px;
-
-      background: #2f1b41;
+      margin-top: 11px;
     }
 
     .podium {
@@ -420,30 +479,30 @@
           3,
           minmax(0, 1fr)
         );
-      gap: 10px;
+      gap: 9px;
 
-      margin: 12px 0;
+      margin: 10px 0;
     }
 
     .podium > div {
-      padding: 14px;
+      padding: 13px;
 
-      border-radius: 12px;
+      border-radius: 11px;
 
       background: #2f1b41;
 
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       font-weight: 900;
       text-align: center;
     }
 
     .history {
-      margin-top: 12px;
-      padding: 14px;
+      margin-top: 10px;
+      padding: 12px;
 
       border:
         1px solid #744c90;
-      border-radius: 12px;
+      border-radius: 11px;
 
       background: #21132f;
     }
@@ -451,17 +510,17 @@
     .historyTabs {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 5px;
 
-      margin: 10px 0;
+      margin: 8px 0;
     }
 
     .historyTabs button {
-      padding: 8px 11px;
+      padding: 7px 10px;
 
       border:
         1px solid #8359a0;
-      border-radius: 9px;
+      border-radius: 8px;
 
       background: #442558;
       color: #ffffff;
@@ -477,24 +536,24 @@
     }
 
     .historySummary {
-      margin-bottom: 8px;
-      padding: 10px;
+      margin-bottom: 7px;
+      padding: 9px;
 
-      border-radius: 10px;
+      border-radius: 9px;
 
       background: #402655;
 
-      line-height: 1.6;
+      line-height: 1.5;
     }
 
     .legend {
       display: flex;
       flex-wrap: wrap;
-      gap: 14px;
+      gap: 12px;
 
-      margin: 8px 0;
+      margin: 7px 0;
 
-      font-size: 0.83rem;
+      font-size: 0.8rem;
     }
 
     .legend i {
@@ -518,9 +577,9 @@
       gap: 3px;
 
       min-width: 1000px;
-      height: 285px;
+      height: 280px;
       padding:
-        30px
+        28px
         12px
         25px;
 
@@ -550,9 +609,6 @@
       border-radius:
         3px 3px 0 0;
 
-      /*
-       * 重複数字は凡例と同じ紫色です。
-       */
       background: #80549c;
     }
 
@@ -593,22 +649,37 @@
         translateX(-50%);
     }
 
-    .tempoRanking {
-      margin-top: 10px;
-    }
-
-    .small {
-      color: #c7b8d2;
-      font-size: 0.82rem;
-    }
-
     @media (
-      max-width: 950px
+      max-width: 1050px
     ) {
       .wrap {
         grid-template-columns:
-          350px
+          330px
           minmax(0, 1fr);
+      }
+
+      .side {
+        padding:
+          8px 9px;
+      }
+
+      .hostTitle {
+        font-size: 1.16rem;
+      }
+    }
+
+    @media (
+      max-width: 800px
+    ) {
+      .wrap {
+        grid-template-columns:
+          1fr;
+      }
+
+      .side {
+        border-right: 0;
+        border-bottom:
+          2px solid #f28a24;
       }
 
       .board {
@@ -631,14 +702,8 @@
 <body>
   <div class="wrap">
     <aside class="side">
-      <div class="event">
-        🎃 技能人財養成部
-      </div>
-
-      <h1>
-        ハロウィンパーティー
-        <br>
-        ゲーム司会席 👻
+      <h1 class="hostTitle">
+        🎃 ハロウィンパーティー 👻
       </h1>
 
       <div
@@ -647,11 +712,6 @@
       >
         QR生成中…
       </div>
-
-      <div
-        id="url"
-        class="url"
-      ></div>
 
       <div class="stats">
         <div class="card">
@@ -670,18 +730,8 @@
         </div>
 
         <div class="card">
-          <b id="connected">0</b>
-          接続
-        </div>
-
-        <div class="card">
           <b id="missing">0</b>
           要確認
-        </div>
-
-        <div class="card">
-          <b id="round">0</b>
-          ラウンド
         </div>
       </div>
 
@@ -698,17 +748,17 @@
       ></div>
 
       <div class="group">
-        <div>
-          🎮 ゲームを選択
+        <div class="groupTitle">
+          🎮 ゲーム選択
         </div>
 
-        <div class="buttons">
+        <div class="gameButtons">
           <button
             type="button"
             id="reflex"
             class="on"
           >
-            反射神経
+            反射
           </button>
 
           <button
@@ -722,7 +772,7 @@
             type="button"
             id="unique"
           >
-            最大ユニーク
+            ユニーク
           </button>
 
           <button
@@ -735,8 +785,7 @@
 
         <div
           id="durations"
-          class="buttons hidden"
-          style="margin-top: 8px;"
+          class="durationButtons hidden"
         >
           <button
             type="button"
@@ -766,11 +815,11 @@
         id="modeGroup"
         class="group"
       >
-        <div>
+        <div class="groupTitle">
           モード
         </div>
 
-        <div class="buttons">
+        <div class="modeButtons">
           <button
             type="button"
             id="official"
@@ -804,21 +853,23 @@
         未完了者ありで結果確定
       </button>
 
-      <button
-        type="button"
-        id="reset"
-        class="action reset"
-      >
-        記録をリセット
-      </button>
+      <div class="resetRow">
+        <button
+          type="button"
+          id="reset"
+          class="action reset"
+        >
+          記録リセット
+        </button>
 
-      <button
-        type="button"
-        id="resetAll"
-        class="action danger"
-      >
-        全リセット
-      </button>
+        <button
+          type="button"
+          id="resetAll"
+          class="action danger"
+        >
+          全リセット
+        </button>
+      </div>
     </aside>
 
     <main class="main">
@@ -973,39 +1024,47 @@
     let selectedTempoView =
       'overall';
 
+    /* =====================================================
+       HTTP
+       ===================================================== */
+
     async function post(
       url,
       body = {}
     ) {
-      const response = await fetch(
-        url,
-        {
-          method: 'POST',
+      const response =
+        await fetch(
+          url,
+          {
+            method: 'POST',
 
-          headers: {
-            'Content-Type':
-              'application/json'
-          },
+            headers: {
+              'Content-Type':
+                'application/json'
+            },
 
-          cache: 'no-store',
+            cache: 'no-store',
 
-          body: JSON.stringify(body)
-        }
-      );
+            body:
+              JSON.stringify(body)
+          }
+        );
 
-      let result = {};
+      let responseData = {};
 
       try {
-        result =
+        responseData =
           await response.json();
       } catch {
-        result = {};
+        responseData = {};
       }
 
       if (!response.ok) {
         const requestError =
           new Error(
-            JSON.stringify(result)
+            JSON.stringify(
+              responseData
+            )
           );
 
         requestError.status =
@@ -1014,7 +1073,7 @@
         throw requestError;
       }
 
-      return result;
+      return responseData;
     }
 
     function escapeHtml(value) {
@@ -1030,12 +1089,13 @@
         );
     }
 
+    /* =====================================================
+       QRコード
+       ===================================================== */
+
     function createQrCode() {
       const joinUrl =
         location.origin + '/';
-
-      $('url').textContent =
-        joinUrl;
 
       const libraryParts = [
         'https:',
@@ -1067,8 +1127,8 @@
 
           $('qr').innerHTML =
             qr.createImgTag(
-              5,
-              5
+              4,
+              4
             );
         } catch {
           $('qr').textContent =
@@ -1086,7 +1146,13 @@
       );
     }
 
-    function gameName(gameMode) {
+    /* =====================================================
+       画面選択
+       ===================================================== */
+
+    function gameName(
+      gameMode
+    ) {
       if (gameMode === 'tap') {
         return (
           '連打' +
@@ -1095,18 +1161,24 @@
         );
       }
 
-      if (gameMode === 'unique') {
+      if (
+        gameMode === 'unique'
+      ) {
         return '最大ユニーク';
       }
 
-      if (gameMode === 'tempo') {
+      if (
+        gameMode === 'tempo'
+      ) {
         return 'テンポゲーム';
       }
 
       return '反射神経';
     }
 
-    function choose(nextMode) {
+    function choose(
+      nextMode
+    ) {
       mode = nextMode;
       page = 1;
 
@@ -1120,25 +1192,27 @@
         'unique',
         'tempo'
       ].forEach(gameMode => {
-        $(gameMode).classList.toggle(
-          'on',
-          gameMode === mode
-        );
+        $(gameMode)
+          .classList.toggle(
+            'on',
+            gameMode === mode
+          );
       });
 
-      $('durations').classList.toggle(
-        'hidden',
-        mode !== 'tap'
-      );
+      $('durations')
+        .classList.toggle(
+          'hidden',
+          mode !== 'tap'
+        );
 
       /*
        * テンポでも本番／練習を
-       * 自由に切り替えられるため、
-       * modeGroupは非表示にしません。
+       * 自由に選べます。
        */
-      $('modeGroup').classList.remove(
-        'hidden'
-      );
+      $('modeGroup')
+        .classList.remove(
+          'hidden'
+        );
 
       $('uniqueHistory')
         .classList.toggle(
@@ -1153,13 +1227,14 @@
         );
 
       try {
-        currentData = await post(
-          '/api/select-ranking',
-          {
-            mode,
-            duration
-          }
-        );
+        currentData =
+          await post(
+            '/api/select-ranking',
+            {
+              mode,
+              duration
+            }
+          );
 
         render(currentData);
       } catch {
@@ -1175,9 +1250,10 @@
       'unique',
       'tempo'
     ].forEach(gameMode => {
-      $(gameMode).onclick = () => {
-        choose(gameMode);
-      };
+      $(gameMode).onclick =
+        () => {
+          choose(gameMode);
+        };
     });
 
     document
@@ -1186,9 +1262,11 @@
       )
       .forEach(button => {
         button.onclick = () => {
-          duration = Number(
-            button.dataset.duration
-          );
+          duration =
+            Number(
+              button.dataset
+                .duration
+            );
 
           page = 1;
 
@@ -1221,19 +1299,25 @@
       updateButtons();
     };
 
+    /* =====================================================
+       操作ボタン
+       ===================================================== */
+
     function updateButtons() {
       const stats =
         currentData.stats || {};
 
-      $('official').classList.toggle(
-        'on',
-        !practice
-      );
+      $('official')
+        .classList.toggle(
+          'on',
+          !practice
+        );
 
-      $('practice').classList.toggle(
-        'on',
-        practice
-      );
+      $('practice')
+        .classList.toggle(
+          'on',
+          practice
+        );
 
       const canForce =
         stats.active &&
@@ -1245,10 +1329,11 @@
           stats.activeMode
         );
 
-      $('force').classList.toggle(
-        'hidden',
-        !canForce
-      );
+      $('force')
+        .classList.toggle(
+          'hidden',
+          !canForce
+        );
 
       if (mode === 'unique') {
         const uniqueStatus =
@@ -1256,32 +1341,40 @@
           'idle';
 
         if (
-          uniqueStatus === 'open'
+          uniqueStatus ===
+          'open'
         ) {
-          $('mainAction').textContent =
-            '回答を締め切る';
+          $('mainAction')
+            .textContent =
+              '回答を締め切る';
 
-          $('mainAction').className =
-            'action orange';
+          $('mainAction')
+            .className =
+              'action orange';
         } else if (
-          uniqueStatus === 'closed'
+          uniqueStatus ===
+          'closed'
         ) {
-          $('mainAction').textContent =
-            '結果を発表する';
+          $('mainAction')
+            .textContent =
+              '結果を発表する';
 
-          $('mainAction').className =
-            'action purple';
+          $('mainAction')
+            .className =
+              'action purple';
         } else {
-          $('mainAction').textContent =
-            '回答受付開始' +
-            (
-              practice
-                ? '［練習］'
-                : ''
-            );
+          $('mainAction')
+            .textContent =
+              '回答受付開始' +
+              (
+                practice
+                  ? '［練習］'
+                  : ''
+              );
 
-          $('mainAction').className =
-            'action start';
+          $('mainAction')
+            .className =
+              'action start';
         }
 
         $('mainAction').disabled =
@@ -1291,25 +1384,27 @@
       }
 
       if (mode === 'tempo') {
-        $('mainAction').className =
-          'action start';
+        $('mainAction')
+          .className =
+            'action start';
 
         if (
           stats.activeMode ===
             'tempo' &&
           stats.active
         ) {
-          $('mainAction').textContent =
-            (
-              stats.roundCompleted ||
-              0
-            ) +
-            '/' +
-            (
-              stats.joined ||
-              0
-            ) +
-            '人完了';
+          $('mainAction')
+            .textContent =
+              (
+                stats.roundCompleted ||
+                0
+              ) +
+              '/' +
+              (
+                stats.joined ||
+                0
+              ) +
+              '人完了';
 
           $('mainAction').disabled =
             true;
@@ -1318,8 +1413,9 @@
         }
 
         if (practice) {
-          $('mainAction').textContent =
-            'テンポゲームを開始［練習］';
+          $('mainAction')
+            .textContent =
+              'テンポ開始［練習］';
 
           $('mainAction').disabled =
             false;
@@ -1333,15 +1429,16 @@
             0
           ) < 3
         ) {
-          $('mainAction').textContent =
-            'テンポゲーム 本番 第' +
-            (
+          $('mainAction')
+            .textContent =
+              'テンポ 本番 第' +
               (
-                stats.tempoNext ||
-                0
-              ) + 1
-            ) +
-            'ラウンドを開始';
+                (
+                  stats.tempoNext ||
+                  0
+                ) + 1
+              ) +
+              'ラウンド開始';
 
           $('mainAction').disabled =
             false;
@@ -1349,8 +1446,9 @@
           return;
         }
 
-        $('mainAction').textContent =
-          'テンポゲーム本番完了';
+        $('mainAction')
+          .textContent =
+            'テンポ本番完了';
 
         $('mainAction').disabled =
           true;
@@ -1386,7 +1484,9 @@
           currentData.stats || {};
 
         try {
-          if (mode === 'unique') {
+          if (
+            mode === 'unique'
+          ) {
             const action =
               stats.uniqueStatus ===
                 'open'
@@ -1407,7 +1507,9 @@
             return;
           }
 
-          if (mode === 'tempo') {
+          if (
+            mode === 'tempo'
+          ) {
             await post(
               '/api/tempo/start',
               {
@@ -1437,45 +1539,49 @@
         }
       };
 
-    $('force').onclick = async () => {
-      const confirmed =
-        confirm(
-          '未完了者がいても結果を確定しますか？'
-        );
+    $('force').onclick =
+      async () => {
+        const confirmed =
+          confirm(
+            '未完了者がいても結果を確定しますか？'
+          );
 
-      if (!confirmed) {
-        return;
-      }
+        if (!confirmed) {
+          return;
+        }
 
-      try {
-        await post(
-          '/api/finish-active'
-        );
-      } catch {
-        alert(
-          '結果を確定できませんでした'
-        );
-      }
-    };
+        try {
+          await post(
+            '/api/finish-active'
+          );
+        } catch {
+          alert(
+            '結果を確定できませんでした'
+          );
+        }
+      };
 
-    $('reset').onclick = async () => {
-      const confirmed =
-        confirm(
-          '全ゲームの記録をリセットしますか？'
-        );
+    $('reset').onclick =
+      async () => {
+        const confirmed =
+          confirm(
+            '全ゲームの記録をリセットしますか？'
+          );
 
-      if (!confirmed) {
-        return;
-      }
+        if (!confirmed) {
+          return;
+        }
 
-      try {
-        await post('/api/reset');
-      } catch {
-        alert(
-          '記録をリセットできませんでした'
-        );
-      }
-    };
+        try {
+          await post(
+            '/api/reset'
+          );
+        } catch {
+          alert(
+            '記録をリセットできませんでした'
+          );
+        }
+      };
 
     $('resetAll').onclick =
       async () => {
@@ -1499,6 +1605,10 @@
         }
       };
 
+    /* =====================================================
+       状態表示
+       ===================================================== */
+
     function render(data) {
       currentData = data;
 
@@ -1514,16 +1624,9 @@
       $('answered').textContent =
         stats.roundCompleted || 0;
 
-      $('connected').textContent =
-        stats.connected || 0;
-
-      $('round').textContent =
-        stats.round || 0;
-
       /*
-       * ゲーム進行に影響しない
-       * answering / result / playing
-       * などは要確認一覧へ出しません。
+       * answering / result / playingなどは
+       * 要確認へ表示しません。
        */
       const issues =
         (
@@ -1532,7 +1635,9 @@
           [
             '切断・未確認',
             '画面非表示'
-          ].includes(entry.state)
+          ].includes(
+            entry.state
+          )
         );
 
       $('missing').textContent =
@@ -1551,11 +1656,6 @@
               )
           )
           .join('<br>');
-
-      const allStandby =
-        stats.joined > 0 &&
-        stats.standby ===
-          stats.joined;
 
       if (stats.active) {
         $('status').textContent =
@@ -1576,73 +1676,103 @@
 
         $('status').className =
           'status playing';
-      } else if (allStandby) {
+      } else if (
+        !issues.length
+      ) {
+        /*
+         * 「直前の結果を確認」中も
+         * player.htmlからstandbyとして通知されます。
+         */
         $('status').textContent =
-          '✓ 全員ゲームスタンバイ中';
+          '✓ ゲーム開始可能';
 
         $('status').className =
           'status ok';
       } else {
         $('status').textContent =
-          issues.length
-            ? '⚠ ' +
-              issues.length +
-              '人を要確認'
-            : '待機状態へ移行中';
+          '⚠ ' +
+          issues.length +
+          '人を要確認';
 
         $('status').className =
-          issues.length
-            ? 'status warn'
-            : 'status';
+          'status warn';
       }
 
-      $('tempoInfo').classList.toggle(
-        'hidden',
-        stats.mode !== 'tempo'
-      );
+      $('tempoInfo')
+        .classList.toggle(
+          'hidden',
+          stats.mode !==
+            'tempo'
+        );
 
-      if (stats.mode === 'tempo') {
+      if (
+        stats.mode === 'tempo'
+      ) {
         $('tempoInfo').textContent =
           stats.tempoMs
-            ? '今回のテンポ（運営のみ）：' +
-              (
-                stats.tempoMs /
-                1000
-              ).toFixed(1) +
-              '秒'
-            : '本番は速め・標準・遅めを1回ずつ抽選';
+            ? (
+                '今回のテンポ：' +
+                (
+                  stats.tempoMs /
+                  1000
+                ).toFixed(1) +
+                '秒'
+              )
+            : (
+                '本番は速め・標準・遅めを1回ずつ抽選'
+              );
       }
 
       renderBoard(data);
       updateButtons();
     }
 
-    function formatRank(rankNumber) {
-      if (rankNumber === 1) {
+    /* =====================================================
+       ランキング共通
+       ===================================================== */
+
+    function formatRank(
+      rankNumber
+    ) {
+      if (
+        rankNumber === 1
+      ) {
         return '🥇';
       }
 
-      if (rankNumber === 2) {
+      if (
+        rankNumber === 2
+      ) {
         return '🥈';
       }
 
-      if (rankNumber === 3) {
+      if (
+        rankNumber === 3
+      ) {
         return '🥉';
       }
 
       return rankNumber;
     }
 
-    function rankClass(rankNumber) {
-      if (rankNumber === 1) {
+    function rankClass(
+      rankNumber
+    ) {
+      if (
+        rankNumber === 1
+      ) {
         return 'top1';
       }
 
-      if (rankNumber === 2) {
+      if (
+        rankNumber === 2
+      ) {
         return 'top2';
       }
 
-      if (rankNumber === 3) {
+      if (
+        rankNumber === 3
+      ) {
         return 'top3';
       }
 
@@ -1675,7 +1805,7 @@
           </span>
 
           <span class="score">
-            ${record.score} ${unit}
+            ${record.score}${unit}
           </span>
 
           <span class="tries">
@@ -1690,9 +1820,15 @@
     ) {
       const ordered = [];
 
+      /*
+       * 1、11、21
+       * 2、12、22
+       * の順に配置します。
+       */
       for (
         let row = 0;
-        row < ROWS_PER_COLUMN;
+        row <
+          ROWS_PER_COLUMN;
         row += 1
       ) {
         for (
@@ -1760,13 +1896,19 @@
           pageRecords
         );
 
-      if (pageCount > 1) {
+      if (
+        pageCount > 1
+      ) {
         $('pager').innerHTML =
           Array.from(
             {
-              length: pageCount
+              length:
+                pageCount
             },
-            (_, index) => {
+            (
+              _,
+              index
+            ) => {
               const pageNumber =
                 index + 1;
 
@@ -1790,7 +1932,7 @@
             <span>
               ${
                 startIndex + 1
-              }～${endIndex}番目 /
+              }～${endIndex}位 /
               ${board.length}人
             </span>
           `;
@@ -1800,18 +1942,22 @@
             '[data-page]'
           )
           .forEach(button => {
-            button.onclick = () => {
-              page = Number(
-                button.dataset.page
-              );
+            button.onclick =
+              () => {
+                page =
+                  Number(
+                    button.dataset
+                      .page
+                  );
 
-              renderBoard(
-                currentData
-              );
-            };
+                renderBoard(
+                  currentData
+                );
+              };
           });
       } else {
-        $('pager').innerHTML = '';
+        $('pager').innerHTML =
+          '';
       }
 
       if (!board.length) {
@@ -1825,6 +1971,10 @@
         return;
       }
 
+      /*
+       * 空き枠にも透明セルを入れるため、
+       * 最終ページの列順が崩れません。
+       */
       $('board').innerHTML =
         displayRecords
           .map(record =>
@@ -1842,18 +1992,24 @@
           .join('');
     }
 
+    /* =====================================================
+       最大ユニーク
+       ===================================================== */
+
     function renderUniquePodium(
       history
     ) {
       const latestResult =
-        currentData.uniqueResult ||
+        currentData
+          .uniqueResult ||
         history.at(-1);
 
       $('podium').innerHTML =
         [1, 2, 3]
           .map(place => {
             const entry =
-              latestResult?.podium
+              latestResult
+                ?.podium
                 ?.find(
                   item =>
                     item.place ===
@@ -1875,11 +2031,14 @@
 
                 ${
                   entry
-                    ? escapeHtml(
-                        entry.name
-                      ) +
-                      '<br>数字 ' +
-                      entry.number
+                    ? (
+                        escapeHtml(
+                          entry.name
+                        ) +
+                        '<br>' +
+                        '数字 ' +
+                        entry.number
+                      )
                     : '該当なし'
                 }
               </div>
@@ -1918,7 +2077,8 @@
 
       if (!selectedExists) {
         selectedUniqueHistoryId =
-          history.at(-1)
+          history
+            .at(-1)
             .historyId;
       }
 
@@ -1950,15 +2110,16 @@
           '[data-unique-history]'
         )
         .forEach(button => {
-          button.onclick = () => {
-            selectedUniqueHistoryId =
-              button.dataset
-                .uniqueHistory;
+          button.onclick =
+            () => {
+              selectedUniqueHistoryId =
+                button.dataset
+                  .uniqueHistory;
 
-            renderUniqueHistory(
-              history
-            );
-          };
+              renderUniqueHistory(
+                history
+              );
+            };
         });
 
       const selected =
@@ -1970,7 +2131,8 @@
 
       const podiumText =
         (
-          selected.podium || []
+          selected.podium ||
+          []
         )
           .map(
             entry =>
@@ -1988,9 +2150,13 @@
       $('uniqueHistorySummary')
         .innerHTML =
           `
-            第${selected.roundNumber}ラウンド
-           　回答 ${selected.answerCount}人
-           　勝利数字 ${
+            第${
+              selected.roundNumber
+            }ラウンド
+            　回答 ${
+              selected.answerCount
+            }人
+            　勝利数字 ${
               selected.winningNumber ??
               'なし'
             }
@@ -2018,7 +2184,10 @@
           ...(
             selected.distribution ||
             []
-          ).map(entry => entry.count)
+          ).map(
+            entry =>
+              entry.count
+          )
         );
 
       $('uniqueChart').innerHTML =
@@ -2026,7 +2195,10 @@
           {
             length: 100
           },
-          (_, index) => {
+          (
+            _,
+            index
+          ) => {
             const number =
               index + 1;
 
@@ -2038,16 +2210,17 @@
             const count =
               entry?.count || 0;
 
-            const height = count
-              ? Math.max(
-                  5,
-                  Math.round(
-                    count /
-                    maxCount *
-                    220
+            const height =
+              count
+                ? Math.max(
+                    5,
+                    Math.round(
+                      count /
+                      maxCount *
+                      218
+                    )
                   )
-                )
-              : 0;
+                : 0;
 
             const barClass =
               entry?.winner
@@ -2084,6 +2257,10 @@
         ).join('');
     }
 
+    /* =====================================================
+       テンポ履歴
+       ===================================================== */
+
     function renderTempoHistory(
       history,
       overallBoard
@@ -2093,12 +2270,15 @@
           .filter(Boolean)
           .map(entry => ({
             key:
-              String(entry.index),
+              String(
+                entry.index
+              ),
 
             label:
               '第' +
               (
-                entry.index + 1
+                entry.index +
+                1
               ) +
               'ラウンド',
 
@@ -2106,17 +2286,21 @@
               entry.tempoMs,
 
             board:
-              entry.board || []
+              entry.board ||
+              []
           }));
 
       const views = [
         ...availableRounds,
+
         {
           key: 'overall',
           label: '総合',
           tempoMs: null,
+
           board:
-            overallBoard || []
+            overallBoard ||
+            []
         }
       ];
 
@@ -2129,7 +2313,8 @@
 
       if (!selectedExists) {
         selectedTempoView =
-          availableRounds[0]?.key ||
+          availableRounds[0]
+            ?.key ||
           'overall';
       }
 
@@ -2159,16 +2344,19 @@
           '[data-tempo-view]'
         )
         .forEach(button => {
-          button.onclick = () => {
-            selectedTempoView =
-              button.dataset
-                .tempoView;
+          button.onclick =
+            () => {
+              selectedTempoView =
+                button.dataset
+                  .tempoView;
 
-            renderTempoHistory(
-              history,
-              overallBoard
-            );
-          };
+              page = 1;
+
+              renderTempoHistory(
+                history,
+                overallBoard
+              );
+            };
         });
 
       const selected =
@@ -2182,27 +2370,33 @@
       $('tempoHistorySummary')
         .textContent =
           selected.tempoMs
-            ? selected.label +
-              '　見本テンポ ' +
-              (
-                selected.tempoMs /
-                1000
-              ).toFixed(1) +
-              '秒'
-            : '本番3ラウンドすべての平均による総合ランキング';
+            ? (
+                selected.label +
+                '　見本テンポ ' +
+                (
+                  selected.tempoMs /
+                  1000
+                ).toFixed(1) +
+                '秒'
+              )
+            : (
+                '本番3ラウンドすべての平均による総合ランキング'
+              );
 
       $('title').textContent =
         '🎵 テンポゲーム ' +
         selected.label +
         'ランキング';
 
-      page = 1;
-
       renderStandardBoard(
         selected.board,
         'ms'
       );
     }
+
+    /* =====================================================
+       ランキング画面切替
+       ===================================================== */
 
     function renderBoard(data) {
       const stats =
@@ -2212,25 +2406,31 @@
         data.board || [];
 
       const isUnique =
-        stats.mode === 'unique';
+        stats.mode ===
+        'unique';
 
       const isTempo =
-        stats.mode === 'tempo';
+        stats.mode ===
+        'tempo';
 
-      $('board').classList.toggle(
-        'hidden',
-        isUnique
-      );
+      $('board')
+        .classList.toggle(
+          'hidden',
+          isUnique
+        );
 
-      $('podium').classList.toggle(
-        'hidden',
-        !isUnique
-      );
+      $('podium')
+        .classList.toggle(
+          'hidden',
+          !isUnique
+        );
 
-      $('awards').classList.toggle(
-        'hidden',
-        isUnique || isTempo
-      );
+      $('awards')
+        .classList.toggle(
+          'hidden',
+          isUnique ||
+          isTempo
+        );
 
       $('uniqueHistory')
         .classList.toggle(
@@ -2248,14 +2448,17 @@
         $('title').textContent =
           '🎃 最大ユニークナンバー 結果';
 
-        $('pager').innerHTML = '';
+        $('pager').innerHTML =
+          '';
 
         renderUniquePodium(
-          data.uniqueHistory || []
+          data.uniqueHistory ||
+          []
         );
 
         renderUniqueHistory(
-          data.uniqueHistory || []
+          data.uniqueHistory ||
+          []
         );
 
         return;
@@ -2263,7 +2466,8 @@
 
       if (isTempo) {
         renderTempoHistory(
-          data.tempoHistory || [],
+          data.tempoHistory ||
+          [],
           board
         );
 
@@ -2275,7 +2479,9 @@
           ? '回'
           : 'ms';
 
-      if (stats.mode === 'tap') {
+      if (
+        stats.mode === 'tap'
+      ) {
         $('title').textContent =
           '🏆 連打' +
           stats.duration +
@@ -2301,6 +2507,10 @@
         '該当なし';
     }
 
+    /* =====================================================
+       SSE
+       ===================================================== */
+
     const eventSource =
       new EventSource(
         '/events/host'
@@ -2310,7 +2520,9 @@
       'leaderboard',
       event => {
         render(
-          JSON.parse(event.data)
+          JSON.parse(
+            event.data
+          )
         );
       }
     );
