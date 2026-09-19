@@ -20,8 +20,9 @@
     html,
     body {
       width: 100%;
-      min-height: 100%;
+      height: 100%;
       margin: 0;
+      overflow: hidden;
 
       font-family:
         -apple-system,
@@ -42,18 +43,29 @@
       display: none !important;
     }
 
+    /* =====================================================
+       全体レイアウト
+
+       左操作盤と右ランキングは、
+       それぞれ独立して縦スクロールします。
+       ===================================================== */
+
     .wrap {
       display: grid;
       grid-template-columns:
-        350px
+        390px
         minmax(0, 1fr);
 
-      min-height: 100vh;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
     }
 
     .side {
-      padding: 9px 11px;
+      height: 100vh;
+      padding: 10px 12px;
 
+      overflow-x: hidden;
       overflow-y: auto;
 
       border-right:
@@ -65,12 +77,18 @@
           #321747,
           #1b1029
         );
+
+      scrollbar-color:
+        #80599a
+        #21132f;
     }
 
     .main {
       min-width: 0;
-      padding: 14px 18px;
+      height: 100vh;
+      padding: 16px 20px;
 
+      overflow-x: hidden;
       overflow-y: auto;
 
       background:
@@ -79,6 +97,10 @@
           #301840,
           #120b1e 55%
         );
+
+      scrollbar-color:
+        #80599a
+        #21132f;
     }
 
     h1,
@@ -86,35 +108,65 @@
       margin: 0.2em 0;
     }
 
-    .hostTitle {
-      margin: 0 0 7px;
+    /* =====================================================
+       操作盤上部タイトル
+       ===================================================== */
+
+    .departmentTitle {
+      margin: 0;
+
+      color: #ffffff;
+
+      font-size: 1rem;
+      font-weight: 900;
+      line-height: 1.2;
+      text-align: center;
+    }
+
+    .partyTitle {
+      margin: 3px 0 8px;
 
       color: #ff9c2e;
 
       font-size: 1.28rem;
+      font-weight: 950;
       line-height: 1.2;
       text-align: center;
       white-space: nowrap;
     }
+
+    /* =====================================================
+       QRコード
+       ===================================================== */
 
     .qr {
       display: flex;
       align-items: center;
       justify-content: center;
 
-      min-height: 108px;
-      padding: 4px;
+      min-height: 218px;
+      padding: 6px;
 
-      border-radius: 11px;
+      border-radius: 14px;
 
       background: #ffffff;
       color: #12303f;
     }
 
     .qr img {
-      width: 102px;
-      height: 102px;
+      width: 206px;
+      height: 206px;
+
+      /*
+       * QRコードの輪郭を崩さないため、
+       * 補間を行わず表示します。
+       */
+      image-rendering: pixelated;
     }
+
+    /* =====================================================
+       参加状況
+       ===================================================== */
 
     .stats {
       display: grid;
@@ -123,19 +175,19 @@
           4,
           minmax(0, 1fr)
         );
-      gap: 4px;
+      gap: 5px;
 
-      margin-top: 6px;
+      margin-top: 7px;
     }
 
     .card {
-      padding: 5px 2px;
+      padding: 6px 2px;
 
       border-radius: 8px;
 
       background: #42245a;
 
-      font-size: 0.7rem;
+      font-size: 0.73rem;
       text-align: center;
     }
 
@@ -144,22 +196,28 @@
 
       color: #ffb257;
 
-      font-size: 1.22rem;
-      line-height: 1.1;
+      font-size: 1.36rem;
+      font-weight: 950;
+      line-height: 1.05;
       font-variant-numeric:
         tabular-nums;
     }
 
+    /* =====================================================
+       動作状態
+       ===================================================== */
+
     .status {
-      margin-top: 6px;
-      padding: 8px 9px;
+      margin-top: 7px;
+      padding: 9px 10px;
 
       border-radius: 9px;
 
       background: #3c2550;
 
-      font-size: 0.86rem;
-      line-height: 1.35;
+      font-size: 0.88rem;
+      font-weight: 750;
+      line-height: 1.4;
     }
 
     .status.ok {
@@ -179,13 +237,17 @@
 
       color: #ffd2d2;
 
-      font-size: 0.76rem;
+      font-size: 0.78rem;
       line-height: 1.4;
     }
 
+    /* =====================================================
+       操作グループ
+       ===================================================== */
+
     .group {
-      margin-top: 6px;
-      padding: 7px;
+      margin-top: 7px;
+      padding: 8px;
 
       border-radius: 10px;
 
@@ -193,21 +255,45 @@
     }
 
     .groupTitle {
-      margin-bottom: 5px;
+      margin-bottom: 6px;
 
-      font-size: 0.82rem;
-      font-weight: 800;
+      color: #ffffff;
+
+      font-size: 0.9rem;
+      font-weight: 900;
     }
 
-    .buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
+    /*
+     * ゲーム選択とモード選択を、
+     * 同じ質感のボタンへ統一します。
+     */
+
+    .gameButtons,
+    .modeButtons {
+      display: grid;
+      gap: 5px;
     }
 
-    .buttons button,
-    .action {
-      padding: 8px 8px;
+    .gameButtons {
+      grid-template-columns:
+        repeat(
+          4,
+          minmax(0, 1fr)
+        );
+    }
+
+    .modeButtons {
+      grid-template-columns:
+        repeat(
+          2,
+          minmax(0, 1fr)
+        );
+    }
+
+    .gameButtons button,
+    .modeButtons button {
+      min-width: 0;
+      padding: 10px 4px;
 
       border:
         2px solid #6e4d84;
@@ -217,69 +303,47 @@
       color: #ffffff;
 
       font-size: 0.88rem;
-      font-weight: 800;
+      font-weight: 900;
 
       cursor: pointer;
     }
 
-    .buttons button.on {
+    .gameButtons button:hover,
+    .modeButtons button:hover {
+      border-color: #b891cf;
+
+      background: #55306d;
+    }
+
+    .gameButtons button.on,
+    .modeButtons button.on {
       border-color: #ffb257;
 
       background: #ef7f1a;
+      color: #ffffff;
+
+      box-shadow:
+        0 0 0 1px #ffb25755;
     }
 
-    .gameButtons {
-      display: grid;
-      grid-template-columns:
-        repeat(
-          4,
-          minmax(0, 1fr)
-        );
-      gap: 4px;
-    }
-
-    .gameButtons button {
-      min-width: 0;
-      padding: 8px 2px;
-
-      font-size: 0.78rem;
-      white-space: nowrap;
-    }
-
-    .durationButtons {
-      display: grid;
-      grid-template-columns:
-        repeat(
-          3,
-          minmax(0, 1fr)
-        );
-      gap: 4px;
-
-      margin-top: 5px;
-    }
-
-    .durationButtons button {
-      min-width: 0;
-      padding: 7px 2px;
-    }
-
-    .modeButtons {
-      display: grid;
-      grid-template-columns:
-        1fr 1fr;
-      gap: 4px;
-    }
-
-    .modeButtons button {
-      min-width: 0;
-    }
+    /* =====================================================
+       メイン操作ボタン
+       ===================================================== */
 
     .action {
       width: 100%;
-      margin-top: 6px;
-      padding: 10px 7px;
+      margin-top: 7px;
+      padding: 12px 8px;
 
       border: 0;
+      border-radius: 10px;
+
+      color: #ffffff;
+
+      font-size: 0.96rem;
+      font-weight: 900;
+
+      cursor: pointer;
     }
 
     .action:disabled {
@@ -304,32 +368,115 @@
     }
 
     .danger {
-      background: #8e3b3b;
+      background: #9f3d3d;
     }
 
     .resetRow {
       display: grid;
       grid-template-columns:
         1fr 1fr;
-      gap: 5px;
+      gap: 6px;
     }
 
     .resetRow .action {
       width: 100%;
-      font-size: 0.8rem;
+
+      font-size: 0.82rem;
     }
+
+    /* =====================================================
+       ランキング見出し
+       ===================================================== */
+
+    .mainHeader {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+
+      min-height: 48px;
+      margin-bottom: 7px;
+    }
+
+    .mainHeader h2 {
+      margin: 0;
+
+      color: #ffffff;
+
+      font-size: clamp(
+        1.55rem,
+        2vw,
+        2rem
+      );
+      line-height: 1.2;
+    }
+
+    /*
+     * テンポのラウンド切替をタイトル右横へ配置します。
+     */
+
+    .tempoTopTabs {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+
+      margin-left: auto;
+    }
+
+    .tempoTopTabs button {
+      padding: 8px 12px;
+
+      border:
+        1px solid #8359a0;
+      border-radius: 9px;
+
+      background: #442558;
+      color: #ffffff;
+
+      font-size: 0.96rem;
+      font-weight: 900;
+
+      cursor: pointer;
+    }
+
+    .tempoTopTabs button:hover {
+      border-color: #ffb257;
+    }
+
+    .tempoTopTabs button.on {
+      border-color: #ffb257;
+
+      background: #ef7f1a;
+    }
+
+    .tempoInfo {
+      margin: 0 0 8px;
+      padding: 9px 11px;
+
+      border-radius: 9px;
+
+      background: #402655;
+
+      font-size: 1rem;
+      line-height: 1.4;
+    }
+
+    /* =====================================================
+       ランキングページ切替
+       ===================================================== */
 
     .pager {
       display: flex;
       align-items: center;
       flex-wrap: wrap;
-      gap: 5px;
+      gap: 6px;
 
-      margin: 7px 0;
+      margin: 6px 0 9px;
     }
 
     .pager button {
-      padding: 6px 9px;
+      padding: 7px 11px;
 
       border:
         1px solid #80599a;
@@ -337,6 +484,9 @@
 
       background: #442558;
       color: #ffffff;
+
+      font-size: 0.95rem;
+      font-weight: 800;
 
       cursor: pointer;
     }
@@ -352,8 +502,15 @@
 
       color: #c7b8d2;
 
-      font-size: 0.82rem;
+      font-size: 0.95rem;
     }
+
+    /* =====================================================
+       通常ランキング
+
+       1ページ30名です。
+       1列10名で、1・11・21形式に並べます。
+       ===================================================== */
 
     .board {
       display: grid;
@@ -362,23 +519,25 @@
           3,
           minmax(0, 1fr)
         );
-      gap: 7px;
+      gap: 8px;
     }
 
     .rank {
       display: grid;
       grid-template-columns:
-        46px
+        56px
         minmax(0, 1fr)
         auto
         auto;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
 
-      min-height: 56px;
-      padding: 7px 9px;
+      min-height: 72px;
+      padding: 10px 12px;
 
-      border-radius: 9px;
+      border:
+        1px solid #452b59;
+      border-radius: 10px;
 
       background: #2a183b;
     }
@@ -388,7 +547,12 @@
     }
 
     .rank b {
-      font-size: 1.34rem;
+      font-size: clamp(
+        1.55rem,
+        2vw,
+        1.9rem
+      );
+      font-weight: 950;
       text-align: center;
     }
 
@@ -399,8 +563,12 @@
       text-overflow: ellipsis;
       white-space: nowrap;
 
-      font-size: 1.29rem;
-      font-weight: 800;
+      font-size: clamp(
+        1.42rem,
+        1.75vw,
+        1.72rem
+      );
+      font-weight: 900;
     }
 
     .score {
@@ -408,8 +576,12 @@
 
       color: #ffd08a;
 
-      font-size: 1.23rem;
-      font-weight: 900;
+      font-size: clamp(
+        1.38rem,
+        1.65vw,
+        1.68rem
+      );
+      font-weight: 950;
       font-variant-numeric:
         tabular-nums;
     }
@@ -419,20 +591,30 @@
 
       color: #c7b8d2;
 
-      font-size: 0.86rem;
+      font-size: clamp(
+        0.98rem,
+        1.13vw,
+        1.15rem
+      );
     }
 
     .top1 {
+      border-color: #ffe86f;
+
       background: #f1c40f !important;
       color: #20142b;
     }
 
     .top2 {
+      border-color: #e8ecef;
+
       background: #bdc3c7 !important;
       color: #20142b;
     }
 
     .top3 {
+      border-color: #e6a66b;
+
       background: #cd7f32 !important;
       color: #20142b;
     }
@@ -447,7 +629,7 @@
     }
 
     .rankPlaceholder {
-      min-height: 56px;
+      min-height: 72px;
 
       visibility: hidden;
 
@@ -456,21 +638,41 @@
 
     .panel,
     .award {
-      padding: 11px;
+      padding: 14px;
 
-      border-radius: 11px;
+      border-radius: 12px;
 
       background: #2f1b41;
     }
+
+    /* =====================================================
+       ブービー表示
+       ===================================================== */
 
     .awards {
       display: grid;
       grid-template-columns:
         1fr 1fr;
-      gap: 9px;
+      gap: 10px;
 
-      margin-top: 11px;
+      margin-top: 12px;
     }
+
+    .award {
+      font-size: 1.12rem;
+      line-height: 1.5;
+    }
+
+    .award b {
+      font-size: 1.22rem;
+    }
+
+    /* =====================================================
+       最大ユニーク上位3名
+
+       1位・2位・3位は、
+       通常ランキングと同じ金・銀・銅にします。
+       ===================================================== */
 
     .podium {
       display: grid;
@@ -479,53 +681,107 @@
           3,
           minmax(0, 1fr)
         );
-      gap: 9px;
+      gap: 12px;
 
       margin: 10px 0;
     }
 
-    .podium > div {
-      padding: 13px;
+    .podiumCard {
+      min-height: 140px;
+      padding: 18px;
 
-      border-radius: 11px;
+      border:
+        2px solid transparent;
+      border-radius: 13px;
 
       background: #2f1b41;
 
-      font-size: 1.15rem;
+      font-size: 1.4rem;
       font-weight: 900;
+      line-height: 1.45;
       text-align: center;
     }
 
+    .podiumCard.place1 {
+      border-color: #ffe86f;
+
+      background: #f1c40f;
+      color: #20142b;
+    }
+
+    .podiumCard.place2 {
+      border-color: #e8ecef;
+
+      background: #bdc3c7;
+      color: #20142b;
+    }
+
+    .podiumCard.place3 {
+      border-color: #e6a66b;
+
+      background: #cd7f32;
+      color: #20142b;
+    }
+
+    .podiumPlace {
+      font-size: 1.65rem;
+      font-weight: 950;
+    }
+
+    .podiumName {
+      margin-top: 7px;
+
+      font-size: 1.55rem;
+      font-weight: 950;
+    }
+
+    .podiumNumber {
+      margin-top: 5px;
+
+      font-size: 1.35rem;
+      font-weight: 900;
+    }
+
+    /* =====================================================
+       最大ユニーク履歴
+       ===================================================== */
+
     .history {
-      margin-top: 10px;
-      padding: 12px;
+      margin-top: 12px;
+      padding: 14px;
 
       border:
         1px solid #744c90;
-      border-radius: 11px;
+      border-radius: 12px;
 
       background: #21132f;
+    }
+
+    .history h2 {
+      font-size: 1.45rem;
     }
 
     .historyTabs {
       display: flex;
       flex-wrap: wrap;
-      gap: 5px;
+      gap: 6px;
 
-      margin: 8px 0;
+      margin: 9px 0;
     }
 
     .historyTabs button {
-      padding: 7px 10px;
+      padding: 8px 12px;
 
       border:
         1px solid #8359a0;
-      border-radius: 8px;
+      border-radius: 9px;
 
       background: #442558;
       color: #ffffff;
 
-      font-weight: 800;
+      font-size: 1rem;
+      font-weight: 900;
+
       cursor: pointer;
     }
 
@@ -536,32 +792,34 @@
     }
 
     .historySummary {
-      margin-bottom: 7px;
-      padding: 9px;
+      margin-bottom: 8px;
+      padding: 11px;
 
-      border-radius: 9px;
+      border-radius: 10px;
 
       background: #402655;
 
+      font-size: 1.08rem;
+      font-weight: 750;
       line-height: 1.5;
     }
 
     .legend {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 14px;
 
-      margin: 7px 0;
+      margin: 8px 0;
 
-      font-size: 0.8rem;
+      font-size: 0.95rem;
     }
 
     .legend i {
       display: inline-block;
 
-      width: 12px;
-      height: 12px;
-      margin-right: 4px;
+      width: 13px;
+      height: 13px;
+      margin-right: 5px;
 
       border-radius: 2px;
     }
@@ -574,14 +832,14 @@
     .chart {
       display: flex;
       align-items: flex-end;
-      gap: 3px;
+      gap: 4px;
 
-      min-width: 1000px;
-      height: 280px;
+      min-width: 1200px;
+      height: 330px;
       padding:
-        28px
-        12px
-        25px;
+        34px
+        14px
+        28px;
 
       border-left:
         1px solid #86699a;
@@ -597,7 +855,7 @@
       display: flex;
       align-items: flex-end;
 
-      width: 8px;
+      width: 9px;
       height: 100%;
     }
 
@@ -620,17 +878,17 @@
       background: #ffd447;
 
       box-shadow:
-        0 0 10px #ffd447;
+        0 0 12px #ffd447;
     }
 
     .barNumber {
       position: absolute;
-      bottom: -19px;
+      bottom: -21px;
       left: 50%;
 
-      color: #bcaac8;
+      color: #d5c4df;
 
-      font-size: 8px;
+      font-size: 9px;
 
       transform:
         translateX(-50%);
@@ -638,42 +896,63 @@
 
     .barCount {
       position: absolute;
-      top: -17px;
+      top: -20px;
       left: 50%;
 
       color: #ffffff;
 
-      font-size: 8px;
+      font-size: 10px;
+      font-weight: 900;
 
       transform:
         translateX(-50%);
     }
 
+    /* =====================================================
+       レスポンシブ
+       ===================================================== */
+
     @media (
-      max-width: 1050px
+      max-width: 1250px
     ) {
       .wrap {
         grid-template-columns:
-          330px
+          365px
           minmax(0, 1fr);
       }
 
-      .side {
-        padding:
-          8px 9px;
+      .rank {
+        grid-template-columns:
+          48px
+          minmax(0, 1fr)
+          auto;
+        gap: 7px;
       }
 
-      .hostTitle {
-        font-size: 1.16rem;
+      .tries {
+        display: none;
       }
     }
 
     @media (
-      max-width: 800px
+      max-width: 850px
     ) {
+      html,
+      body {
+        overflow: auto;
+      }
+
       .wrap {
-        grid-template-columns:
-          1fr;
+        display: block;
+        height: auto;
+        overflow: visible;
+      }
+
+      .side,
+      .main {
+        width: 100%;
+        height: auto;
+        overflow: visible;
       }
 
       .side {
@@ -695,6 +974,15 @@
         grid-template-columns:
           1fr;
       }
+
+      .mainHeader {
+        display: block;
+      }
+
+      .tempoTopTabs {
+        margin-top: 9px;
+        margin-left: 0;
+      }
     }
   </style>
 </head>
@@ -702,7 +990,11 @@
 <body>
   <div class="wrap">
     <aside class="side">
-      <h1 class="hostTitle">
+      <div class="departmentTitle">
+        技能人財養成部
+      </div>
+
+      <h1 class="partyTitle">
         🎃 ハロウィンパーティー 👻
       </h1>
 
@@ -782,33 +1074,6 @@
             テンポ
           </button>
         </div>
-
-        <div
-          id="durations"
-          class="durationButtons hidden"
-        >
-          <button
-            type="button"
-            data-duration="5"
-          >
-            5秒
-          </button>
-
-          <button
-            type="button"
-            data-duration="7"
-            class="on"
-          >
-            7秒
-          </button>
-
-          <button
-            type="button"
-            data-duration="10"
-          >
-            10秒
-          </button>
-        </div>
       </div>
 
       <div
@@ -873,13 +1138,20 @@
     </aside>
 
     <main class="main">
-      <h2 id="title">
-        🏆 反射神経ランキング
-      </h2>
+      <div class="mainHeader">
+        <h2 id="title">
+          🏆 反射神経ランキング
+        </h2>
+
+        <div
+          id="tempoTopTabs"
+          class="tempoTopTabs hidden"
+        ></div>
+      </div>
 
       <div
         id="tempoInfo"
-        class="status hidden"
+        class="tempoInfo hidden"
       ></div>
 
       <div
@@ -977,28 +1249,6 @@
           ></div>
         </div>
       </section>
-
-      <section
-        id="tempoHistory"
-        class="history hidden"
-      >
-        <h2>
-          🎵 テンポゲーム
-          ラウンド別ランキング
-        </h2>
-
-        <div
-          id="tempoHistoryTabs"
-          class="historyTabs"
-        ></div>
-
-        <div
-          id="tempoHistorySummary"
-          class="historySummary"
-        >
-          本番結果はまだありません
-        </div>
-      </section>
     </main>
   </div>
 
@@ -1011,8 +1261,12 @@
     const PAGE_SIZE = 30;
     const ROWS_PER_COLUMN = 10;
 
+    /*
+     * 連打は5秒固定です。
+     */
+    const TAP_DURATION = 5;
+
     let mode = 'reflex';
-    let duration = 7;
     let practice = false;
 
     let currentData = {};
@@ -1127,8 +1381,8 @@
 
           $('qr').innerHTML =
             qr.createImgTag(
-              4,
-              4
+              6,
+              5
             );
         } catch {
           $('qr').textContent =
@@ -1147,18 +1401,14 @@
     }
 
     /* =====================================================
-       画面選択
+       ゲーム選択
        ===================================================== */
 
     function gameName(
       gameMode
     ) {
       if (gameMode === 'tap') {
-        return (
-          '連打' +
-          duration +
-          '秒'
-        );
+        return '連打5秒';
       }
 
       if (
@@ -1199,15 +1449,9 @@
           );
       });
 
-      $('durations')
-        .classList.toggle(
-          'hidden',
-          mode !== 'tap'
-        );
-
       /*
-       * テンポでも本番／練習を
-       * 自由に選べます。
+       * テンポを含め、
+       * 本番と練習を自由に切り替えます。
        */
       $('modeGroup')
         .classList.remove(
@@ -1220,7 +1464,13 @@
           mode !== 'unique'
         );
 
-      $('tempoHistory')
+      $('tempoTopTabs')
+        .classList.toggle(
+          'hidden',
+          mode !== 'tempo'
+        );
+
+      $('tempoInfo')
         .classList.toggle(
           'hidden',
           mode !== 'tempo'
@@ -1232,7 +1482,9 @@
             '/api/select-ranking',
             {
               mode,
-              duration
+
+              duration:
+                TAP_DURATION
             }
           );
 
@@ -1255,39 +1507,6 @@
           choose(gameMode);
         };
     });
-
-    document
-      .querySelectorAll(
-        '[data-duration]'
-      )
-      .forEach(button => {
-        button.onclick = () => {
-          duration =
-            Number(
-              button.dataset
-                .duration
-            );
-
-          page = 1;
-
-          document
-            .querySelectorAll(
-              '[data-duration]'
-            )
-            .forEach(
-              durationButton => {
-                durationButton
-                  .classList.toggle(
-                    'on',
-                    durationButton ===
-                      button
-                  );
-              }
-            );
-
-          selectRanking();
-        };
-      });
 
     $('official').onclick = () => {
       practice = false;
@@ -1341,8 +1560,7 @@
           'idle';
 
         if (
-          uniqueStatus ===
-          'open'
+          uniqueStatus === 'open'
         ) {
           $('mainAction')
             .textContent =
@@ -1352,8 +1570,7 @@
             .className =
               'action orange';
         } else if (
-          uniqueStatus ===
-          'closed'
+          uniqueStatus === 'closed'
         ) {
           $('mainAction')
             .textContent =
@@ -1456,20 +1673,25 @@
         return;
       }
 
-      $('mainAction').textContent =
-        (
-          mode === 'tap'
-            ? '連打' +
-              duration +
-              '秒'
-            : '反射神経'
-        ) +
-        'を開始' +
-        (
-          practice
-            ? '［練習］'
-            : ''
-        );
+      if (mode === 'tap') {
+        $('mainAction')
+          .textContent =
+            '連打5秒を開始' +
+            (
+              practice
+                ? '［練習］'
+                : ''
+            );
+      } else {
+        $('mainAction')
+          .textContent =
+            '反射神経を開始' +
+            (
+              practice
+                ? '［練習］'
+                : ''
+            );
+      }
 
       $('mainAction').className =
         'action start';
@@ -1528,7 +1750,10 @@
             '/api/start',
             {
               mode,
-              duration,
+
+              duration:
+                TAP_DURATION,
+
               practice
             }
           );
@@ -1541,12 +1766,11 @@
 
     $('force').onclick =
       async () => {
-        const confirmed =
-          confirm(
+        if (
+          !confirm(
             '未完了者がいても結果を確定しますか？'
-          );
-
-        if (!confirmed) {
+          )
+        ) {
           return;
         }
 
@@ -1563,12 +1787,11 @@
 
     $('reset').onclick =
       async () => {
-        const confirmed =
-          confirm(
+        if (
+          !confirm(
             '全ゲームの記録をリセットしますか？'
-          );
-
-        if (!confirmed) {
+          )
+        ) {
           return;
         }
 
@@ -1585,12 +1808,11 @@
 
     $('resetAll').onclick =
       async () => {
-        const confirmed =
-          confirm(
+        if (
+          !confirm(
             '参加者を含めて全リセットしますか？'
-          );
-
-        if (!confirmed) {
+          )
+        ) {
           return;
         }
 
@@ -1625,7 +1847,7 @@
         stats.roundCompleted || 0;
 
       /*
-       * answering / result / playingなどは
+       * answering・result・playingなどは
        * 要確認へ表示しません。
        */
       const issues =
@@ -1679,10 +1901,6 @@
       } else if (
         !issues.length
       ) {
-        /*
-         * 「直前の結果を確認」中も
-         * player.htmlからstandbyとして通知されます。
-         */
         $('status').textContent =
           '✓ ゲーム開始可能';
 
@@ -1696,31 +1914,6 @@
 
         $('status').className =
           'status warn';
-      }
-
-      $('tempoInfo')
-        .classList.toggle(
-          'hidden',
-          stats.mode !==
-            'tempo'
-        );
-
-      if (
-        stats.mode === 'tempo'
-      ) {
-        $('tempoInfo').textContent =
-          stats.tempoMs
-            ? (
-                '今回のテンポ：' +
-                (
-                  stats.tempoMs /
-                  1000
-                ).toFixed(1) +
-                '秒'
-              )
-            : (
-                '本番は速め・標準・遅めを1回ずつ抽選'
-              );
       }
 
       renderBoard(data);
@@ -1820,11 +2013,6 @@
     ) {
       const ordered = [];
 
-      /*
-       * 1、11、21
-       * 2、12、22
-       * の順に配置します。
-       */
       for (
         let row = 0;
         row <
@@ -1971,10 +2159,6 @@
         return;
       }
 
-      /*
-       * 空き枠にも透明セルを入れるため、
-       * 最終ページの列順が崩れません。
-       */
       $('board').innerHTML =
         displayRecords
           .map(record =>
@@ -2017,30 +2201,39 @@
                 );
 
             return `
-              <div>
-                ${
-                  [
-                    '',
-                    '🥇',
-                    '🥈',
-                    '🥉'
-                  ][place]
-                }
-                ${place}位
-                <br>
+              <div
+                class="podiumCard place${place}"
+              >
+                <div class="podiumPlace">
+                  ${
+                    [
+                      '',
+                      '🥇',
+                      '🥈',
+                      '🥉'
+                    ][place]
+                  }
+                  ${place}位
+                </div>
 
-                ${
-                  entry
-                    ? (
-                        escapeHtml(
+                <div class="podiumName">
+                  ${
+                    entry
+                      ? escapeHtml(
                           entry.name
-                        ) +
-                        '<br>' +
-                        '数字 ' +
+                        )
+                      : '該当なし'
+                  }
+                </div>
+
+                <div class="podiumNumber">
+                  ${
+                    entry
+                      ? '数字 ' +
                         entry.number
-                      )
-                    : '該当なし'
-                }
+                      : ''
+                  }
+                </div>
               </div>
             `;
           })
@@ -2217,7 +2410,7 @@
                     Math.round(
                       count /
                       maxCount *
-                      218
+                      255
                     )
                   )
                 : 0;
@@ -2258,14 +2451,14 @@
     }
 
     /* =====================================================
-       テンポ履歴
+       テンポラウンド切替
        ===================================================== */
 
-    function renderTempoHistory(
+    function renderTempoViews(
       history,
       overallBoard
     ) {
-      const availableRounds =
+      const roundViews =
         history
           .filter(Boolean)
           .map(entry => ({
@@ -2291,7 +2484,7 @@
           }));
 
       const views = [
-        ...availableRounds,
+        ...roundViews,
 
         {
           key: 'overall',
@@ -2313,12 +2506,12 @@
 
       if (!selectedExists) {
         selectedTempoView =
-          availableRounds[0]
+          roundViews[0]
             ?.key ||
           'overall';
       }
 
-      $('tempoHistoryTabs')
+      $('tempoTopTabs')
         .innerHTML =
           views
             .map(entry => `
@@ -2352,7 +2545,7 @@
 
               page = 1;
 
-              renderTempoHistory(
+              renderTempoViews(
                 history,
                 overallBoard
               );
@@ -2367,7 +2560,12 @@
         ) ||
         views.at(-1);
 
-      $('tempoHistorySummary')
+      $('title').textContent =
+        '🎵 テンポゲーム ' +
+        selected.label +
+        'ランキング';
+
+      $('tempoInfo')
         .textContent =
           selected.tempoMs
             ? (
@@ -2382,11 +2580,6 @@
             : (
                 '本番3ラウンドすべての平均による総合ランキング'
               );
-
-      $('title').textContent =
-        '🎵 テンポゲーム ' +
-        selected.label +
-        'ランキング';
 
       renderStandardBoard(
         selected.board,
@@ -2438,7 +2631,13 @@
           !isUnique
         );
 
-      $('tempoHistory')
+      $('tempoTopTabs')
+        .classList.toggle(
+          'hidden',
+          !isTempo
+        );
+
+      $('tempoInfo')
         .classList.toggle(
           'hidden',
           !isTempo
@@ -2465,7 +2664,7 @@
       }
 
       if (isTempo) {
-        renderTempoHistory(
+        renderTempoViews(
           data.tempoHistory ||
           [],
           board
@@ -2473,6 +2672,9 @@
 
         return;
       }
+
+      $('tempoTopTabs').innerHTML =
+        '';
 
       const unit =
         stats.mode === 'tap'
@@ -2483,9 +2685,7 @@
         stats.mode === 'tap'
       ) {
         $('title').textContent =
-          '🏆 連打' +
-          stats.duration +
-          '秒ランキング';
+          '🏆 連打5秒ランキング';
       } else {
         $('title').textContent =
           '🏆 反射神経ランキング';
