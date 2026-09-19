@@ -13,6 +13,9 @@ const players = new Map();
 const playerStreams = new Map();
 const hostStreams = new Set();
 
+const removedPlayerIds = new Set();
+const removedClientKeys = new Set();
+
 const uid = () => crypto.randomBytes(12).toString('hex');
 
 let generation = uid();
@@ -342,12 +345,14 @@ function createPresence() {
     }
 
     detail.push({
-      name: player.name,
-      state: !online
-        ? '切断・未確認'
-        : !player.visible
-          ? '画面非表示'
-          : player.state
+  id: playerId,
+  name: player.name,
+
+  state: !online
+    ? '切断・未確認'
+    : !player.visible
+      ? '画面非表示'
+      : player.state
     });
   }
 
@@ -911,6 +916,9 @@ const server = http.createServer(async (req, res) => {
 
       const name = cleanName(body.name);
       const clientKey = String(body.clientKey || '');
+      if (clientKey) {
+  removedClientKeys.delete(clientKey);
+}
 
       const existing =
         findByClientKey(clientKey) ||
@@ -957,6 +965,19 @@ const server = http.createServer(async (req, res) => {
       const requestedId = String(body.id || '');
       const requestedName = String(body.name || '').trim();
       const clientKey = String(body.clientKey || '');
+      if (
+  removedPlayerIds.has(requestedId) ||
+  (
+    clientKey &&
+    removedClientKeys.has(clientKey)
+  )
+) {
+  return sendJson(res, 404, {
+    playerMissing: true,
+    removed: true,
+    sessionGeneration: generation
+  });
+}
 
       if (
         body.sessionGeneration === generation &&
@@ -1027,6 +1048,100 @@ const server = http.createServer(async (req, res) => {
         sessionGeneration: generation
       });
     }
+
+    if (
+  req.method === 'POST' &&
+  pathname === '/api/remove-player'
+) {
+  const body = await readJson(req);
+  const playerId = String(body.id || '');
+
+  if (!players.has(playerId)) {
+    return sendJson(res, 404, {
+      playerMissing: true
+    });
+  }
+
+  /*
+   * 接続中の参加者は誤削除防止のため削除しません。
+   * 「切断・未確認」の参加者だけ削除できます。
+   */
+  if (playerStreams.has(playerId)) {
+    return sendJson(res, 409, {
+      playerConnected: true
+    });
+  }
+
+  const player = players.get(playerId);
+
+  /*
+   * 古い参加者IDと端末キーを記録し、
+   * Safari再起動時に誤登録が復活することを防ぎます。
+   */
+  removedPlayerIds.add(playerId);
+
+  if (player.clientKey) {
+    removedClientKeys.add(
+      player.clientKey
+    );
+  }
+
+  /*
+   * 進行中ラウンドの回答対象からも削除します。
+   */
+  if (
+    active.results instanceof Map
+  ) {
+    active.results.delete(playerId);
+  }
+
+  if (
+    active.answers instanceof Map
+  ) {
+    active.answers.delete(playerId);
+  }
+
+  /*
+   * テンポゲームの各ラウンド記録も削除します。
+   */
+  tempoHistory = tempoHistory.ma*(
+    history => {
+      if (!hist*ry) {
+        return history;
+    * }
+
+      return {
+        ...hist*ry,
+
+        board: (
+          hi*tory.board || []
+        ).filter(
+          row =>
+            row.id !== playerId &&
+            row.name !== player.name
+        )
+      };
+    }
+  );
+
+  players.delete(playerId);
+
+  pushHostState();
+
+  /*
+   * 切断参加者が原因で全員完了になっていなかった場合、
+   * 削除後に自動結果確定を再判定します。
+   */
+  setTimeout(
+    maybeFinish,
+ *  0
+  );
+
+  return*sendJson(res, 200, {
+    ok: true,*    removedId: playerId,
+    remov*dName: player.name
+  });
+}
 
     if (req.method === 'POST' && pathname === '/api/state') {
       const body = await readJson(req);
@@ -1526,6 +1641,9 @@ const server = http.createServer(async (req, res) => {
 
       playerStreams.clear();
       players.clear();
+
+      removedPlayerIds*clear();
+removedClientKeys.clear()*
 
       generation = uid();
       roundNo = 0;
