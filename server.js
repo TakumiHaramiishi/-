@@ -1280,187 +1280,113 @@ function maybeFinish() {
    ========================================================= */
 
 function evaluateUnique() {
-  const counts =
-    new Map();
+  const counts = new Map();
 
-  for (
-    const number of
-      active.answers.values()
-  ) {
-    counts.set(
-      number,
-
-      (
-        counts.get(number) ||
-        0
-      ) + 1
-    );
+  for (const number of active.answers.values()) {
+    counts.set(number, (counts.get(number) || 0) + 1);
   }
 
-  const uniqueNumbers = [
-    ...counts
-  ]
-    .filter(
-      (
-        [
-          ,
-          count
-        ]
-      ) =>
-        count === 1
-    )
-    .map(
-      ([number]) =>
-        number
-    )
-    .sort(
-      (
-        left,
-        right
-      ) =>
-        right - left
-    );
+  /* ユニーク数字（1人だけが選んだ数字）を大きい順に並べる */
+  const uniqueNumbers = [...counts]
+    .filter(([, count]) => count === 1)
+    .map(([number]) => number)
+    .sort((left, right) => right - left);
 
-  const podium =
-    uniqueNumbers
-      .slice(0, 3)
-      .map(
-        (
+  /* 数字から、その数字を選んだ参加者を探す */
+  const findEntry = number => {
+    for (const [answerPlayerId, answerNumber] of active.answers) {
+      if (answerNumber === number) {
+        return {
           number,
-          index
-        ) => {
-          let playerId = '';
-          let playerName = '';
+          id: answerPlayerId,
+          name: players.get(answerPlayerId)?.name || ''
+        };
+      }
+    }
 
-          for (
-            const [
-              answerPlayerId,
-              answerNumber
-            ] of
-              active.answers
-          ) {
-            if (
-              answerNumber ===
-              number
-            ) {
-              playerId =
-                answerPlayerId;
+    return {
+      number,
+      id: '',
+      name: ''
+    };
+  };
 
-              playerName =
-                players.get(
-                  answerPlayerId
-                )?.name || '';
+  /* 1位・2位・3位 */
+  const podium = uniqueNumbers
+    .slice(0, 3)
+    .map((number, index) => ({
+      place: index + 1,
+      ...findEntry(number)
+    }));
 
-              break;
-            }
-          }
+  /*
+   * ブービー・ブービーメーカー
+   * 1～3位以外のユニーク数字を小さい順に並べ、
+   * 1番小さい数字をブービーメーカー、
+   * 2番目に小さい数字をブービー賞とする
+   */
+  const lowerNumbers = uniqueNumbers
+    .slice(3)
+    .sort((left, right) => left - right);
 
-          return {
-            place:
-              index + 1,
+  const boobyMaker =
+    lowerNumbers.length >= 1
+      ? findEntry(lowerNumbers[0])
+      : null;
 
-            number,
+  const booby =
+    lowerNumbers.length >= 2
+      ? findEntry(lowerNumbers[1])
+      : null;
 
-            id:
-              playerId,
+  const winningNumber = uniqueNumbers[0] ?? null;
 
-            name:
-              playerName
-          };
-        }
-      );
+  const winners = podium[0]
+    ? [podium[0].name]
+    : [];
 
-  const winningNumber =
-    uniqueNumbers[0] ??
-    null;
-
-  const winners =
-    podium[0]
-      ? [
-          podium[0].name
-        ]
-      : [];
-
-  if (
-    !active.practice &&
-    podium[0]
-  ) {
-    const winner =
-      players.get(
-        podium[0].id
-      );
+  if (!active.practice && podium[0]) {
+    const winner = players.get(podium[0].id);
 
     if (winner) {
-      winner.uniquePoints +=
-        1;
-
-      winner.uniqueWins +=
-        1;
+      winner.uniquePoints += 1;
+      winner.uniqueWins += 1;
     }
   }
 
   const result = {
-    historyId:
-      uid(),
-
-    roundId:
-      roundNo,
-
-    roundNumber:
-      uniqueHistory.length +
-      1,
+    historyId: uid(),
+    roundId: roundNo,
+    roundNumber: uniqueHistory.length + 1,
 
     winningNumber,
     winners,
     podium,
+    booby,
+    boobyMaker,
 
-    answerCount:
-      active.answers.size,
+    answerCount: active.answers.size,
 
-    distribution: [
-      ...counts
-    ]
-      .sort(
-        (
-          left,
-          right
-        ) =>
-          left[0] -
-          right[0]
-      )
-      .map(
-        (
-          [
-            number,
-            count
-          ]
-        ) => ({
-          number,
-          count,
+    distribution: [...counts]
+      .sort((left, right) => left[0] - right[0])
+      .map(([number, count]) => ({
+        number,
+        count,
+        unique: count === 1,
+        winner: number === winningNumber
+      })),
 
-          unique:
-            count === 1,
-
-          winner:
-            number ===
-            winningNumber
-        })
-      ),
-
-    practice:
-      active.practice
+    practice: active.practice
   };
 
-  if (
-    !active.practice
-  ) {
-    uniqueHistory.push(
-      result
-    );
+  if (!active.practice) {
+    uniqueHistory.push(result);
   }
 
   return result;
 }
+
+
 
 function revealUnique() {
   if (
