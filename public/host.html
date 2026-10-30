@@ -1894,7 +1894,7 @@ function renderBoard(data) {
 
   $('board').classList.toggle('hidden', isUnique);
   $('podium').classList.toggle('hidden', !isUnique);
-  $('awards').classList.toggle('hidden', isUnique || isTempo);
+  $('awards').classList.toggle('hidden', isTempo);
   $('uniqueHistory').classList.toggle('hidden', !isUnique);
   $('tempoTopTabs').classList.toggle('hidden', !isTempo);
   $('tempoInfo').classList.toggle('hidden', !isTempo);
@@ -1904,6 +1904,16 @@ function renderBoard(data) {
     $('pager').innerHTML = '';
     renderUniquePodium(data.uniqueHistory || []);
     renderUniqueHistory(data.uniqueHistory || []);
+        const latestUnique =
+      data.uniqueResult || (data.uniqueHistory || []).at(-1);
+
+    $('booby').textContent = latestUnique?.booby
+      ? latestUnique.booby.name + '（数字 ' + latestUnique.booby.number + '）'
+      : '該当なし';
+
+    $('maker').textContent = latestUnique?.boobyMaker
+      ? latestUnique.boobyMaker.name + '（数字 ' + latestUnique.boobyMaker.number + '）'
+      : '該当なし';
     return;
   }
 
