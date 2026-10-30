@@ -3466,6 +3466,133 @@ const server =
           );
         }
 
+                /* -----------------------------
+           説明動画・BGMの配信
+           ----------------------------- */
+
+        if (
+          req.method === 'GET' &&
+          (
+            pathname.startsWith('/videos/') ||
+            pathname.startsWith('/bgm/')
+          )
+        ) {
+          const filePath = path.normalize(
+            path.join(
+              PUBLIC,
+              decodeURIComponent(pathname)
+            )
+          );
+
+          if (!filePath.startsWith(PUBLIC)) {
+            res.writeHead(403);
+            res.end('Forbidden');
+            return;
+          }
+
+          const mediaTypes = {
+            '.mp4': 'video/mp4',
+            '.webm': 'video/webm',
+            '.mov': 'video/quicktime',
+            '.mp3': 'audio/mpeg',
+            '.m4a': 'audio/mp4',
+            '.wav': 'audio/wav',
+            '.ogg': 'audio/ogg'
+          };
+
+          const contentType =
+            mediaTypes[
+              path.extname(filePath).toLowerCase()
+            ];
+
+          let fileStat = null;
+
+          try {
+            fileStat = fs.statSync(filePath);
+          } catch {
+            fileStat = null;
+          }
+
+          if (
+            !contentType ||
+            !fileStat ||
+            !fileStat.isFile()
+          ) {
+            res.writeHead(404);
+            res.end('Not found');
+            return;
+          }
+
+          const fileSize = fileStat.size;
+          const rangeHeader = req.headers.range;
+
+          if (rangeHeader) {
+            const match =
+              /bytes=(\d*)-(\d*)/.exec(rangeHeader);
+
+            let start = 0;
+            let end = fileSize - 1;
+
+            if (match && match[1]) {
+              start = parseInt(match[1], 10);
+
+              if (match[2]) {
+                end = parseInt(match[2], 10);
+              }
+            } else if (match && match[2]) {
+              start = Math.max(
+                0,
+                fileSize - parseInt(match[2], 10)
+              );
+            }
+
+            end = Math.min(end, fileSize - 1);
+
+            if (
+              !Number.isFinite(start) ||
+              !Number.isFinite(end) ||
+              start > end ||
+              start >= fileSize
+            ) {
+              res.writeHead(416, {
+                'Content-Range':
+                  `bytes */${fileSize}`
+              });
+
+              res.end();
+              return;
+            }
+
+            res.writeHead(206, {
+              'Content-Type': contentType,
+              'Content-Length': end - start + 1,
+              'Content-Range':
+                `bytes ${start}-${end}/${fileSize}`,
+              'Accept-Ranges': 'bytes',
+              'Cache-Control': 'public, max-age=3600'
+            });
+
+            fs.createReadStream(
+              filePath,
+              {
+                start,
+                end
+              }
+            ).pipe(res);
+
+            return;
+          }
+
+          res.writeHead(200, {
+            'Content-Type': contentType,
+            'Content-Length': fileSize,
+            'Accept-Ranges': 'bytes',
+            'Cache-Control': 'public, max-age=3600'
+          });
+
+          fs.createReadStream(filePath).pipe(res);
+          return;
+        }
         res.writeHead(404);
         res.end('Not found');
       } catch (error) {
